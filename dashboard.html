@@ -35,7 +35,7 @@ layout: layout.html
       </button>
     </form>
 
-    <!-- STATE B: REGISTER (SIGN UP) FORM (Hidden by default) -->
+    <!-- STATE B: REGISTER (SIGN UP) FORM -->
     <form id="register-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Create Client Account</h1>
@@ -58,7 +58,7 @@ layout: layout.html
       </button>
     </form>
 
-    <!-- STATE C: ACCOUNT VERIFICATION (CODE) FORM (Hidden by default, shown after sign-up) -->
+    <!-- STATE C: ACCOUNT VERIFICATION (CODE) FORM -->
     <form id="verify-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Verify Your Email</h1>
@@ -73,7 +73,7 @@ layout: layout.html
       </button>
     </form>
 
-    <!-- STATE D: FORGOT PASSWORD REQUEST FORM (Hidden by default) -->
+    <!-- STATE D: FORGOT PASSWORD REQUEST FORM -->
     <form id="forgot-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Reset Password</h1>
@@ -89,7 +89,7 @@ layout: layout.html
       <button type="button" id="btn-cancel-forgot" class="w-full text-center text-xs font-semibold text-slate-500 hover:underline mt-2">Back to Login</button>
     </form>
 
-    <!-- STATE E: CONFIRM PASSWORD RESET FORM (Hidden by default, shown after forgot request) -->
+    <!-- STATE E: CONFIRM PASSWORD RESET FORM -->
     <form id="reset-confirm-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Set New Password</h1>
@@ -138,18 +138,22 @@ layout: layout.html
       </div>
 
       <!-- 2. Documents Vault -->
-      <div class="border border-slate-100 p-6 rounded-2xl bg-slate-50/50 space-y-3 md:col-span-2">
-        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Secure Document Upload</h3>
+      <div class="border border-slate-100 p-6 rounded-2xl bg-slate-50/50 space-y-3 md:col-span-2 space-y-4">
+        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Secure Document Vault</h3>
         <p class="text-xs text-slate-500">Upload tax slips, PDF statements, or receipts directly to your secure folder.</p>
         <div class="flex gap-3">
-          <input type="file" id="document-upload" class="hidden" />
+          <input type="file" id="document-upload" class="hidden" multiple />
           <button onclick="document.getElementById('document-upload').click()" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-brand-500 hover:bg-brand-400 transition shadow">
-            Choose PDF File
+            Choose PDF Files
           </button>
           <button id="upload-btn" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition">
             Upload to Vault
           </button>
         </div>
+        
+        <!-- Premium Visual Queue List Container -->
+        <div id="queue-list" class="space-y-2 mt-4"></div>
+        
         <p id="upload-status" class="text-xs text-slate-600 italic mt-2"></p>
       </div>
     </div>
@@ -181,9 +185,10 @@ layout: layout.html
   const btnChangePass = document.getElementById('btn-change-pass');
   const logoutBtn = document.getElementById('logout-btn');
 
-  // Keep track of the resetting/registering email
+  // Keep track of the resetting/registering email and our custom upload queue
   let pendingVerificationEmail = "";
   let pendingResetEmail = "";
+  let fileQueue = [];
 
   // Check login session on load
   const token = localStorage.getItem('id_token');
@@ -496,25 +501,70 @@ layout: layout.html
     });
   }
 
-  // 8. SECURE DOCUMENT UPLOAD FLOW (API-driven S3 Presigned Upload)
+  // 8. SECURE DOCUMENT UPLOAD FLOW (With Custom Local Queue Editor!)
   const uploadBtn = document.getElementById('upload-btn');
   const fileInput = document.getElementById('document-upload');
   const uploadStatus = document.getElementById('upload-status');
+  const queueList = document.getElementById('queue-list');
+
+  // Redraw the list of files currently in our local queue with [Remove] buttons
+  function renderQueueList() {
+    if (!queueList) return;
+    queueList.innerHTML = ""; // Clear existing list
+
+    if (fileQueue.length === 0) {
+      uploadStatus.innerText = "";
+      return;
+    }
+
+    uploadStatus.innerText = `Selected ${fileQueue.length} file(s) pending transmission:`;
+
+    fileQueue.forEach((file, index) => {
+      const row = document.createElement('div');
+      row.className = "flex justify-between items-center bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-semibold text-slate-700";
+      
+      row.innerHTML = `
+        <span class="truncate max-w-[240px]">${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
+        <button type="button" onclick="removeFileFromQueue(${index})" class="text-red-500 hover:text-red-700 hover:underline focus:outline-none">
+          Remove
+        </button>
+      `;
+      queueList.appendChild(row);
+    });
+  }
+
+  // Global function to remove a file from our custom array
+  window.removeFileFromQueue = function(index) {
+    fileQueue.splice(index, 1); // Delete from array
+    renderQueueList(); // Redraw UI
+  }
 
   if (uploadBtn && fileInput && uploadStatus) {
     
-    // Display the selected filename as soon as the user chooses it
+    // Accumulate files in our custom queue every time the user chooses more files
     fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
-      if (file) {
-        uploadStatus.innerText = `Selected file: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+      const selectedFiles = fileInput.files;
+      
+      for (let i = 0; i < selectedFiles.length; i++) {
+        // Prevent duplicate files from being added to the queue
+        const isDuplicate = fileQueue.some(queuedFile => 
+          queuedFile.name === selectedFiles[i].name && 
+          queuedFile.size === selectedFiles[i].size
+        );
+        
+        if (!isDuplicate) {
+          fileQueue.push(selectedFiles[i]);
+        }
       }
+
+      renderQueueList(); // Redraw our new interactive list
+      fileInput.value = ""; // Clear browser picker so they can click "Choose" again for same file if they wanted to
     });
 
     uploadBtn.addEventListener('click', async () => {
-      const file = fileInput.files[0];
-      if (!file) {
-        alert("Please choose a PDF file to upload first!");
+      // Check our custom queue instead of the browser's default file picker
+      if (fileQueue.length === 0) {
+        alert("Please choose one or more PDF files to upload first!");
         return;
       }
 
@@ -525,55 +575,66 @@ layout: layout.html
         return;
       }
 
-      uploadStatus.innerText = "Requesting secure upload authorization...";
       uploadBtn.disabled = true;
 
       try {
-        const authResponse = await fetch('https://t335pn6gs2.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: "getUploadUrl",
-            fileName: file.name,
-            fileType: file.type,
-            userEmail: userEmail
-          })
-        });
+        const totalFiles = fileQueue.length;
+        
+        // Loop sequentially through all accumulated files inside our custom queue
+        for (let i = 0; i < fileQueue.length; i++) {
+          const file = fileQueue[i];
+          uploadStatus.innerText = `[${i + 1}/${totalFiles}] Requesting secure authorization for ${file.name}...`;
 
-        const authResult = await authResponse.json();
+          // Step 1: Request a secure Presigned URL for this specific file from AWS Lambda
+          const authResponse = await fetch('https://t335pn6gs2.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: "getUploadUrl",
+              fileName: file.name,
+              fileType: file.type,
+              userEmail: userEmail
+            })
+          });
 
-        if (!authResponse.ok || authResult.status !== 'SUCCESS') {
-          throw new Error(authResult.message || "Failed to authorize upload.");
-        }
+          const authResult = await authResponse.json();
 
-        uploadStatus.innerText = "Transmitting file directly to S3 Vault...";
+          if (!authResponse.ok || authResult.status !== 'SUCCESS') {
+            throw new Error(authResult.message || `Failed to authorize upload for ${file.name}`);
+          }
 
-        const uploadResponse = await fetch(authResult.uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file
-        });
+          uploadStatus.innerText = `[${i + 1}/${totalFiles}] Transmitting ${file.name} directly to S3 Vault...`;
 
-        if (uploadResponse.ok) {
-          uploadStatus.innerText = "Securing file and notifying advisory team...";
+          // Step 2: Stream the binary file directly to S3 using the Presigned URL
+          const uploadResponse = await fetch(authResult.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file
+          });
 
-          // Trigger the Lambda to generate a secure download link and send the SES email
+          if (!uploadResponse.ok) {
+            throw new Error(`S3 rejected the file transmission for ${file.name}`);
+          }
+
+          uploadStatus.innerText = `[${i + 1}/${totalFiles}] Securing file and notifying advisors of ${file.name}...`;
+
+          // Step 3: Trigger the Lambda to generate a secure download link and send the SES email
           await fetch('https://t335pn6gs2.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               action: "notifyUploadComplete",
               fileKey: authResult.fileKey,
               userEmail: userEmail
             })
           });
-
-          uploadStatus.innerText = `Success! File successfully encrypted and uploaded.`;
-          alert(`File successfully stored! Secure email alert dispatched to your advisors.`);
-          fileInput.value = "";
         }
+
+        // Output success and clear our custom queue and UI
+        uploadStatus.innerText = `Success! All ${totalFiles} files successfully uploaded and encrypted.`;
+        alert(`All ${totalFiles} files successfully stored! Secure email alert dispatched to your advisors.`);
+        fileQueue = []; // Clear our custom queue array
+        renderQueueList(); // Redraw (clear) list
 
       } catch (err) {
         console.error('Upload Error:', err);
