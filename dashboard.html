@@ -495,4 +495,92 @@ layout: layout.html
       showLogin();
     });
   }
+
+  // 8. SECURE DOCUMENT UPLOAD FLOW (API-driven S3 Presigned Upload)
+  const uploadBtn = document.getElementById('upload-btn');
+  const fileInput = document.getElementById('document-upload');
+  const uploadStatus = document.getElementById('upload-status');
+
+  if (uploadBtn && fileInput && uploadStatus) {
+    
+    // Display the selected filename as soon as the user chooses it
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) {
+        uploadStatus.innerText = `Selected file: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+      }
+    });
+
+    uploadBtn.addEventListener('click', async () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("Please choose a PDF file to upload first!");
+        return;
+      }
+
+      const userEmail = localStorage.getItem('user_email');
+      if (!userEmail) {
+        alert("Session expired. Please sign in again.");
+        showLogin();
+        return;
+      }
+
+      uploadStatus.innerText = "Requesting secure upload authorization...";
+      uploadBtn.disabled = true;
+
+      try {
+        const authResponse = await fetch('https://t335pn6gs2.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: "getUploadUrl",
+            fileName: file.name,
+            fileType: file.type,
+            userEmail: userEmail
+          })
+        });
+
+        const authResult = await authResponse.json();
+
+        if (!authResponse.ok || authResult.status !== 'SUCCESS') {
+          throw new Error(authResult.message || "Failed to authorize upload.");
+        }
+
+        uploadStatus.innerText = "Transmitting file directly to S3 Vault...";
+
+        const uploadResponse = await fetch(authResult.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file
+        });
+
+        if (uploadResponse.ok) {
+          uploadStatus.innerText = "Securing file and notifying advisory team...";
+
+          // Trigger the Lambda to generate a secure download link and send the SES email
+          await fetch('https://t335pn6gs2.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              action: "notifyUploadComplete",
+              fileKey: authResult.fileKey,
+              userEmail: userEmail
+            })
+          });
+
+          uploadStatus.innerText = `Success! File successfully encrypted and uploaded.`;
+          alert(`File successfully stored! Secure email alert dispatched to your advisors.`);
+          fileInput.value = "";
+        }
+
+      } catch (err) {
+        console.error('Upload Error:', err);
+        uploadStatus.innerText = "Upload failed. Cloud connection or CORS error.";
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+  }
 </script>
