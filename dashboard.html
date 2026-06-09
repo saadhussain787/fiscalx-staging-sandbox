@@ -24,7 +24,10 @@ layout: layout.html
         <input type="email" id="login-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
       </div>
       <div>
-        <label for="login-password" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Password</label>
+        <div class="flex justify-between items-center mb-2">
+          <label for="login-password" class="block text-xs font-bold text-slate-700 uppercase tracking-wide">Password</label>
+          <button type="button" id="link-forgot" class="text-xs font-semibold text-brand-600 hover:underline focus:outline-none">Forgot Password?</button>
+        </div>
         <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
       </div>
       <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-300 transition-all shadow-md">
@@ -70,6 +73,41 @@ layout: layout.html
       </button>
     </form>
 
+    <!-- STATE D: FORGOT PASSWORD REQUEST FORM (Hidden by default) -->
+    <form id="forgot-form" class="hidden space-y-4">
+      <div class="text-center mb-6">
+        <h1 class="text-xl font-extrabold text-slate-900">Reset Password</h1>
+        <p class="text-xs text-slate-500 mt-1">Request a secure password reset code to your email</p>
+      </div>
+      <div>
+        <label for="forgot-email" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Email Address</label>
+        <input type="email" id="forgot-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+      </div>
+      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-300 transition-all shadow-md">
+        Request Reset Code
+      </button>
+      <button type="button" id="btn-cancel-forgot" class="w-full text-center text-xs font-semibold text-slate-500 hover:underline mt-2">Back to Login</button>
+    </form>
+
+    <!-- STATE E: CONFIRM PASSWORD RESET FORM (Hidden by default, shown after forgot request) -->
+    <form id="reset-confirm-form" class="hidden space-y-4">
+      <div class="text-center mb-6">
+        <h1 class="text-xl font-extrabold text-slate-900">Set New Password</h1>
+        <p class="text-xs text-slate-500 mt-1">Enter your reset code and choose a new password</p>
+      </div>
+      <div>
+        <label for="reset-code" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">6-Digit Reset Code</label>
+        <input type="text" id="reset-code" required placeholder="123456" maxlength="6" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-center text-lg font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+      </div>
+      <div>
+        <label for="reset-password-new" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">New Password</label>
+        <input type="password" id="reset-password-new" required placeholder="Minimum 8 characters" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+      </div>
+      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-300 transition-all shadow-md">
+        Save New Password
+      </button>
+    </form>
+
   </div>
 
   <!-- 2. SECURE CUSTOMER DASHBOARD (Hidden by default, shown only when logged in) -->
@@ -80,9 +118,14 @@ layout: layout.html
         <h2 id="client-welcome" class="text-2xl font-extrabold text-slate-900 tracking-tight">Welcome Back!</h2>
         <p class="text-sm text-slate-500">Secure Corporate Tax Portal</p>
       </div>
-      <button id="logout-btn" class="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">
-        Sign Out
-      </button>
+      <div class="flex gap-3">
+        <button id="btn-change-pass" class="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">
+          Change Password
+        </button>
+        <button id="logout-btn" class="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 transition">
+          Sign Out
+        </button>
+      </div>
     </div>
 
     <!-- Grid of Portal Tools -->
@@ -126,15 +169,21 @@ layout: layout.html
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
   const verifyForm = document.getElementById('verify-form');
+  const forgotForm = document.getElementById('forgot-form');
+  const resetConfirmForm = document.getElementById('reset-confirm-form');
   const authTabs = document.getElementById('auth-tabs');
   
-  // Tab Buttons
+  // Tab Buttons & Interactive Links
   const tabSignIn = document.getElementById('tab-signin');
   const tabSignUp = document.getElementById('tab-signup');
+  const linkForgot = document.getElementById('link-forgot');
+  const btnCancelForgot = document.getElementById('btn-cancel-forgot');
+  const btnChangePass = document.getElementById('btn-change-pass');
   const logoutBtn = document.getElementById('logout-btn');
 
-  // Keep track of the registering email for verification
+  // Keep track of the resetting/registering email
   let pendingVerificationEmail = "";
+  let pendingResetEmail = "";
 
   // Check login session on load
   const token = localStorage.getItem('id_token');
@@ -164,6 +213,8 @@ layout: layout.html
     loginForm.classList.remove('hidden');
     registerForm.classList.add('hidden');
     verifyForm.classList.add('hidden');
+    forgotForm.classList.add('hidden');
+    resetConfirmForm.classList.add('hidden');
     
     tabSignIn.className = "flex-1 pb-3 text-sm font-bold border-b-2 border-brand-500 text-brand-600 focus:outline-none transition";
     tabSignUp.className = "flex-1 pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 focus:outline-none transition";
@@ -173,13 +224,26 @@ layout: layout.html
     loginForm.classList.add('hidden');
     registerForm.classList.remove('hidden');
     verifyForm.classList.add('hidden');
+    forgotForm.classList.add('hidden');
+    resetConfirmForm.classList.add('hidden');
 
     tabSignUp.className = "flex-1 pb-3 text-sm font-bold border-b-2 border-brand-500 text-brand-600 focus:outline-none transition";
     tabSignIn.className = "flex-1 pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 focus:outline-none transition";
   }
 
+  function switchToForgot() {
+    authTabs.classList.add('hidden');
+    loginForm.classList.add('hidden');
+    registerForm.classList.add('hidden');
+    verifyForm.classList.add('hidden');
+    forgotForm.classList.remove('hidden');
+    resetConfirmForm.classList.add('hidden');
+  }
+
   tabSignIn.addEventListener('click', switchToSignIn);
   tabSignUp.addEventListener('click', switchToSignUp);
+  linkForgot.addEventListener('click', switchToForgot);
+  btnCancelForgot.addEventListener('click', showLogin);
 
   // 1. SECURE SIGN IN FLOW (Cognito InitiateAuth)
   if (loginForm) {
@@ -263,9 +327,8 @@ layout: layout.html
         const result = await response.json();
 
         if (response.ok) {
-          // Temporarily store registering email and show Verification form
           pendingVerificationEmail = email;
-          authTabs.classList.add('hidden'); // Hide tabs during code verification
+          authTabs.classList.add('hidden'); 
           registerForm.classList.add('hidden');
           verifyForm.classList.remove('hidden');
         } else {
@@ -302,7 +365,7 @@ layout: layout.html
         const result = await response.json();
 
         if (response.ok) {
-          alert("Account verified successfully! You can now sign in with your permanent password.");
+          alert("Account verified successfully! You can now sign in.");
           showLogin();
         } else {
           alert('Verification failed: ' + (result.message || 'Incorrect confirmation code'));
@@ -316,7 +379,117 @@ layout: layout.html
     });
   }
 
-  // 4. SECURE SIGN OUT FLOW
+  // 4. FORGOT PASSWORD REQUEST FLOW (Cognito ForgotPassword)
+  if (forgotForm) {
+    forgotForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('forgot-email').value;
+      const submitBtn = forgotForm.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = "Triggering Reset Code..."; }
+
+      try {
+        const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': 'AWSCognitoIdentityProviderService.ForgotPassword' },
+          body: JSON.stringify({
+            ClientId: COGNITO_CLIENT_ID,
+            Username: email
+          })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          pendingResetEmail = email;
+          forgotForm.classList.add('hidden');
+          resetConfirmForm.classList.remove('hidden');
+        } else {
+          alert('Reset request failed: ' + (result.message || 'Verification email could not be targeted.'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Network error requesting password reset.');
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = "Request Reset Code"; }
+      }
+    });
+  }
+
+  // 5. CONFIRM PASSWORD RESET FLOW (Cognito ConfirmForgotPassword)
+  if (resetConfirmForm) {
+    resetConfirmForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = document.getElementById('reset-code').value;
+      const newPassword = document.getElementById('reset-password-new').value;
+      const submitBtn = resetConfirmForm.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = "Saving New Password..."; }
+
+      try {
+        const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': 'AWSCognitoIdentityProviderService.ConfirmForgotPassword' },
+          body: JSON.stringify({
+            ClientId: COGNITO_CLIENT_ID,
+            Username: pendingResetEmail,
+            ConfirmationCode: code,
+            Password: newPassword
+          })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          alert("Password successfully updated! You can now log in with your new credentials.");
+          showLogin();
+        } else {
+          alert('Password update failed: ' + (result.message || 'Incorrect code or weak password.'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Network error saving your new password.');
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = "Save New Password"; }
+      }
+    });
+  }
+
+  // 6. SECURE LOGGED-IN CHANGE PASSWORD FLOW (Cognito ChangePassword)
+  if (btnChangePass) {
+    btnChangePass.addEventListener('click', async () => {
+      const currentPassword = prompt("Change Password: Enter your CURRENT password:");
+      if (!currentPassword) return;
+      const newPassword = prompt("Change Password: Enter your NEW secure password:");
+      if (!newPassword) return;
+
+      const accessToken = localStorage.getItem('access_token');
+      if (!accessToken) { alert("Session expired. Please log in again."); showLogin(); return; }
+
+      try {
+        const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': 'AWSCognitoIdentityProviderService.ChangePassword' },
+          body: JSON.stringify({
+            PreviousPassword: currentPassword,
+            ProposedPassword: newPassword,
+            AccessToken: accessToken
+          })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          alert("Password updated successfully inside your secure AWS user profile!");
+        } else {
+          alert('Failed to update password: ' + (result.message || 'Current password incorrect or new password weak.'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Network error connecting to password update server.');
+      }
+    });
+  }
+
+  // 7. SECURE SIGN OUT FLOW
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       showLogin();
