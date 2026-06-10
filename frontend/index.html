@@ -32,7 +32,7 @@ layout: layout.html
             <a href="#appointment" class="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold text-white bg-brand-500 hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-300 transition-all duration-200 shadow-lg shadow-brand-950/20">
               Book Appointment
               <svg class="ml-2 -mr-1 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2V7a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </a>
             <a href="#services" class="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold text-slate-200 bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200">
@@ -235,8 +235,13 @@ layout: layout.html
             <a href="mailto:office@fiscalx.com" class="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold text-slate-900 bg-white hover:bg-slate-100 transition-colors focus:outline-none focus:ring-4 focus:ring-white/20">
               Schedule Call
             </a>
-            <a href="#contact" class="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors">
-              Alternative Contact
+            <!-- Get Directions Button with Custom Map-Pin SVG Icon -->
+            <a href="https://www.google.com/maps/dir/?api=1&destination=255+Duncan+Mill+Rd+Suite+206+North+York+ON+M3B+3H9" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors">
+              Get Directions
+              <svg class="ml-2 -mr-1 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
             </a>
           </div>
           <p class="text-xs text-slate-400">Zero immediate commitment. All structural assessments run under NDA guidelines.</p>
@@ -256,7 +261,6 @@ layout: layout.html
       <div class="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-slate-50 to-transparent z-10 pointer-events-none"></div>
 
       <div class="animate-marquee flex items-center gap-16 md:gap-24 py-4">
-        
         <img src="/b1.svg" alt="Allhawk Solutions" class="h-10 w-auto object-contain opacity-80 hover:opacity-100 transition duration-200" />
         <img src="/b2.svg" alt="Ceycan" class="h-10 w-auto object-contain opacity-80 hover:opacity-100 transition duration-200" />
         <img src="/b3.svg" alt="Partner Logo 3" class="h-10 w-auto object-contain opacity-80 hover:opacity-100 transition duration-200" />
@@ -266,26 +270,25 @@ layout: layout.html
         <img src="/b7.svg" alt="Partner Logo 7" class="h-10 w-auto object-contain opacity-80 hover:opacity-100 transition duration-200" />
         <img src="/b8.svg" alt="Partner Logo 8" class="h-10 w-auto object-contain opacity-80 hover:opacity-100 transition duration-200" />
         <img src="/b9.svg" alt="Partner Logo 9" class="h-10 w-auto object-contain opacity-80 hover:opacity-100 transition duration-200" />
-
       </div>
     </div>
   </section>
 
-  <!-- 6. LATEST ADVISORY INSIGHTS (TikTok Integration) -->
+  <!-- 6. LATEST ADVISORY INSIGHTS (Authority & Clean Text Card) -->
   <section class="py-16 bg-slate-900 text-white relative overflow-hidden">
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(63,98,147,0.12),transparent_40%)]"></div>
     <div class="container mx-auto px-4 md:px-8 lg:px-16 relative z-10">
       
       <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         
-        <!-- Column 1: Call to Action Brand Card -->
-        <div class="lg:col-span-5 space-y-6">
-          <div class="inline-flex items-center gap-2 bg-brand-500/10 px-4 py-2 rounded-full border border-brand-500/20 text-brand-400 font-semibold text-xs uppercase tracking-wider">
+        <!-- Left Side: Copy -->
+        <div class="lg:col-span-5 space-y-6 text-center lg:text-left">
+          <div class="inline-flex items-center gap-2 bg-brand-500/10 px-4 py-2 rounded-full border border-brand-500/20 text-brand-400 font-semibold text-xs uppercase tracking-wider mx-auto lg:mx-0">
             Active Tax Advisory
           </div>
           <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">Latest Insights from Wasim Kadri, CPA</h2>
           <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
-            Stay ahead of Canadian tax deadlines, corporate compliance changes, and financial strategies. Follow our lead advisor on TikTok for real-time breakdowns of tax-saving tips for individuals and corporations.
+            Stay ahead of Canadian tax deadlines, corporate compliance changes, and financial strategies. Follow our lead advisor on TikTok for real-time breakdowns of tax-saving tips.
           </p>
           <div class="pt-2">
             <a href="https://www.tiktok.com/@wasim.kadri.cpa" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl text-sm font-bold text-white bg-brand-500 hover:bg-brand-400 transition shadow-lg shadow-brand-500/10">
@@ -294,17 +297,65 @@ layout: layout.html
           </div>
         </div>
 
-        <!-- Column 2: Native Responsive TikTok Profile Embed -->
+        <!-- Right Side: Authority-First Custom Profile Card -->
         <div class="lg:col-span-7 flex justify-center">
-          <!-- Multi-width class added to allow wider desktop rendering -->
-          <div class="w-full max-w-[340px] lg:max-w-[650px] bg-black rounded-3xl overflow-hidden shadow-2xl border border-slate-800/80">
-            <blockquote class="tiktok-embed" cite="https://www.tiktok.com/@wasim.kadri.cpa" data-unique-id="wasim.kadri.cpa" data-embed-type="creator" style="max-width: 780px; min-width: 288px;">
-              <section>
-                <a target="_blank" href="https://www.tiktok.com/@wasim.kadri.cpa?refer=creator_embed">@wasim.kadri.cpa</a>
-              </section>
-            </blockquote>
-            <script async src="https://www.tiktok.com/embed.js"></script>
-          </div>
+          <a href="https://www.tiktok.com/@wasim.kadri.cpa" target="_blank" rel="noopener noreferrer" class="group block w-full max-w-[340px] sm:max-w-[450px] lg:max-w-[550px] bg-slate-800/40 border border-slate-700 hover:border-brand-500 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 text-left">
+            <div class="flex flex-col space-y-6">
+              
+              <!-- Authority Header -->
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex items-center gap-4">
+                  <!-- WK Circle -->
+                  <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center font-bold text-white text-xl shadow-lg border border-slate-600">
+                    WK
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-bold text-white group-hover:text-brand-400 transition-colors">Wasim Kadri, CPA</h3>
+                    <p class="text-xs font-semibold text-slate-400">@wasim.kadri.cpa</p>
+                  </div>
+                </div>
+
+                <!-- Authority Metrics -->
+                <div class="flex gap-6 text-center">
+                  <div>
+                    <p class="text-lg font-black text-white">2.4K</p>
+                    <p class="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Followers</p>
+                  </div>
+                  <div>
+                    <p class="text-lg font-black text-white">7.4K</p>
+                    <p class="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Likes</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Authority Bio -->
+              <p class="text-xs sm:text-sm text-slate-300 leading-relaxed italic border-l-2 border-brand-500 pl-4">
+                "Pay CRA what is required—and not a single penny more. Expert tax advisory and corporate structures."
+              </p>
+
+              <!-- Video List Preview Mockup -->
+              <div class="space-y-2">
+                <p class="text-[10px] uppercase tracking-widest text-slate-500 font-black mb-3">Trending Financial Guides</p>
+                <div class="bg-slate-900/50 rounded-xl px-4 py-3 border border-slate-700/50 flex justify-between items-center group/item hover:bg-slate-700/50 transition">
+                  <span class="text-xs font-bold text-slate-200">Side Hustle Tax Compliance</span>
+                  <span class="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 text-[10px]">▶</span>
+                </div>
+                <div class="bg-slate-900/50 rounded-xl px-4 py-3 border border-slate-700/50 flex justify-between items-center group/item hover:bg-slate-700/50 transition">
+                  <span class="text-xs font-bold text-slate-200">Upcoming Corporate Deadlines</span>
+                  <span class="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 text-[10px]">▶</span>
+                </div>
+                <div class="bg-slate-900/50 rounded-xl px-4 py-3 border border-slate-700/50 flex justify-between items-center group/item hover:bg-slate-700/50 transition">
+                  <span class="text-xs font-bold text-slate-200">Uber & Gig Economy Deductions</span>
+                  <span class="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 text-[10px]">▶</span>
+                </div>
+              </div>
+
+              <!-- CTA Button -->
+              <div class="w-full inline-flex items-center justify-center py-3.5 rounded-xl text-xs font-bold text-white bg-brand-500 group-hover:bg-brand-400 transition-colors shadow-md">
+                Open In TikTok App
+              </div>
+            </div>
+          </a>
         </div>
 
       </div>
@@ -328,10 +379,12 @@ layout: layout.html
   // Sticky Header Scroll effect
   window.addEventListener('scroll', () => {
     const header = document.querySelector('header');
-    if (window.scrollY > 20) {
-      header.classList.add('shadow-md', 'py-1');
-    } else {
-      header.classList.remove('shadow-md', 'py-1');
+    if (header) {
+      if (window.scrollY > 20) {
+        header.classList.add('shadow-md', 'py-1');
+      } else {
+        header.classList.remove('shadow-md', 'py-1');
+      }
     }
   });
 </script>
