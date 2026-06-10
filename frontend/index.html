@@ -32,7 +32,7 @@ layout: layout.html
             <a href="#appointment" class="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold text-white bg-brand-500 hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-300 transition-all duration-200 shadow-lg shadow-brand-950/20">
               Book Appointment
               <svg class="ml-2 -mr-1 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2V7a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </a>
             <a href="#services" class="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold text-slate-200 bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200">
@@ -160,58 +160,74 @@ layout: layout.html
     </div>
   </section>
 
-  <!-- 3. CRUCIAL DATES -->
+  <!-- 3. IMPORTANT TAX DATES (CRA ALIGNED 2026-2027) -->
   <section id="dates" class="py-20 bg-slate-50 border-t border-slate-100 scroll-mt-12">
     <div class="container mx-auto px-4 md:px-8 lg:px-16">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         
-        <div class="lg:col-span-5 space-y-6">
-          <h2 class="text-sm font-bold tracking-widest text-brand-600 uppercase">Stay Ahead of Milestones</h2>
-          <h3 class="text-3xl font-extrabold text-slate-900 tracking-tight">Crucial Tax & Fiscal Dates</h3>
-          <p class="text-slate-600 leading-relaxed">
-            Timely submissions are key to maintaining corporate compliance. Keep track of current filing deadlines and milestones. Let our team handle direct setup, submission pipelines, and dynamic reporting before constraints apply.
+        <div class="lg:col-span-4 space-y-6">
+          <h2 class="text-sm font-bold tracking-widest text-brand-600 uppercase">Critical Deadlines</h2>
+          <h3 class="text-3xl font-extrabold text-slate-900 tracking-tight">Stay CRA Compliant</h3>
+          <p class="text-slate-600 leading-relaxed text-sm">
+            Missing a filing date can result in heavy interest and penalties. Mark these key dates in your fiscal calendar. Let our team handle direct setup before constraints apply.
           </p>
           <div class="p-4 bg-brand-50 border-l-4 border-brand-500 rounded-r-xl">
-            <p class="text-sm text-brand-800 font-medium">
-              <strong>Need custom integrations?</strong> Our clients sync dynamic calendar hooks to alert structural teams of compliance windows.
+            <p class="text-xs text-brand-800 font-bold leading-relaxed uppercase">
+              "Filing accurately and on time is your best defense against tax anxiety." <br/> — Wasim Kadri, CPA
             </p>
           </div>
         </div>
 
-        <div class="lg:col-span-7 space-y-4">
-          <div class="flex gap-4 p-5 bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all duration-200 hover:shadow-md">
+        <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- March 1: RRSP -->
+          <div class="flex gap-4 p-5 bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all hover:shadow-md">
             <div class="flex-none flex flex-col items-center justify-center h-16 w-16 bg-brand-50 rounded-xl border border-brand-100 text-brand-700">
-              <span class="text-xs uppercase font-extrabold">MAR</span>
-              <span class="text-xl font-black">15</span>
+              <span class="text-[10px] uppercase font-extrabold leading-none mb-1">MAR</span>
+              <span class="text-xl font-black leading-none">01</span>
             </div>
-            <div class="flex-1 space-y-1">
-              <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">Corporate Taxes</span>
-              <h4 class="text-base font-bold text-slate-950">Partnership & S-Corp Filings</h4>
-              <p class="text-sm text-slate-500">IRS Form 1065 & 1120-S annual calendar filing deadline.</p>
+            <div class="flex-1 space-y-0.5">
+              <h4 class="text-sm font-bold text-slate-950">RRSP Contribution</h4>
+              <p class="text-[11px] text-slate-500 leading-relaxed text-balance">Last day to contribute to an RRSP to claim for the previous tax year.</p>
             </div>
           </div>
 
-          <div class="flex gap-4 p-5 bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all duration-200 hover:shadow-md">
-            <div class="flex-none flex flex-col items-center justify-center h-16 w-16 bg-brand-50 rounded-xl border border-brand-100 text-brand-700">
-              <span class="text-xs uppercase font-extrabold">APR</span>
-              <span class="text-xl font-black">15</span>
+          <!-- April 30: Personal (FIXED HIGH-CONTRAST VISIBILITY BLOCK) -->
+          <div class="flex gap-4 p-5 bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all hover:shadow-md">
+            <!-- Uses validated bg-slate-900 with text-white applied to both month and day -->
+            <div class="flex-none flex flex-col items-center justify-center h-16 w-16 bg-slate-900 rounded-xl">
+              <span class="text-[10px] text-white uppercase font-extrabold leading-none mb-1 tracking-wider">APR</span>
+              <span class="text-xl text-white font-black leading-none">30</span>
             </div>
-            <div class="flex-1 space-y-1">
-              <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">Individual & C-Corp</span>
-              <h4 class="text-base font-bold text-slate-950">Individual Returns & Form 1120</h4>
-              <p class="text-sm text-slate-500">Traditional federal filing date and quarterly estimated tax payments due.</p>
+            <div class="flex-1 space-y-0.5">
+              <div class="inline-block px-2 py-0.5 rounded-full text-[8px] font-black bg-brand-50 text-brand-700 uppercase tracking-tighter mb-1">Peak Season</div>
+              <h4 class="text-sm font-bold text-slate-950">Personal Income Tax</h4>
+              <p class="text-[11px] text-slate-500 leading-relaxed text-balance">Federal filing deadline for individuals and balance payment deadline.</p>
             </div>
           </div>
 
-          <div class="flex gap-4 p-5 bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all duration-200 hover:shadow-md">
+          <!-- June 15: Self Employed -->
+          <div class="flex gap-4 p-5 bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all hover:shadow-md">
             <div class="flex-none flex flex-col items-center justify-center h-16 w-16 bg-brand-50 rounded-xl border border-brand-100 text-brand-700">
-              <span class="text-xs uppercase font-extrabold">JUN</span>
-              <span class="text-xl font-black">15</span>
+              <span class="text-[10px] uppercase font-extrabold leading-none mb-1">JUN</span>
+              <span class="text-xl font-black leading-none">15</span>
             </div>
-            <div class="flex-1 space-y-1">
-              <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">Q2 Estimates</span>
-              <h4 class="text-base font-bold text-slate-950">Estimated Tax Payments</h4>
-              <p class="text-sm text-slate-500">Deadline for paying second-quarter estimated individual/business taxes.</p>
+            <div class="flex-1 space-y-0.5">
+              <h4 class="text-sm font-bold text-slate-950">Self-Employed Filing</h4>
+              <p class="text-[11px] text-slate-500 leading-relaxed text-balance">Return filing deadline for self-employed individuals and their partners.</p>
+            </div>
+          </div>
+
+          <!-- Dec 31: Corporate -->
+          <div class="flex gap-4 p-5 bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all hover:shadow-md">
+            <div class="flex-none flex flex-col items-center justify-center h-16 w-16 bg-slate-900 rounded-xl">
+              <span class="text-[8px] text-white uppercase font-extrabold mb-0.5 tracking-wider">VARIES</span>
+              <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m4 0h1m-5 4h1m4 0h1m-5 4h1m4 0h1" />
+              </svg>
+            </div>
+            <div class="flex-1 space-y-0.5">
+              <h4 class="text-sm font-bold text-slate-950">Corporate T2 Returns</h4>
+              <p class="text-[11px] text-slate-500 leading-relaxed text-balance">Returns due exactly 6 months after the end of the corporation's fiscal year.</p>
             </div>
           </div>
         </div>
@@ -227,15 +243,15 @@ layout: layout.html
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(63,98,147,0.1),transparent_40%)]"></div>
         
         <div class="p-8 sm:p-12 lg:p-16 relative z-10 text-center space-y-8">
-          <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Ready to Optimize Your Fiscal Strategy?</h2>
-          <p class="text-lg text-slate-300 max-w-2xl mx-auto">
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight text-balance">Ready to Optimize Your Fiscal Strategy?</h2>
+          <p class="text-lg text-slate-300 max-w-2xl mx-auto font-light leading-relaxed">
             Schedule a focused assessment with one of our specialized corporate accountants or tax strategists today.
           </p>
           <div class="flex flex-wrap justify-center gap-4">
             <a href="mailto:office@fiscalx.com" class="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold text-slate-900 bg-white hover:bg-slate-100 transition-colors focus:outline-none focus:ring-4 focus:ring-white/20">
               Schedule Call
             </a>
-            <!-- Get Directions Button with Custom Map-Pin SVG Icon -->
+            <!-- Get Directions Button -->
             <a href="https://www.google.com/maps/dir/?api=1&destination=255+Duncan+Mill+Rd+Suite+206+North+York+ON+M3B+3H9" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors">
               Get Directions
               <svg class="ml-2 -mr-1 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -244,7 +260,7 @@ layout: layout.html
               </svg>
             </a>
           </div>
-          <p class="text-xs text-slate-400">Zero immediate commitment. All structural assessments run under NDA guidelines.</p>
+          <p class="text-xs text-slate-400 font-medium">Zero immediate commitment. All structural assessments run under NDA guidelines.</p>
         </div>
       </div>
     </div>
@@ -274,21 +290,21 @@ layout: layout.html
     </div>
   </section>
 
-  <!-- 6. LATEST ADVISORY INSIGHTS (Authority & Clean Text Card) -->
+  <!-- 6. LATEST ADVISORY INSIGHTS (TikTok Authority Card) -->
   <section class="py-16 bg-slate-900 text-white relative overflow-hidden">
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(63,98,147,0.12),transparent_40%)]"></div>
     <div class="container mx-auto px-4 md:px-8 lg:px-16 relative z-10">
       
       <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         
-        <!-- Left Side: Copy -->
+        <!-- Left Side Copy -->
         <div class="lg:col-span-5 space-y-6 text-center lg:text-left">
           <div class="inline-flex items-center gap-2 bg-brand-500/10 px-4 py-2 rounded-full border border-brand-500/20 text-brand-400 font-semibold text-xs uppercase tracking-wider mx-auto lg:mx-0">
             Active Tax Advisory
           </div>
-          <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">Latest Insights from Wasim Kadri, CPA</h2>
+          <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight text-balance">Latest Insights from Wasim Kadri, CPA</h2>
           <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
-            Stay ahead of Canadian tax deadlines, corporate compliance changes, and financial strategies. Follow our lead advisor on TikTok for real-time breakdowns of tax-saving tips.
+            Stay ahead of Canadian tax deadlines and financial strategies. Follow our lead advisor on TikTok for real-time tax-saving tips.
           </p>
           <div class="pt-2">
             <a href="https://www.tiktok.com/@wasim.kadri.cpa" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl text-sm font-bold text-white bg-brand-500 hover:bg-brand-400 transition shadow-lg shadow-brand-500/10">
@@ -297,45 +313,33 @@ layout: layout.html
           </div>
         </div>
 
-        <!-- Right Side: Authority-First Custom Profile Card -->
+        <!-- Right Side Authority Card -->
         <div class="lg:col-span-7 flex justify-center">
           <a href="https://www.tiktok.com/@wasim.kadri.cpa" target="_blank" rel="noopener noreferrer" class="group block w-full max-w-[340px] sm:max-w-[450px] lg:max-w-[550px] bg-slate-800/40 border border-slate-700 hover:border-brand-500 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 text-left">
             <div class="flex flex-col space-y-6">
               
-              <!-- Authority Header -->
+              <!-- Header -->
               <div class="flex items-start justify-between gap-4">
                 <div class="flex items-center gap-4">
-                  <!-- WK Circle -->
-                  <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center font-bold text-white text-xl shadow-lg border border-slate-600">
-                    WK
-                  </div>
+                  <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center font-bold text-white text-xl shadow-lg border border-slate-600">WK</div>
                   <div>
                     <h3 class="text-lg font-bold text-white group-hover:text-brand-400 transition-colors">Wasim Kadri, CPA</h3>
                     <p class="text-xs font-semibold text-slate-400">@wasim.kadri.cpa</p>
                   </div>
                 </div>
-
-                <!-- Authority Metrics -->
                 <div class="flex gap-6 text-center">
-                  <div>
-                    <p class="text-lg font-black text-white">2.4K</p>
-                    <p class="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Followers</p>
-                  </div>
-                  <div>
-                    <p class="text-lg font-black text-white">7.4K</p>
-                    <p class="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Likes</p>
-                  </div>
+                  <div><p class="text-lg font-black text-white">2.4K</p><p class="text-[9px] uppercase tracking-widest text-slate-400 font-bold leading-none">Followers</p></div>
+                  <div><p class="text-lg font-black text-white">7.4K</p><p class="text-[9px] uppercase tracking-widest text-slate-400 font-bold leading-none">Likes</p></div>
                 </div>
               </div>
 
-              <!-- Authority Bio -->
+              <!-- Bio -->
               <p class="text-xs sm:text-sm text-slate-300 leading-relaxed italic border-l-2 border-brand-500 pl-4">
-                "Pay CRA what is required—and not a single penny more. Expert tax advisory and corporate structures."
+                "Pay CRA what is required—and not a single penny more."
               </p>
 
-              <!-- Video List Preview Mockup -->
+              <!-- Video Preview Links -->
               <div class="space-y-2">
-                <p class="text-[10px] uppercase tracking-widest text-slate-500 font-black mb-3">Trending Financial Guides</p>
                 <div class="bg-slate-900/50 rounded-xl px-4 py-3 border border-slate-700/50 flex justify-between items-center group/item hover:bg-slate-700/50 transition">
                   <span class="text-xs font-bold text-slate-200">Side Hustle Tax Compliance</span>
                   <span class="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 text-[10px]">▶</span>
@@ -345,12 +349,12 @@ layout: layout.html
                   <span class="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 text-[10px]">▶</span>
                 </div>
                 <div class="bg-slate-900/50 rounded-xl px-4 py-3 border border-slate-700/50 flex justify-between items-center group/item hover:bg-slate-700/50 transition">
-                  <span class="text-xs font-bold text-slate-200">Uber & Gig Economy Deductions</span>
+                  <span class="text-xs font-bold text-slate-200">Uber & Gig Deductions</span>
                   <span class="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 text-[10px]">▶</span>
                 </div>
               </div>
 
-              <!-- CTA Button -->
+              <!-- Button -->
               <div class="w-full inline-flex items-center justify-center py-3.5 rounded-xl text-xs font-bold text-white bg-brand-500 group-hover:bg-brand-400 transition-colors shadow-md">
                 Open In TikTok App
               </div>
@@ -365,18 +369,7 @@ layout: layout.html
 </main>
 
 <script>
-  const menuBtn = document.getElementById('mobile-menu-btn');
-  const mobileMenu = document.getElementById('mobile-menu');
-
-  if (menuBtn && mobileMenu) {
-    menuBtn.addEventListener('click', () => {
-      const expanded = menuBtn.getAttribute('aria-expanded') === 'true';
-      menuBtn.setAttribute('aria-expanded', !expanded);
-      mobileMenu.classList.toggle('hidden');
-    });
-  }
-
-  // Sticky Header Scroll effect
+  // Simple Sticky Header Listener
   window.addEventListener('scroll', () => {
     const header = document.querySelector('header');
     if (header) {
