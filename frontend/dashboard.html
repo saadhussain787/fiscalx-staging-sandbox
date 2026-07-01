@@ -35,7 +35,7 @@ layout: layout.html
       </button>
     </form>
 
-    <!-- STATE B: REGISTER (SIGN UP) FORM -->
+    <!-- STATE B: REGISTER (SIGN UP) FORM (Hidden by default) -->
     <form id="register-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Create Client Account</h1>
@@ -58,7 +58,7 @@ layout: layout.html
       </button>
     </form>
 
-    <!-- STATE C: ACCOUNT VERIFICATION (CODE) FORM -->
+    <!-- STATE C: ACCOUNT VERIFICATION (CODE) FORM (Hidden by default, shown after sign-up) -->
     <form id="verify-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Verify Your Email</h1>
@@ -73,7 +73,7 @@ layout: layout.html
       </button>
     </form>
 
-    <!-- STATE D: FORGOT PASSWORD REQUEST FORM -->
+    <!-- STATE D: FORGOT PASSWORD REQUEST FORM (Hidden by default) -->
     <form id="forgot-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Reset Password</h1>
@@ -89,7 +89,7 @@ layout: layout.html
       <button type="button" id="btn-cancel-forgot" class="w-full text-center text-xs font-semibold text-slate-500 hover:underline mt-2">Back to Login</button>
     </form>
 
-    <!-- STATE E: CONFIRM PASSWORD RESET FORM -->
+    <!-- STATE E: CONFIRM PASSWORD RESET FORM (Hidden by default, shown after forgot request) -->
     <form id="reset-confirm-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Set New Password</h1>
@@ -162,7 +162,8 @@ layout: layout.html
 </main>
 
 <script>
-  const COGNITO_CLIENT_ID = "152joqpgph1drm7vogggav1hbk";
+  // Updated Cognito Production Client ID
+  const COGNITO_CLIENT_ID = "79d4qhnedttr14qh6gakkh5hk0";
   const COGNITO_REGION = "ca-central-1";
 
   // Containers
@@ -586,7 +587,8 @@ layout: layout.html
           uploadStatus.innerText = `[${i + 1}/${totalFiles}] Requesting secure authorization for ${file.name}...`;
 
           // Step 1: Request a secure Presigned URL for this specific file from AWS Lambda
-          const authResponse = await fetch('https://t335pn6gs2.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
+          // Updated to use Wasim's exact production API Gateway endpoint!
+          const authResponse = await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -619,7 +621,8 @@ layout: layout.html
           uploadStatus.innerText = `[${i + 1}/${totalFiles}] Securing file and notifying advisors of ${file.name}...`;
 
           // Step 3: Trigger the Lambda to generate a secure download link and send the SES email
-          await fetch('https://t335pn6gs2.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
+          // Updated to use Wasim's exact production API Gateway endpoint!
+          await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

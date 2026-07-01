@@ -7,8 +7,8 @@ const ses = new SESClient({ region: "ca-central-1" });
 
 const BUCKET_NAME = "fiscalx-document-vault-303238378489";
 
-const SENDER_EMAIL = "arfa787.sa@gmail.com"; 
-const OFFICE_EMAIL = "arfa787.sa@gmail.com"; 
+const SENDER_EMAIL = "info@fiscalx.ca"; 
+const OFFICE_EMAIL = "info@fiscalx.ca"; 
 
 export const handler = async (event) => {
     console.log("Incoming Event Payload:", JSON.stringify(event));
