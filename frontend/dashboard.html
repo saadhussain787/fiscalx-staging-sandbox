@@ -131,10 +131,10 @@ layout: layout.html
     <!-- Grid of Portal Tools -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <!-- 1. Tax Status -->
-      <div class="border border-slate-100 p-6 rounded-2xl bg-slate-50/50 space-y-3">
+      <div class="border border-slate-100 p-6 rounded-2xl bg-slate-50/50 space-y-3 col-span-1">
         <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Filing Status</h3>
         <div class="text-3xl font-extrabold text-indigo-600">Pending Review</div>
-        <p class="text-xs text-slate-500">Your corporate T2 return is currently undergoing assurance review.</p>
+        <p class="text-xs text-slate-500">Your T1 personal or T2 corporate return is currently undergoing assurance review.</p>
       </div>
 
       <!-- 2. Documents Vault -->
@@ -156,13 +156,95 @@ layout: layout.html
         
         <p id="upload-status" class="text-xs text-slate-600 italic mt-2"></p>
       </div>
+
+      <!-- 3. CRA CLIENT TAX ORGANIZER (CRA-aligned Free Onboarding Feature!) -->
+      <div class="border border-slate-100 p-6 sm:p-8 rounded-2xl bg-slate-50/50 space-y-6 md:col-span-3">
+        <div class="flex items-center gap-3">
+          <span class="inline-flex p-2.5 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold">T1</span>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">CRA Client Tax Organizer</h3>
+            <p class="text-xs text-slate-500">Automate your onboarding profile for personal and corporate tax preparation</p>
+          </div>
+        </div>
+
+        <form id="organizer-form" class="space-y-6 bg-white border border-slate-200/60 p-6 rounded-2xl shadow-sm text-left">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Full Name -->
+            <div>
+              <label for="org-fullname" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Full Name</label>
+              <input type="text" id="org-fullname" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+            </div>
+            <!-- Date of Birth -->
+            <div>
+              <label for="org-dob" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Date of Birth</label>
+              <input type="date" id="org-dob" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all bg-white" />
+            </div>
+            <!-- CRA Marital Status -->
+            <div>
+              <label for="org-marital" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">CRA Marital Status</label>
+              <select id="org-marital" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+                <option value="" disabled selected>Select an option...</option>
+                <option value="single">Single</option>
+                <option value="married">Married</option>
+                <option value="common-law">Common-Law</option>
+                <option value="divorced">Divorced / Separated</option>
+                <option value="widowed">Widowed</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- CRA Compliance Yes/No Toggles -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-100">
+            <!-- Foreign Property (T1135) -->
+            <div class="space-y-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide">Foreign Property > $100K (T1135)?</label>
+              <p class="text-[10px] text-slate-500 leading-normal">Did you own or hold specified foreign assets worth more than $100,000 CAD at any time during the year?</p>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="radio" name="org-foreign" value="yes" required class="focus:ring-brand-500 text-brand-500 h-4 w-4" /> Yes</label>
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="radio" name="org-foreign" value="no" checked class="focus:ring-brand-500 text-brand-500 h-4 w-4" /> No</label>
+              </div>
+            </div>
+
+            <!-- Sold Principal Residence -->
+            <div class="space-y-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide">Sold Principal Residence?</label>
+              <p class="text-[10px] text-slate-500 leading-normal">Did you sell or dispose of your home/principal residence (or any real estate properties) during the year?</p>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="radio" name="org-sold" value="yes" required class="focus:ring-brand-500 text-brand-500 h-4 w-4" /> Yes</label>
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="radio" name="org-sold" value="no" checked class="focus:ring-brand-500 text-brand-500 h-4 w-4" /> No</label>
+              </div>
+            </div>
+
+            <!-- CRA Eligible Dependants -->
+            <div class="space-y-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide">CRA Eligible Dependants?</label>
+              <p class="text-[10px] text-slate-500 leading-normal">Do you support any financially dependent children, spouse, or elderly parents for tax credit claims?</p>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="radio" name="org-dependants" value="yes" required class="focus:ring-brand-500 text-brand-500 h-4 w-4" /> Yes</label>
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="radio" name="org-dependants" value="no" checked class="focus:ring-brand-500 text-brand-500 h-4 w-4" /> No</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="pt-4 border-t border-slate-100">
+            <label for="org-notes" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Additional Context / Notes</label>
+            <textarea id="org-notes" rows="3" placeholder="Detail any other sources of income, medical receipts, child care expenses, or rental properties..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all"></textarea>
+          </div>
+
+          <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-300 transition-all shadow-md">
+            Transmit Onboarding Organizer
+          </button>
+        </form>
+      </div>
+
     </div>
   </div>
 
 </main>
 
 <script>
-  // Updated Cognito Production Client ID
+  // Updated Cognito Production Client ID (For Wasim's account!)
   const COGNITO_CLIENT_ID = "79d4qhnedttr14qh6gakkh5hk0";
   const COGNITO_REGION = "ca-central-1";
 
@@ -176,6 +258,7 @@ layout: layout.html
   const verifyForm = document.getElementById('verify-form');
   const forgotForm = document.getElementById('forgot-form');
   const resetConfirmForm = document.getElementById('reset-confirm-form');
+  const organizerForm = document.getElementById('organizer-form');
   const authTabs = document.getElementById('auth-tabs');
   
   // Tab Buttons & Interactive Links
@@ -502,7 +585,7 @@ layout: layout.html
     });
   }
 
-  // 8. SECURE DOCUMENT UPLOAD FLOW (With Custom Local Queue Editor!)
+  // 8. SECURE DOCUMENT UPLOAD FLOW (Supports MULTIPLE concurrent uploads!)
   const uploadBtn = document.getElementById('upload-btn');
   const fileInput = document.getElementById('document-upload');
   const uploadStatus = document.getElementById('upload-status');
@@ -615,7 +698,7 @@ layout: layout.html
           });
 
           if (!uploadResponse.ok) {
-            throw new Error(`S3 rejected the file transmission for ${file.name}`);
+            throw new Error("S3 rejected the file transmission.");
           }
 
           uploadStatus.innerText = `[${i + 1}/${totalFiles}] Securing file and notifying advisors of ${file.name}...`;
@@ -644,6 +727,61 @@ layout: layout.html
         uploadStatus.innerText = "Upload failed. Cloud connection or CORS error.";
       } finally {
         uploadBtn.disabled = false;
+      }
+    });
+  }
+
+  // 9. SECURE CANADIAN TAX ORGANIZER SUBMISSION (CRA-aligned free onboarding feature!)
+  if (organizerForm) {
+    organizerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const userEmail = localStorage.getItem('user_email');
+      if (!userEmail) { alert("Session expired. Please log in again."); showLogin(); return; }
+
+      const submitBtn = organizerForm.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Transmitting Details securely...";
+      }
+
+      // Gather input data from your new CRA form fields
+      const payload = {
+        action: "submitTaxOrganizer",
+        userEmail: userEmail,
+        fullName: document.getElementById('org-fullname').value,
+        birthDate: document.getElementById('org-dob').value,
+        maritalStatus: document.getElementById('org-marital').value,
+        foreignProperty: organizerForm.querySelector('input[name="org-foreign"]:checked').value,
+        soldResidence: organizerForm.querySelector('input[name="org-sold"]:checked').value,
+        hasDependants: organizerForm.querySelector('input[name="org-dependants"]:checked').value,
+        notes: document.getElementById('org-notes').value
+      };
+
+      try {
+        // Send data directly to Wasim's production API Gateway endpoint
+        const response = await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.status === 'SUCCESS') {
+          alert(result.message);
+          organizerForm.reset();
+        } else {
+          alert('Submission failed: ' + (result.message || 'Unknown server error'));
+        }
+      } catch (err) {
+        console.error('Submit Error:', err);
+        alert('Network error. Unable to establish connection to the AWS Cloud.');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = "Transmit Onboarding Organizer";
+        }
       }
     });
   }

@@ -5,20 +5,24 @@ import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 const s3 = new S3Client({ region: "ca-central-1" });
 const ses = new SESClient({ region: "ca-central-1" });
 
-const BUCKET_NAME = "fiscalx-document-vault-303238378489";
+// Pointing directly to Wasim's unique production S3 bucket!
+const BUCKET_NAME = "fiscalx-document-vault-673098723249";
 
+// Pointing directly to Wasim's verified professional corporate email!
 const SENDER_EMAIL = "info@fiscalx.ca"; 
 const OFFICE_EMAIL = "info@fiscalx.ca"; 
 
 export const handler = async (event) => {
     console.log("Incoming Event Payload:", JSON.stringify(event));
 
+    // Secure CORS headers for cross-domain browser connections
     const headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Allow-Methods": "OPTIONS,POST"
     };
 
+    // Auto-handle CORS preflight prechecks
     if (event.requestContext && event.requestContext.httpMethod === "OPTIONS") {
         return {
             statusCode: 200,
@@ -30,6 +34,9 @@ export const handler = async (event) => {
     try {
         const data = JSON.parse(event.body || "{}");
 
+        // ==============================================================
+        // ACTION A: GENERATE SECURE S3 PRESIGNED UPLOAD URL
+        // ==============================================================
         if (data.action === "getUploadUrl") {
             const fileName = data.fileName;
             const fileType = data.fileType;
@@ -56,6 +63,9 @@ export const handler = async (event) => {
             };
         }
 
+        // ==============================================================
+        // ACTION B: NOTIFY UPLOAD COMPLETE (Sends Email Alert)
+        // ==============================================================
         if (data.action === "notifyUploadComplete") {
             const fileKey = data.fileKey;
             const userEmail = data.userEmail;
@@ -124,6 +134,92 @@ export const handler = async (event) => {
             };
         }
 
+        // ==============================================================
+        // ACTION C: SUBMIT CANADIAN TAX ORGANIZER
+        // ==============================================================
+        if (data.action === "submitTaxOrganizer") {
+            const userEmail = data.userEmail;
+            const fullName = data.fullName;
+            const birthDate = data.birthDate;
+            const maritalStatus = data.maritalStatus;
+            const foreignProperty = data.foreignProperty;
+            const soldResidence = data.soldResidence;
+            const hasDependants = data.hasDependants;
+            const notes = data.notes;
+
+            const organizerHtml = `
+                <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                    <h2 style="color: #059669; margin-bottom: 4px;">FiscalX Onboarding</h2>
+                    <p style="font-size: 14px; color: #64748b; margin-top: 0;">Completed Client Tax Organizer (T1)</p>
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                    
+                    <p style="font-size: 15px; leading-height: 1.5;">Hello Advisory Team,</p>
+                    <p style="font-size: 15px; leading-height: 1.5;">An authenticated client has submitted their initial CRA onboarding organizer details:</p>
+                    
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <tr>
+                            <td style="padding: 12px; font-weight: bold; color: #475569; width: 180px; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Full Name:</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${fullName}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Email Address:</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;"><a href="mailto:${userEmail}">${userEmail}</a></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Date of Birth:</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${birthDate}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">CRA Marital Status:</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-transform: capitalize;">${maritalStatus}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Foreign Prop. > $100K (T1135)?</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: ${foreignProperty === "yes" ? "#b91c1c" : "#1e293b"};">${foreignProperty.toUpperCase()}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Sold Principal Residence?</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${soldResidence.toUpperCase()}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">CRA Eligible Dependants?</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${hasDependants.toUpperCase()}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; font-weight: bold; color: #475569; vertical-align: top; background-color: #f1f5f9;">Additional Context Notes:</td>
+                            <td style="padding: 12px; line-height: 1.5; color: #334155;">${notes || "None provided."}</td>
+                        </tr>
+                    </table>
+                    
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                    <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 FiscalX Professional Corporation. Secure Serverless Delivery.</p>
+                </div>
+            `;
+
+            const sesOrganizerCommand = new SendEmailCommand({
+                Source: SENDER_EMAIL,
+                Destination: { ToAddresses: [OFFICE_EMAIL] },
+                Message: {
+                    Subject: { Charset: "UTF-8", Data: `[Tax Organizer] Onboarding Details from ${fullName}` },
+                    Body: { Html: { Charset: "UTF-8", Data: organizerHtml } }
+                }
+            });
+
+            await ses.send(sesOrganizerCommand);
+
+            return {
+                statusCode: 200,
+                headers: headers,
+                body: JSON.stringify({
+                    status: "SUCCESS",
+                    message: "Your onboarding organizer details have been securely delivered to your advisor."
+                })
+            };
+        }
+
+        // ==============================================================
+        // ACTION D: PROCESS THE STANDARD CONTACT INTAKE FORM
+        // ==============================================================
         const fullName = data.fullName;
         const email = data.email;
         const service = data.service;
@@ -142,19 +238,19 @@ export const handler = async (event) => {
                 
                 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
                     <tr>
-                        <td style="padding: 12px; font-weight: bold; color: #475569; width: 140px; border-bottom: 1px solid #e2e8f0;">Full Name:</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${fullName}</td>
+                        <td style="padding: 12px; font-weight: bold; color: #475569; width: 140px; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Full Name:</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${fullName}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0;">Email:</td>
+                        <td style="padding: 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Email:</td>
                         <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;"><a href="mailto:${email}">${email}</a></td>
                     </tr>
                     <tr>
-                        <td style="padding: 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0;">Requested Service:</td>
+                        <td style="padding: 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Requested Service:</td>
                         <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-transform: capitalize;">${service}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 12px; font-weight: bold; color: #475569; vertical-align: top;">Message:</td>
+                        <td style="padding: 12px; font-weight: bold; color: #475569; vertical-align: top; background-color: #f1f5f9;">Message:</td>
                         <td style="padding: 12px; color: #475569; line-height: 1.5;">${message || "No additional context provided."}</td>
                     </tr>
                 </table>
