@@ -160,79 +160,317 @@ layout: layout.html
     </div>
   </section>
 
-  <!-- 3. IMPORTANT TAX DATES (CRA ALIGNED 2026-2027) -->
-  <section id="dates" class="py-20 bg-slate-50 border-t border-slate-100 scroll-mt-12">
+  <!-- 3. COMPREHENSIVE CRA TAX & BENEFIT CALENDAR -->
+  <section id="dates" class="py-24 bg-slate-50 border-t border-slate-100 scroll-mt-12">
     <div class="container mx-auto px-4 md:px-8 lg:px-16">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      
+      <!-- Section Header -->
+      <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+        <h2 class="text-sm font-bold tracking-widest text-brand-600 uppercase">CRA Tax & Benefit Calendar</h2>
+        <p class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+          Critical Deadlines & Government Benefit Schedules
+        </p>
+        <div class="w-12 h-1 bg-brand-500 mx-auto rounded"></div>
+        <p class="text-lg text-slate-500 font-normal">
+          Stay fully aligned with Canadian Revenue Agency guidelines. Monitor filings, deadlines, and direct-deposit dates.
+        </p>
+      </div>
+
+      <!-- Main Symmetrical Three-Column Layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch mb-12">
         
-        <div class="lg:col-span-4 space-y-6">
-          <h2 class="text-sm font-bold tracking-widest text-brand-600 uppercase">Critical Deadlines</h2>
-          <h3 class="text-3xl font-extrabold text-slate-900 tracking-tight">Stay CRA Compliant</h3>
-          <p class="text-slate-600 leading-relaxed text-sm">
-            Missing a filing date can result in heavy interest and penalties. Mark these key dates in your fiscal calendar. Let our team handle direct setup before constraints apply.
-          </p>
-          <div class="p-4 bg-brand-50 border-l-4 border-brand-500 rounded-r-xl">
-            <p class="text-xs text-brand-800 font-bold leading-relaxed uppercase">
-              "Filing accurately and on time is your best defense against tax anxiety." <br/> — Wasim Kadri, CPA
-            </p>
+        <!-- COLUMN 1: CORPORATE TAX & PAYROLL -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="border-b border-slate-100 pb-4 mb-6">
+              <div class="inline-flex p-2 bg-slate-900 text-white rounded-lg mb-3">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m4 0h1m-5 4h1m4 0h1m-5 4h1m4 0h1" />
+                </svg>
+              </div>
+              <h3 class="text-xl font-extrabold text-slate-900">Corporate Tax & Payroll</h3>
+              <p class="text-sm text-slate-500 mt-1">Essential milestones for Canadian business structures.</p>
+            </div>
+
+            <div class="space-y-6">
+              <!-- Corporate Return Deadline (Static deadline calculation: Dec 31 standard -> June 30 file) -->
+              <div class="flex gap-4 items-start active-date-item" data-deadline="06-30" data-type="tax">
+                <div class="flex-none flex items-center justify-center h-12 w-12 bg-slate-100 text-slate-700 rounded-xl border border-slate-200/50">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">Corporate Tax Filing</h4>
+                    <span class="date-badge inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider transition-colors duration-300">T2 • June 30</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">Due exactly 180 days (6 months) following your corporation's fiscal year-end.</p>
+                </div>
+              </div>
+
+              <!-- HST Filing Rules (Static example: Annual Mar 31) -->
+              <div class="flex gap-4 items-start pt-4 border-t border-slate-100 active-date-item" data-deadline="03-31" data-type="tax">
+                <div class="flex-none flex items-center justify-center h-12 w-12 bg-slate-100 text-slate-700 rounded-xl border border-slate-200/50">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l2-2 4 4m0-7l-2.25 2.25m-3.5 3.5L7 18M3 12m9-9a9 9 0 110 18 9 9 0 010-18z" />
+                  </svg>
+                </div>
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">GST/HST Schedules</h4>
+                    <span class="date-badge inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider transition-colors duration-300">HST • March 31</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    <span class="font-semibold text-slate-800">Annual:</span> File & Pay 90 days post fiscal-end.<br/>
+                    <span class="font-semibold text-slate-800">Quarterly:</span> Due last day of month following quarter-end.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Corporate Payroll Remittances (15th Monthly) -->
+              <div class="flex gap-4 items-start pt-4 border-t border-slate-100 active-date-item" data-deadline="15" data-monthly="true" data-type="tax">
+                <div class="flex-none flex items-center justify-center h-12 w-12 bg-slate-100 text-slate-700 rounded-xl border border-slate-200/50">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">Payroll Remittances</h4>
+                    <span class="date-badge inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider transition-colors duration-300">REM • 15th Monthly</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">Source deductions are due to the Receiver General on the 15th of each subsequent month.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- March 1: RRSP -->
-          <div class="flex gap-4 p-5 bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all hover:shadow-md">
-            <div class="flex-none flex flex-col items-center justify-center h-16 w-16 bg-brand-50 rounded-xl border border-brand-100 text-brand-700">
-              <span class="text-[10px] uppercase font-extrabold leading-none mb-1">MAR</span>
-              <span class="text-xl font-black leading-none">01</span>
+        <!-- COLUMN 2: INDIVIDUAL & SELF-EMPLOYED -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="border-b border-slate-100 pb-4 mb-6">
+              <div class="inline-flex p-2 bg-slate-900 text-white rounded-lg mb-3">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <h3 class="text-xl font-extrabold text-slate-900">Individual & Self-Employed</h3>
+              <p class="text-sm text-slate-500 mt-1">Key timelines for personal earnings and claims.</p>
             </div>
-            <div class="flex-1 space-y-0.5">
-              <h4 class="text-sm font-bold text-slate-950">RRSP Contribution</h4>
-              <p class="text-[11px] text-slate-500 leading-relaxed text-balance">Last day to contribute to an RRSP to claim for the previous tax year.</p>
+
+            <div class="space-y-6">
+              <!-- RRSP Contributions -->
+              <div class="flex gap-4 items-start active-date-item" data-deadline="02-28" data-type="tax">
+                <div class="flex-none flex items-center justify-center h-12 w-12 bg-slate-100 text-slate-700 rounded-xl border border-slate-200/50">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                  </svg>
+                </div>
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">RRSP Contributions</h4>
+                    <span class="date-badge inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider transition-colors duration-300">RRSP • Feb 28</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">Last calendar day to submit contributions to your RRSP portfolio for previous tax year credit eligibility.</p>
+                </div>
+              </div>
+
+              <!-- T4 and T5 Submissions -->
+              <div class="flex gap-4 items-start pt-4 border-t border-slate-100 active-date-item" data-deadline="02-28" data-type="tax">
+                <div class="flex-none flex items-center justify-center h-12 w-12 bg-slate-100 text-slate-700 rounded-xl border border-slate-200/50">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">T4 and T5 Slips</h4>
+                    <span class="date-badge inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider transition-colors duration-300">SLIPS • Feb 28</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">Corporate entities must file and distribute employee slips (T4 and T5) directly to the CRA.</p>
+                </div>
+              </div>
+
+              <!-- Personal Income Tax T1 -->
+              <div class="flex gap-4 items-start pt-4 border-t border-slate-100 active-date-item" data-deadline="04-30" data-type="tax">
+                <div class="flex-none flex items-center justify-center h-12 w-12 bg-slate-100 text-slate-700 rounded-xl border border-slate-200/50">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">Personal Tax (T1)</h4>
+                    <span class="date-badge inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider transition-colors duration-300">T1 • Apr 30</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">Federal deadline for standard individual return filings and the payment of any outstanding balances owed.</p>
+                </div>
+              </div>
+
+              <!-- Self-Employed Tax T1 -->
+              <div class="flex gap-4 items-start pt-4 border-t border-slate-100 active-date-item" data-deadline="06-15" data-type="tax">
+                <div class="flex-none flex items-center justify-center h-12 w-12 bg-slate-100 text-slate-700 rounded-xl border border-slate-200/50">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                </div>
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">Self-Employed (T1)</h4>
+                    <span class="date-badge inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider transition-colors duration-300">SELF • June 15</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    Tax return filing is extended to <span class="font-semibold text-slate-800">June 15th</span>; however, all outstanding tax balance payments remain due by <span class="font-semibold text-slate-800">April 30th</span>.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <!-- April 30: Personal (FIXED HIGH-CONTRAST VISIBILITY BLOCK) -->
-          <div class="flex gap-4 p-5 bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all hover:shadow-md">
-            <!-- Uses validated bg-slate-900 with text-white applied to both month and day -->
-            <div class="flex-none flex flex-col items-center justify-center h-16 w-16 bg-slate-900 rounded-xl">
-              <span class="text-[10px] text-white uppercase font-extrabold leading-none mb-1 tracking-wider">APR</span>
-              <span class="text-xl text-white font-black leading-none">30</span>
+        <!-- COLUMN 3: CRA BENEFIT PAYMENT DATES -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="border-b border-slate-100 pb-4 mb-6">
+              <div class="inline-flex p-2 bg-slate-900 text-white rounded-lg mb-3">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 class="text-xl font-extrabold text-slate-900">CRA Government Benefits</h3>
+              <p class="text-sm text-slate-500 mt-1">Disbursement dates for regular federal and provincial credits.</p>
             </div>
-            <div class="flex-1 space-y-0.5">
-              <div class="inline-block px-2 py-0.5 rounded-full text-[8px] font-black bg-brand-50 text-brand-700 uppercase tracking-tighter mb-1">Peak Season</div>
-              <h4 class="text-sm font-bold text-slate-950">Personal Income Tax</h4>
-              <p class="text-[11px] text-slate-500 leading-relaxed text-balance">Federal filing deadline for individuals and balance payment deadline.</p>
-            </div>
-          </div>
 
-          <!-- June 15: Self Employed -->
-          <div class="flex gap-4 p-5 bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all hover:shadow-md">
-            <div class="flex-none flex flex-col items-center justify-center h-16 w-16 bg-brand-50 rounded-xl border border-brand-100 text-brand-700">
-              <span class="text-[10px] uppercase font-extrabold leading-none mb-1">JUN</span>
-              <span class="text-xl font-black leading-none">15</span>
-            </div>
-            <div class="flex-1 space-y-0.5">
-              <h4 class="text-sm font-bold text-slate-950">Self-Employed Filing</h4>
-              <p class="text-[11px] text-slate-500 leading-relaxed text-balance">Return filing deadline for self-employed individuals and their partners.</p>
-            </div>
-          </div>
+            <div class="space-y-6">
+              <!-- Canada Child Benefit -->
+              <div class="flex gap-4 items-start active-date-item" data-deadline="19" data-monthly="true" data-type="benefit">
+                <div class="flex-none flex items-center justify-center h-12 w-12 bg-slate-100 text-slate-700 rounded-xl border border-slate-200/50">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                </div>
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">Child Benefit (CCB)</h4>
+                    <span class="date-badge inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider transition-colors duration-300">CCB • 19th</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">Dispatched monthly on the 19th of each month (unless falling on a weekend or public holiday).</p>
+                </div>
+              </div>
 
-          <!-- Dec 31: Corporate -->
-          <div class="flex gap-4 p-5 bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all hover:shadow-md">
-            <div class="flex-none flex flex-col items-center justify-center h-16 w-16 bg-slate-900 rounded-xl">
-              <span class="text-[8px] text-white uppercase font-extrabold mb-0.5 tracking-wider">VARIES</span>
-              <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m4 0h1m-5 4h1m4 0h1m-5 4h1m4 0h1" />
-              </svg>
-            </div>
-            <div class="flex-1 space-y-0.5">
-              <h4 class="text-sm font-bold text-slate-950">Corporate T2 Returns</h4>
-              <p class="text-[11px] text-slate-500 leading-relaxed text-balance">Returns due exactly 6 months after the end of the corporation's fiscal year.</p>
+              <!-- Ontario Trillium Benefit -->
+              <div class="flex gap-4 items-start pt-4 border-t border-slate-100 active-date-item" data-deadline="10" data-monthly="true" data-type="benefit">
+                <div class="flex-none flex items-center justify-center h-12 w-12 bg-slate-100 text-slate-700 rounded-xl border border-slate-200/50">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">Trillium Benefit (OTB)</h4>
+                    <span class="date-badge inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider transition-colors duration-300">OTB • 10th</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">Provincial incentive disbursements processed regularly on the 10th day of each month.</p>
+                </div>
+              </div>
+
+              <!-- Advanced Canada Workers Benefit (ACWB Dates: Jan 12, July 12, Oct 12) -->
+              <div class="flex gap-4 items-start pt-4 border-t border-slate-100 active-date-item" data-deadline="01-12,07-12,10-12" data-quarterly="true" data-type="benefit">
+                <div class="flex-none flex items-center justify-center h-12 w-12 bg-slate-100 text-slate-700 rounded-xl border border-slate-200/50">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">Workers Benefit (ACWB)</h4>
+                    <span class="date-badge inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider transition-colors duration-300">ACWB • Quarterly</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    Distributed quarterly to qualifying workers. Standard payouts run on <span class="font-semibold text-slate-800">July 12</span>, <span class="font-semibold text-slate-800">October 12</span>, and <span class="font-semibold text-slate-800">January 12</span>.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Grocery Rebate Benefit (Dates: Jan 5, Apr 5, July 5, Oct 5) -->
+              <div class="flex gap-4 items-start pt-4 border-t border-slate-100 active-date-item" data-deadline="01-05,04-05,07-05,10-05" data-quarterly="true" data-type="benefit">
+                <div class="flex-none flex items-center justify-center h-12 w-12 bg-slate-100 text-slate-700 rounded-xl border border-slate-200/50">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">Grocery Rebate Benefit</h4>
+                    <span class="date-badge inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider transition-colors duration-300">REBATE • Quarterly</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    Anti-inflation offsets distributed directly by the CRA on <span class="font-semibold text-slate-800">July 5</span>, <span class="font-semibold text-slate-800">October 5</span>, <span class="font-semibold text-slate-800">January 5</span>, and <span class="font-semibold text-slate-800">April 5</span>.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
       </div>
+
+      <!-- FULL WIDTH EXECUTIVE SUB-SECTION: CORPORATE YEAR-END MILESTONES MATRIX -->
+      <div class="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-md">
+        <div class="border-b border-slate-100 pb-5 mb-6 text-center lg:text-left">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-900 border border-slate-200 text-xs font-extrabold tracking-wider uppercase mb-3">
+            Corporate Year-End Milestones Matrix
+          </div>
+          <h3 class="text-xl font-extrabold text-slate-900 tracking-tight">Active Fiscal Schedules by Quarter End</h3>
+          <p class="text-sm text-slate-500">Quick reference map of filing requirements aligned around your chosen corporate fiscal tax year.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- DEC 31 -->
+          <div class="bg-slate-50 rounded-2xl p-5 border border-slate-200/50">
+            <h4 class="text-sm font-extrabold text-slate-900 pb-2 border-b border-slate-200 mb-3">December 31 Year End</h4>
+            <ul class="space-y-2 text-xs text-slate-600">
+              <li class="flex justify-between"><span>HST File & Pay:</span> <span class="font-bold text-slate-900">March 31</span></li>
+              <li class="flex justify-between"><span>Corp Tax Pay:</span> <span class="font-bold text-slate-900">March 31</span></li>
+              <li class="flex justify-between"><span>Corp Tax File:</span> <span class="font-bold text-slate-900">June 30</span></li>
+            </ul>
+          </div>
+
+          <!-- MAR 31 -->
+          <div class="bg-slate-50 rounded-2xl p-5 border border-slate-200/50">
+            <h4 class="text-sm font-extrabold text-slate-900 pb-2 border-b border-slate-200 mb-3">March 31 Year End</h4>
+            <ul class="space-y-2 text-xs text-slate-600">
+              <li class="flex justify-between"><span>HST File & Pay:</span> <span class="font-bold text-slate-900">June 30</span></li>
+              <li class="flex justify-between"><span>Corp Tax Pay:</span> <span class="font-bold text-slate-900">June 30</span></li>
+              <li class="flex justify-between"><span>Corp Tax File:</span> <span class="font-bold text-slate-900">Sept 30</span></li>
+            </ul>
+          </div>
+
+          <!-- JUN 30 -->
+          <div class="bg-slate-50 rounded-2xl p-5 border border-slate-200/50">
+            <h4 class="text-sm font-extrabold text-slate-900 pb-2 border-b border-slate-200 mb-3">June 30 Year End</h4>
+            <ul class="space-y-2 text-xs text-slate-600">
+              <li class="flex justify-between"><span>HST File & Pay:</span> <span class="font-bold text-slate-900">Sept 30</span></li>
+              <li class="flex justify-between"><span>Corp Tax Pay:</span> <span class="font-bold text-slate-900">Sept 30</span></li>
+              <li class="flex justify-between"><span>Corp Tax File:</span> <span class="font-bold text-slate-900">Dec 30</span></li>
+            </ul>
+          </div>
+
+          <!-- SEP 30 -->
+          <div class="bg-slate-50 rounded-2xl p-5 border border-slate-200/50">
+            <h4 class="text-sm font-extrabold text-slate-900 pb-2 border-b border-slate-200 mb-3">September 30 Year End</h4>
+            <ul class="space-y-2 text-xs text-slate-600">
+              <li class="flex justify-between"><span>HST File & Pay:</span> <span class="font-bold text-slate-900">Dec 31</span></li>
+              <li class="flex justify-between"><span>Corp Tax Pay:</span> <span class="font-bold text-slate-900">Dec 31</span></li>
+              <li class="flex justify-between"><span>Corp Tax File:</span> <span class="font-bold text-slate-900">March 31</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -368,8 +606,8 @@ layout: layout.html
 
 </main>
 
+<!-- Sticky Header Script -->
 <script>
-  // Simple Sticky Header Listener
   window.addEventListener('scroll', () => {
     const header = document.querySelector('header');
     if (header) {
@@ -379,5 +617,88 @@ layout: layout.html
         header.classList.remove('shadow-md', 'py-1');
       }
     }
+  });
+</script>
+
+<!-- REAL-TIME TAX & BENEFIT DEADLINES CALCULATOR ENGINE -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
+    // Normalizes time component to ensure exact calendar day counting
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    function getDaysRemaining(targetDate) {
+      const diffTime = targetDate - todayStart;
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    document.querySelectorAll('.active-date-item').forEach(el => {
+      const dateStr = el.getAttribute('data-deadline');
+      const type = el.getAttribute('data-type');
+      let targetDate;
+
+      if (el.hasAttribute('data-monthly')) {
+        // Recurring Monthly Logic (e.g. 10th, 15th, 19th)
+        const targetDay = parseInt(dateStr, 10);
+        targetDate = new Date(currentYear, now.getMonth(), targetDay);
+        if (targetDate < todayStart) {
+          targetDate = new Date(currentYear, now.getMonth() + 1, targetDay);
+        }
+      } else if (el.hasAttribute('data-quarterly')) {
+        // Recurring Quarterly Logic (comma-separated calendar entries)
+        const datesArray = dateStr.split(',');
+        let closestDate = null;
+
+        for (const entry of datesArray) {
+          const [month, day] = entry.split('-').map(Number);
+          let candidate = new Date(currentYear, month - 1, day);
+          if (candidate < todayStart) {
+            candidate = new Date(currentYear + 1, month - 1, day);
+          }
+          if (!closestDate || candidate < closestDate) {
+            closestDate = candidate;
+          }
+        }
+        targetDate = closestDate;
+      } else {
+        // Standard Calendar Year Logic
+        const [month, day] = dateStr.split('-').map(Number);
+        targetDate = new Date(currentYear, month - 1, day);
+        if (targetDate < todayStart) {
+          targetDate = new Date(currentYear + 1, month - 1, day);
+        }
+      }
+
+      const daysRemaining = getDaysRemaining(targetDate);
+      const badge = el.querySelector('.date-badge');
+
+      if (badge) {
+        // Clean out previous color utility configurations
+        badge.className = badge.className.replace(/\bbg-\S+|\btext-\S+|\bborder-\S+/g, '');
+
+        if (type === 'tax') {
+          if (daysRemaining <= 7 && daysRemaining >= 0) {
+            // Urgent Alert: High-Contrast Red (Less than a week remaining)
+            badge.classList.add('bg-red-50', 'text-red-700', 'border-red-200', 'animate-pulse');
+          } else if (daysRemaining <= 30 && daysRemaining >= 0) {
+            // Proximity Warning: Orange/Amber (Less than 30 days remaining)
+            badge.classList.add('bg-amber-50', 'text-amber-700', 'border-amber-200');
+          } else {
+            // Default: Safe Slate
+            badge.classList.add('bg-slate-100', 'text-slate-700', 'border-slate-200');
+          }
+        } else if (type === 'benefit') {
+          if (daysRemaining <= 5 && daysRemaining >= 0) {
+            // Income Approaching Alert: High-Contrast Emerald Green (5 days or less)
+            badge.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-200');
+          } else {
+            // Default: Safe Slate
+            badge.classList.add('bg-slate-100', 'text-slate-700', 'border-slate-200');
+          }
+        }
+      }
+    });
   });
 </script>
