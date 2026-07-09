@@ -2,12 +2,12 @@
 layout: layout.html
 ---
 
-<main class="flex-grow flex items-center justify-center p-4">
+<main class="flex-grow flex items-center justify-center p-4 bg-slate-50">
   
   <!-- 1. AUTHENTICATION PORTAL CONTAINER -->
   <div id="auth-container" class="w-full max-w-md bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
     
-    <!-- Auth Tabs (Toggles between Sign In and Sign Up) -->
+    <!-- Auth Tabs -->
     <div id="auth-tabs" class="flex border-b border-slate-100 mb-6">
       <button id="tab-signin" class="flex-1 pb-3 text-sm font-bold border-b-2 border-brand-500 text-brand-600 focus:outline-none transition">Sign In</button>
       <button id="tab-signup" class="flex-1 pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 focus:outline-none transition">Register</button>
@@ -20,222 +20,503 @@ layout: layout.html
         <p class="text-xs text-slate-500 mt-1">Access your secure tax and bookkeeping vault</p>
       </div>
       <div>
-        <label for="login-email" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Email Address</label>
-        <input type="email" id="login-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+        <label for="login-email" class="block text-xs font-bold text-slate-700 uppercase mb-2">Email Address</label>
+        <input type="email" id="login-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" />
       </div>
       <div>
         <div class="flex justify-between items-center mb-2">
-          <label for="login-password" class="block text-xs font-bold text-slate-700 uppercase tracking-wide">Password</label>
-          <button type="button" id="link-forgot" class="text-xs font-semibold text-brand-600 hover:underline focus:outline-none">Forgot Password?</button>
+          <label for="login-password" class="block text-xs font-bold text-slate-700 uppercase">Password</label>
+          <button type="button" id="link-forgot" class="text-xs font-semibold text-brand-600 hover:underline">Forgot Password?</button>
         </div>
-        <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+        <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" />
       </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-300 transition-all shadow-md">
+      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all shadow-md shadow-brand-500/10">
         Sign In to Portal
       </button>
     </form>
 
-    <!-- STATE B: REGISTER (SIGN UP) FORM (Hidden by default) -->
+    <!-- STATE B: REGISTER (SIGN UP) FORM WITH SINGULAR PASSWORD CHECKLIST -->
     <form id="register-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Create Client Account</h1>
         <p class="text-xs text-slate-500 mt-1">Register for an automated advisory portal</p>
       </div>
       <div>
-        <label for="register-name" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Full Name</label>
-        <input type="text" id="register-name" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+        <label for="register-name" class="block text-xs font-bold text-slate-700 uppercase mb-2">Full Name</label>
+        <input type="text" id="register-name" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" />
       </div>
       <div>
-        <label for="register-email" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Email Address</label>
-        <input type="email" id="register-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+        <label for="register-email" class="block text-xs font-bold text-slate-700 uppercase mb-2">Email Address</label>
+        <input type="email" id="register-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" />
       </div>
       <div>
-        <label for="register-password" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Create Password</label>
-        <input type="password" id="register-password" required placeholder="Minimum 8 characters" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+        <label for="register-password" class="block text-xs font-bold text-slate-700 uppercase mb-2">Create Password</label>
+        <input type="password" id="register-password" required placeholder="Minimum 8 characters" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" />
+        
+        <div id="password-requirements" class="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] text-slate-500 space-y-1.5 transition-all">
+          <p class="font-extrabold text-slate-800 uppercase tracking-widest text-[9px] mb-1">Password Requirements Check:</p>
+          <div id="req-length" class="flex items-center gap-1.5 transition-all"><span class="req-icon text-slate-400">•</span> 8 characters minimum</div>
+          <div id="req-upper" class="flex items-center gap-1.5 transition-all"><span class="req-icon text-slate-400">•</span> One uppercase letter (A-Z)</div>
+          <div id="req-lower" class="flex items-center gap-1.5 transition-all"><span class="req-icon text-slate-400">•</span> One lowercase letter (a-z)</div>
+          <div id="req-number" class="flex items-center gap-1.5 transition-all"><span class="req-icon text-slate-400">•</span> One number (0-9)</div>
+          <div id="req-special" class="flex items-center gap-1.5 transition-all"><span class="req-icon text-slate-400">•</span> One special character (!@#$%^&*)</div>
+        </div>
       </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-300 transition-all shadow-md">
+      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all shadow-md">
         Create Portal Account
       </button>
     </form>
 
-    <!-- STATE C: ACCOUNT VERIFICATION (CODE) FORM (Hidden by default, shown after sign-up) -->
+    <!-- STATE C: ACCOUNT VERIFICATION FORM -->
     <form id="verify-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Verify Your Email</h1>
         <p class="text-xs text-slate-500 mt-1">We sent a 6-digit confirmation code to your inbox</p>
       </div>
       <div>
-        <label for="verify-code" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">6-Digit Verification Code</label>
-        <input type="text" id="verify-code" required placeholder="123456" maxlength="6" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-center text-lg font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+        <label for="verify-code" class="block text-xs font-bold text-slate-700 uppercase mb-2">6-Digit Verification Code</label>
+        <input type="text" id="verify-code" required placeholder="123456" maxlength="6" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-center text-lg font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-brand-500" />
       </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-300 transition-all shadow-md">
+      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all">
         Confirm Verification Code
       </button>
     </form>
 
-    <!-- STATE D: FORGOT PASSWORD REQUEST FORM (Hidden by default) -->
+    <!-- STATE D: FORGOT PASSWORD REQUEST FORM -->
     <form id="forgot-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Reset Password</h1>
         <p class="text-xs text-slate-500 mt-1">Request a secure password reset code to your email</p>
       </div>
       <div>
-        <label for="forgot-email" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Email Address</label>
-        <input type="email" id="forgot-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+        <label for="forgot-email" class="block text-xs font-bold text-slate-700 uppercase mb-2">Email Address</label>
+        <input type="email" id="forgot-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
       </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-300 transition-all shadow-md">
+      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all">
         Request Reset Code
       </button>
       <button type="button" id="btn-cancel-forgot" class="w-full text-center text-xs font-semibold text-slate-500 hover:underline mt-2">Back to Login</button>
     </form>
 
-    <!-- STATE E: CONFIRM PASSWORD RESET FORM (Hidden by default, shown after forgot request) -->
+    <!-- STATE E: CONFIRM PASSWORD RESET FORM -->
     <form id="reset-confirm-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Set New Password</h1>
         <p class="text-xs text-slate-500 mt-1">Enter your reset code and choose a new password</p>
       </div>
       <div>
-        <label for="reset-code" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">6-Digit Reset Code</label>
-        <input type="text" id="reset-code" required placeholder="123456" maxlength="6" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-center text-lg font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+        <label for="reset-code" class="block text-xs font-bold text-slate-700 uppercase mb-2">6-Digit Reset Code</label>
+        <input type="text" id="reset-code" required placeholder="123456" maxlength="6" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-center text-lg font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-brand-500" />
       </div>
       <div>
-        <label for="reset-password-new" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">New Password</label>
-        <input type="password" id="reset-password-new" required placeholder="Minimum 8 characters" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+        <label for="reset-password-new" class="block text-xs font-bold text-slate-700 uppercase mb-2">New Password</label>
+        <input type="password" id="reset-password-new" required placeholder="Minimum 8 characters" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
       </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-300 transition-all shadow-md">
+      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all">
         Save New Password
       </button>
     </form>
 
   </div>
 
-  <!-- 2. SECURE CUSTOMER DASHBOARD (Hidden by default, shown only when logged in) -->
+  <!-- 2. SECURE CUSTOMER DASHBOARD -->
   <div id="dashboard-container" class="hidden w-full max-w-4xl bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-sm space-y-8">
-    <!-- Header -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-6">
       <div>
         <h2 id="client-welcome" class="text-2xl font-extrabold text-slate-900 tracking-tight">Welcome Back!</h2>
         <p class="text-sm text-slate-500">Secure Corporate Tax Portal</p>
       </div>
       <div class="flex gap-3">
-        <button id="btn-change-pass" class="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">
-          Change Password
-        </button>
-        <button id="logout-btn" class="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 transition">
-          Sign Out
-        </button>
+        <button id="btn-change-pass" class="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">Change Password</button>
+        <button id="logout-btn" class="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 transition">Sign Out</button>
       </div>
     </div>
 
-    <!-- Grid of Portal Tools -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- 1. Tax Status -->
-      <div class="border border-slate-100 p-6 rounded-2xl bg-slate-50/50 space-y-3 col-span-1">
-        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Filing Status</h3>
-        <div class="text-3xl font-extrabold text-indigo-600">Pending Review</div>
-        <p class="text-xs text-slate-500">Your T1 personal or T2 corporate return is currently undergoing assurance review.</p>
-      </div>
-
-      <!-- 2. Documents Vault -->
-      <div class="border border-slate-100 p-6 rounded-2xl bg-slate-50/50 space-y-3 md:col-span-2 space-y-4">
-        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Secure Document Vault</h3>
-        <p class="text-xs text-slate-500">Upload tax slips, PDF statements, or receipts directly to your secure folder.</p>
-        <div class="flex gap-3">
-          <input type="file" id="document-upload" class="hidden" multiple />
-          <button onclick="document.getElementById('document-upload').click()" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-brand-500 hover:bg-brand-400 transition shadow">
-            Choose PDF Files
-          </button>
-          <button id="upload-btn" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition">
-            Upload to Vault
-          </button>
-        </div>
-        
-        <!-- Premium Visual Queue List Container -->
-        <div id="queue-list" class="space-y-2 mt-4"></div>
-        
-        <p id="upload-status" class="text-xs text-slate-600 italic mt-2"></p>
-      </div>
-
-      <!-- 3. CRA CLIENT TAX ORGANIZER (CRA-aligned Free Onboarding Feature!) -->
-      <div class="border border-slate-100 p-6 sm:p-8 rounded-2xl bg-slate-50/50 space-y-6 md:col-span-3">
+    <div class="space-y-8">
+      <!-- STEP 1: CRA CLIENT TAX ORGANIZER -->
+      <div class="border border-slate-100 p-6 sm:p-8 rounded-2xl bg-slate-50/50 space-y-6">
         <div class="flex items-center gap-3">
           <span class="inline-flex p-2.5 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold">T1</span>
           <div>
             <h3 class="text-lg font-bold text-slate-900">CRA Client Tax Organizer</h3>
-            <p class="text-xs text-slate-500">Automate your onboarding profile for personal and corporate tax preparation</p>
+            <p class="text-xs text-slate-500">Secure digital onboarding questionnaire for personal, rental, and self-employed tax preparation</p>
           </div>
         </div>
 
-        <form id="organizer-form" class="space-y-6 bg-white border border-slate-200/60 p-6 rounded-2xl shadow-sm text-left">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Full Name -->
-            <div>
-              <label for="org-fullname" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Full Name</label>
-              <input type="text" id="org-fullname" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
-            </div>
-            <!-- Date of Birth -->
-            <div>
-              <label for="org-dob" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Date of Birth</label>
-              <input type="date" id="org-dob" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all bg-white" />
-            </div>
-            <!-- CRA Marital Status -->
-            <div>
-              <label for="org-marital" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">CRA Marital Status</label>
-              <select id="org-marital" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
-                <option value="" disabled selected>Select an option...</option>
-                <option value="single">Single</option>
-                <option value="married">Married</option>
-                <option value="common-law">Common-Law</option>
-                <option value="divorced">Divorced / Separated</option>
-                <option value="widowed">Widowed</option>
-              </select>
+        <form id="organizer-form" class="space-y-8 bg-white border border-slate-200/60 p-6 sm:p-8 rounded-3xl shadow-sm text-left">
+          
+          <!-- MODULE 1: PERSONAL TAX PROFILE -->
+          <div class="space-y-4">
+            <h3 class="text-sm font-extrabold uppercase tracking-widest text-brand-600 pb-2 border-b border-slate-100">1. Personal Profile Details</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div><label for="org-fullname" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Full Name</label><input type="text" id="org-fullname" required placeholder="John Doe" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
+              <div><label for="org-telephone" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Telephone Number</label><input type="tel" id="org-telephone" required placeholder="(416) 555-0199" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
+              <div><label for="org-dob" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Date of Birth</label><input type="date" id="org-dob" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
+              <div class="md:col-span-2"><label for="org-address" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Residential Address</label><input type="text" id="org-address" required placeholder="123 Yonge St, Toronto, ON, M5B 2H1" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
+              <div>
+                <label for="org-marital" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">CRA Marital Status</label>
+                <select id="org-marital" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50">
+                  <option value="" disabled selected>Select marital status...</option>
+                  <option value="single">Single</option><option value="married">Married</option><option value="common-law">Common-Law</option><option value="divorced">Divorced</option><option value="separated">Separated</option><option value="widowed">Widowed</option>
+                </select>
+              </div>
+              <div><label for="org-howheard" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">How did you hear of us?</label><input type="text" id="org-howheard" placeholder="Google, Friend, TikTok" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
             </div>
           </div>
 
-          <!-- CRA Compliance Yes/No Toggles -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-100">
-            <!-- Foreign Property (T1135) -->
-            <div class="space-y-2">
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide">Foreign Property > $100K (T1135)?</label>
-              <p class="text-[10px] text-slate-500 leading-normal">Did you own or hold specified foreign assets worth more than $100,000 CAD at any time during the year?</p>
-              <div class="flex gap-4">
-                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="radio" name="org-foreign" value="yes" required class="focus:ring-brand-500 text-brand-500 h-4 w-4" /> Yes</label>
-                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="radio" name="org-foreign" value="no" checked class="focus:ring-brand-500 text-brand-500 h-4 w-4" /> No</label>
-              </div>
+          <!-- MODULE 2: FAMILY DEPENDENTS MATRIX -->
+          <div class="space-y-4 pt-6 border-t border-slate-100">
+            <div class="flex justify-between items-center">
+              <div><h3 class="text-sm font-extrabold uppercase tracking-widest text-brand-600">2. Family Dependents Declaration</h3><p class="text-[10px] text-slate-500 mt-0.5">Please add details for financially dependent children or relatives.</p></div>
+              <button type="button" id="btn-add-family" class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 transition">+ Add Dependent</button>
             </div>
-
-            <!-- Sold Principal Residence -->
-            <div class="space-y-2">
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide">Sold Principal Residence?</label>
-              <p class="text-[10px] text-slate-500 leading-normal">Did you sell or dispose of your home/principal residence (or any real estate properties) during the year?</p>
-              <div class="flex gap-4">
-                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="radio" name="org-sold" value="yes" required class="focus:ring-brand-500 text-brand-500 h-4 w-4" /> Yes</label>
-                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="radio" name="org-sold" value="no" checked class="focus:ring-brand-500 text-brand-500 h-4 w-4" /> No</label>
-              </div>
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[600px] border-collapse text-left text-xs bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <thead><tr class="bg-slate-50 text-slate-700 border-b border-slate-200 uppercase tracking-wider font-bold"><th class="p-3">Dependent Full Name</th><th class="p-3 w-32">9-Digit SIN</th><th class="p-3 w-36">Birth Date</th><th class="p-3 w-36">Relationship</th><th class="p-3 w-20 text-center">Action</th></tr></thead>
+                <tbody id="family-table-body" class="divide-y divide-slate-100"><tr id="family-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No dependents declared. Click "+ Add Dependent" to include one.</td></tr></tbody>
+              </table>
             </div>
+          </div>
 
-            <!-- CRA Eligible Dependants -->
-            <div class="space-y-2">
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide">CRA Eligible Dependants?</label>
-              <p class="text-[10px] text-slate-500 leading-normal">Do you support any financially dependent children, spouse, or elderly parents for tax credit claims?</p>
-              <div class="flex gap-4">
-                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="radio" name="org-dependants" value="yes" required class="focus:ring-brand-500 text-brand-500 h-4 w-4" /> Yes</label>
-                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="radio" name="org-dependants" value="no" checked class="focus:ring-brand-500 text-brand-500 h-4 w-4" /> No</label>
+          <!-- MODULE 3: IMMIGRATION & ONTARIO RESIDENCY -->
+          <div class="space-y-4 pt-6 border-t border-slate-100">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label for="org-immigration-status" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Immigration Status in Canada</label>
+                <select id="org-immigration-status" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50">
+                  <option value="citizen">Canadian Citizen</option><option value="pr">Permanent Resident (PR)</option><option value="work-permit">Work Permit Holder</option><option value="study-permit">Study Permit Holder</option><option value="refugee">Refugee Claimant</option>
+                </select>
+              </div>
+              <div><label for="org-immigration-entry" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Date of Entry (If new to Canada)</label><input type="date" id="org-immigration-entry" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
+            </div>
+            <div class="pt-4 space-y-3">
+              <div class="flex justify-between items-center">
+                <div><h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Ontario Addresses Ledgers</h4><p class="text-[10px] text-slate-500">Provide addresses lived at in the tax year for Ontario Trillium/Rent credits.</p></div>
+                <button type="button" id="btn-add-residency" class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition">+ Add Address Row</button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[550px] border-collapse text-left text-xs bg-white rounded-xl border border-slate-200 overflow-hidden">
+                  <thead><tr class="bg-slate-50 text-slate-700 border-b border-slate-200 uppercase tracking-wider font-bold"><th class="p-3 w-28">No. of Months</th><th class="p-3">Address of the Property</th><th class="p-3 w-52">Municipality / Landlord Name</th><th class="p-3 w-20 text-center">Action</th></tr></thead>
+                  <tbody id="residency-table-body" class="divide-y divide-slate-100"><tr id="residency-empty-row"><td colspan="4" class="p-4 text-center text-slate-400 italic">No residency rows declared. Click "+ Add Address Row" to add a ledger row.</td></tr></tbody>
+                </table>
               </div>
             </div>
           </div>
 
-          <!-- Notes -->
-          <div class="pt-4 border-t border-slate-100">
-            <label for="org-notes" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Additional Context / Notes</label>
-            <textarea id="org-notes" rows="3" placeholder="Detail any other sources of income, medical receipts, child care expenses, or rental properties..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all"></textarea>
+          <!-- MODULE 4: TAX DISCLOSURES (Horizontal Flex Rows & Custom Hover Buttons) -->
+          <div class="space-y-3 pt-6 border-t border-slate-100">
+            <h3 class="text-sm font-extrabold uppercase tracking-widest text-brand-600 mb-4">3. Milestone & Tax Disclosures</h3>
+            
+            <div class="flex flex-col gap-3 text-xs font-semibold text-slate-700">
+              
+              <!-- Tuition Prompter -->
+              <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div class="md:w-1/2">
+                    <span class="block font-bold text-slate-900 text-sm">Paid Tuition Fees?</span>
+                    <p class="text-[11px] text-slate-500 font-normal mt-1">Did you pay fees for higher education studies (T2202)?</p>
+                  </div>
+                  <div class="md:w-1/2 flex flex-col items-start md:items-end">
+                    <div class="flex gap-4">
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-tuition" value="yes" onchange="togglePrompt('tuition', this.value)" class="cursor-pointer" /> Yes</label>
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-tuition" value="no" checked onchange="togglePrompt('tuition', this.value)" class="cursor-pointer" /> No</label>
+                    </div>
+                  </div>
+                </div>
+                <!-- Clean Flush Hidden Drop-Zone -->
+                <div id="prompt-tuition" class="hidden w-full pt-3 mt-3 border-t border-slate-100 transition-all">
+                  <span class="font-bold text-slate-800 text-[11px] block mb-2">📁 Please attach T2202/T4A forms:</span>
+                  <input type="file" id="file-tuition" multiple onchange="handleOrganizerUpload(this, '[Tuition-T2202]', 'list-tuition')" class="hidden" />
+                  <button type="button" onclick="document.getElementById('file-tuition').click()" class="inline-flex items-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 hover:bg-brand-600 hover:text-white transition-all shadow-sm">Choose Files</button>
+                  <div id="list-tuition" class="space-y-1 mt-2"></div>
+                </div>
+              </div>
+
+              <!-- RRSP Prompter -->
+              <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div class="md:w-1/2">
+                    <span class="block font-bold text-slate-900 text-sm">Contributed to RRSP?</span>
+                    <p class="text-[11px] text-slate-500 font-normal mt-1">Did you make retirement contributions in the tax year?</p>
+                  </div>
+                  <div class="md:w-1/2 flex flex-col items-start md:items-end">
+                    <div class="flex gap-4">
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-rrsp" value="yes" onchange="togglePrompt('rrsp', this.value)" class="cursor-pointer" /> Yes</label>
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-rrsp" value="no" checked onchange="togglePrompt('rrsp', this.value)" class="cursor-pointer" /> No</label>
+                    </div>
+                  </div>
+                </div>
+                <div id="prompt-rrsp" class="hidden w-full pt-3 mt-3 border-t border-slate-100 transition-all">
+                  <span class="font-bold text-slate-800 text-[11px] block mb-2">📁 Please attach RRSP Receipts:</span>
+                  <input type="file" id="file-rrsp" multiple onchange="handleOrganizerUpload(this, '[RRSP-Receipt]', 'list-rrsp')" class="hidden" />
+                  <button type="button" onclick="document.getElementById('file-rrsp').click()" class="inline-flex items-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 hover:bg-brand-600 hover:text-white transition-all shadow-sm">Choose Files</button>
+                  <div id="list-rrsp" class="space-y-1 mt-2"></div>
+                </div>
+              </div>
+
+              <!-- Charitable Donation -->
+              <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div class="md:w-1/2">
+                    <span class="block font-bold text-slate-900 text-sm">Charitable Donations?</span>
+                    <p class="text-[11px] text-slate-500 font-normal mt-1">Do you hold official receipts for registered non-profit donations?</p>
+                  </div>
+                  <div class="md:w-1/2 flex flex-col items-start md:items-end">
+                    <div class="flex gap-4">
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-charitable" value="yes" onchange="togglePrompt('charitable', this.value)" class="cursor-pointer" /> Yes</label>
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-charitable" value="no" checked onchange="togglePrompt('charitable', this.value)" class="cursor-pointer" /> No</label>
+                    </div>
+                  </div>
+                </div>
+                <div id="prompt-charitable" class="hidden w-full pt-3 mt-3 border-t border-slate-100 transition-all">
+                  <span class="font-bold text-slate-800 text-[11px] block mb-2">📁 Please attach Donation Slips:</span>
+                  <input type="file" id="file-charitable" multiple onchange="handleOrganizerUpload(this, '[Charitable-Donation]', 'list-charitable')" class="hidden" />
+                  <button type="button" onclick="document.getElementById('file-charitable').click()" class="inline-flex items-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 hover:bg-brand-600 hover:text-white transition-all shadow-sm">Choose Files</button>
+                  <div id="list-charitable" class="space-y-1 mt-2"></div>
+                </div>
+              </div>
+
+              <!-- Crypto / Stocks -->
+              <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div class="md:w-1/2">
+                    <span class="block font-bold text-slate-900 text-sm">Stock/Crypto Investments?</span>
+                    <p class="text-[11px] text-slate-500 font-normal mt-1">Did you trade stocks, ETFs, or crypto assets during the year?</p>
+                  </div>
+                  <div class="md:w-1/2 flex flex-col items-start md:items-end">
+                    <div class="flex gap-4">
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-crypto" value="yes" onchange="togglePrompt('crypto', this.value)" class="cursor-pointer" /> Yes</label>
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-crypto" value="no" checked onchange="togglePrompt('crypto', this.value)" class="cursor-pointer" /> No</label>
+                    </div>
+                  </div>
+                </div>
+                <div id="prompt-crypto" class="hidden w-full pt-3 mt-3 border-t border-slate-100 transition-all">
+                  <span class="font-bold text-slate-800 text-[11px] block mb-2">📁 Please attach T5008 or ledger:</span>
+                  <input type="file" id="file-crypto" multiple onchange="handleOrganizerUpload(this, '[Investment-T5008]', 'list-crypto')" class="hidden" />
+                  <button type="button" onclick="document.getElementById('file-crypto').click()" class="inline-flex items-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 hover:bg-brand-600 hover:text-white transition-all shadow-sm">Choose Files</button>
+                  <div id="list-crypto" class="space-y-1 mt-2"></div>
+                </div>
+              </div>
+
+              <!-- Daycare -->
+              <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div class="md:w-1/2">
+                    <span class="block font-bold text-slate-900 text-sm">Paid Daycare / Child Care?</span>
+                    <p class="text-[11px] text-slate-500 font-normal mt-1">Did you pay for professional babysitting, nannies, or daycares?</p>
+                  </div>
+                  <div class="md:w-1/2 flex flex-col items-start md:items-end">
+                    <div class="flex gap-4">
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-daycare" value="yes" onchange="togglePrompt('daycare', this.value)" class="cursor-pointer" /> Yes</label>
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-daycare" value="no" checked onchange="togglePrompt('daycare', this.value)" class="cursor-pointer" /> No</label>
+                    </div>
+                  </div>
+                </div>
+                <div id="prompt-daycare" class="hidden w-full pt-3 mt-3 border-t border-slate-100 transition-all">
+                  <span class="font-bold text-slate-800 text-[11px] block mb-2">📁 Please attach Daycare Invoices:</span>
+                  <input type="file" id="file-daycare" multiple onchange="handleOrganizerUpload(this, '[Daycare-Receipt]', 'list-daycare')" class="hidden" />
+                  <button type="button" onclick="document.getElementById('file-daycare').click()" class="inline-flex items-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 hover:bg-brand-600 hover:text-white transition-all shadow-sm">Choose Files</button>
+                  <div id="list-daycare" class="space-y-1 mt-2"></div>
+                </div>
+              </div>
+
+              <!-- WFH -->
+              <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div class="md:w-1/2">
+                    <span class="block font-bold text-slate-900 text-sm">Work From Home?</span>
+                    <p class="text-[11px] text-slate-500 font-normal mt-1">Did you work remotely from home for your employer (T2200)?</p>
+                  </div>
+                  <div class="md:w-1/2 flex flex-col items-start md:items-end">
+                    <div class="flex gap-4">
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-wfh" value="yes" onchange="togglePrompt('wfh', this.value)" class="cursor-pointer" /> Yes</label>
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-wfh" value="no" checked onchange="togglePrompt('wfh', this.value)" class="cursor-pointer" /> No</label>
+                    </div>
+                  </div>
+                </div>
+                <div id="prompt-wfh" class="hidden w-full pt-3 mt-3 border-t border-slate-100 transition-all">
+                  <span class="font-bold text-slate-800 text-[11px] block mb-2">📁 Please attach signed T2200:</span>
+                  <input type="file" id="file-wfh" multiple onchange="handleOrganizerUpload(this, '[WFH-T2200]', 'list-wfh')" class="hidden" />
+                  <button type="button" onclick="document.getElementById('file-wfh').click()" class="inline-flex items-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 hover:bg-brand-600 hover:text-white transition-all shadow-sm">Choose Files</button>
+                  <div id="list-wfh" class="space-y-1 mt-2"></div>
+                </div>
+              </div>
+
+              <!-- New Home purchase (No files needed) -->
+              <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div class="md:w-1/2">
+                    <span class="block font-bold text-slate-900 text-sm">Purchased a New Home?</span>
+                    <p class="text-[11px] text-slate-500 font-normal mt-1">Are you a first-time home buyer or purchased a secondary home?</p>
+                  </div>
+                  <div class="md:w-1/2 flex flex-col items-start md:items-end">
+                    <div class="flex gap-4">
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-purchased" value="yes" class="cursor-pointer" /> Yes</label>
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-purchased" value="no" checked class="cursor-pointer" /> No</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TRUE ACCORDION: UBER/Lyft -->
+              <div class="bg-emerald-50/30 p-4 rounded-xl border border-emerald-100 transition-all">
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div class="md:w-1/2">
+                    <span class="block font-bold text-emerald-800 text-sm">Uber/Lyft Driver (T2125)?</span>
+                    <p class="text-[11px] text-slate-600 font-normal mt-1">Did you earn active rideshare or delivery gig income in this tax year?</p>
+                  </div>
+                  <div class="md:w-1/2 flex flex-col items-start md:items-end">
+                    <div class="flex gap-4">
+                      <label class="flex items-center gap-2 cursor-pointer text-emerald-800"><input type="radio" name="org-uber-toggle" id="uber-yes" value="yes" class="cursor-pointer" /> Yes</label>
+                      <label class="flex items-center gap-2 cursor-pointer text-emerald-800"><input type="radio" name="org-uber-toggle" id="uber-no" value="no" checked class="cursor-pointer" /> No</label>
+                    </div>
+                  </div>
+                </div>
+                <!-- Embedded Uber Form -->
+                <div id="uber-section" class="hidden mt-4 pt-4 border-t border-emerald-100">
+                  <div class="bg-white rounded-xl p-5 border border-emerald-100 shadow-sm space-y-4">
+                    <h3 class="text-xs font-extrabold uppercase tracking-widest text-emerald-700 pb-2 border-b border-emerald-50">T2125 Expense Ledger</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">9-Digit HST No.</label><input type="text" id="uber-hst" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">4-Digit Access Code</label><input type="text" id="uber-access" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Reporting Start</label><input type="date" id="uber-from" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Reporting End</label><input type="date" id="uber-to" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs pt-2">
+                      <div><label class="block text-[9px] font-bold mb-1">Fuel & Propane</label><input type="number" step="0.01" id="exp-fuel" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Repairs/Maint</label><input type="number" step="0.01" id="exp-repairs" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Vehicle Insurance</label><input type="number" step="0.01" id="exp-insurance" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Licence/Reg</label><input type="number" step="0.01" id="exp-licence" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Interest Expense</label><input type="number" step="0.01" id="exp-interest" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Carwash</label><input type="number" step="0.01" id="exp-carwash" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Business Parking</label><input type="number" step="0.01" id="exp-parking" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Tolls (407 ETR)</label><input type="number" step="0.01" id="exp-tolls" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Fines (Non-deduct)</label><input type="number" step="0.01" id="exp-tickets" placeholder="0.00" class="w-full px-3 py-1.5 border border-red-200 rounded-lg bg-red-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Phone Line %</label><input type="number" step="0.01" id="exp-phone" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Supplies</label><input type="number" step="0.01" id="exp-supplies" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Out-of-City Meals</label><input type="number" step="0.01" id="exp-meals" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TRUE ACCORDION: Rental Income -->
+              <div class="bg-indigo-50/30 p-4 rounded-xl border border-indigo-100 transition-all">
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div class="md:w-1/2">
+                    <span class="block font-bold text-indigo-800 text-sm">Have Rental Income (T776)?</span>
+                    <p class="text-[11px] text-slate-600 font-normal mt-1">Do you own real estate investments that generate rental revenues?</p>
+                  </div>
+                  <div class="md:w-1/2 flex flex-col items-start md:items-end">
+                    <div class="flex gap-4">
+                      <label class="flex items-center gap-2 cursor-pointer text-indigo-800"><input type="radio" name="org-rental-toggle" id="rental-yes" value="yes" class="cursor-pointer" /> Yes</label>
+                      <label class="flex items-center gap-2 cursor-pointer text-indigo-800"><input type="radio" name="org-rental-toggle" id="rental-no" value="no" checked class="cursor-pointer" /> No</label>
+                    </div>
+                  </div>
+                </div>
+                <!-- Embedded Rental Form -->
+                <div id="rental-section" class="hidden mt-4 pt-4 border-t border-indigo-100">
+                  <div class="bg-white rounded-xl p-5 border border-indigo-100 shadow-sm space-y-4">
+                    <div class="flex justify-between items-center pb-2 border-b border-indigo-50">
+                      <h3 class="text-xs font-extrabold uppercase tracking-widest text-indigo-700">T776 Structuring Matrix</h3>
+                      <button type="button" id="btn-add-owner" class="px-3 py-1 rounded-lg text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">+ Add Co-Investor</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                      <table class="w-full min-w-[550px] border-collapse text-left text-[10px] bg-slate-50 rounded-lg border border-slate-200">
+                        <thead><tr class="text-slate-600 border-b border-slate-200 uppercase"><th class="p-2">Name</th><th class="p-2">SIN</th><th class="p-2">Share %</th><th class="p-2">Address</th><th class="p-2 text-center">Action</th></tr></thead>
+                        <tbody id="owner-table-body"><tr id="owner-empty-row"><td colspan="5" class="p-3 text-center text-slate-400">No co-investors declared. Defaults to 100% sole owner.</td></tr></tbody>
+                      </table>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Rental Property Address</label><input type="text" id="rent-address" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Gross Income ($)</label><input type="number" step="0.01" id="rent-gross" placeholder="0.00" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pt-2">
+                      <div><label class="block text-[9px] font-bold mb-1">Property Insurance</label><input type="number" step="0.01" id="rent-exp-ins" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Mortgage Interest</label><input type="number" step="0.01" id="rent-exp-interest" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Bank Charges</label><input type="number" step="0.01" id="rent-exp-bank" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Office Expenses</label><input type="number" step="0.01" id="rent-exp-office" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Professional Fees</label><input type="number" step="0.01" id="rent-exp-prof" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Management</label><input type="number" step="0.01" id="rent-exp-manage" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Repairs/Maint</label><input type="number" step="0.01" id="rent-exp-repairs" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Property Tax</label><input type="number" step="0.01" id="rent-exp-tax" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Utilities</label><input type="number" step="0.01" id="rent-exp-utilities" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TRUE ACCORDION: CCB Help -->
+              <div class="bg-purple-50/30 p-4 rounded-xl border border-purple-100 transition-all">
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div class="md:w-1/2">
+                    <span class="block font-bold text-purple-800 text-sm">Need Child Benefit Help?</span>
+                    <p class="text-[11px] text-slate-600 font-normal mt-1">Do you require registration or audit support with the CRA CCB system?</p>
+                  </div>
+                  <div class="md:w-1/2 flex flex-col items-start md:items-end">
+                    <div class="flex gap-4">
+                      <label class="flex items-center gap-2 cursor-pointer text-purple-800"><input type="radio" name="org-ccb-toggle" id="ccb-yes" value="yes" class="cursor-pointer" /> Yes</label>
+                      <label class="flex items-center gap-2 cursor-pointer text-purple-800"><input type="radio" name="org-ccb-toggle" id="ccb-no" value="no" checked class="cursor-pointer" /> No</label>
+                    </div>
+                  </div>
+                </div>
+                <!-- Embedded CCB Form -->
+                <div id="ccb-section" class="hidden mt-4 pt-4 border-t border-purple-100">
+                  <div class="bg-white rounded-xl p-5 border border-purple-100 shadow-sm space-y-4">
+                    <h3 class="text-xs font-extrabold uppercase tracking-widest text-purple-700 pb-2 border-b border-purple-50">Global World Income Ledger</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Marriage Date</label><input type="date" id="ccb-marriage-date" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Status Change Date</label><input type="date" id="ccb-status-date" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pt-2">
+                      <div><label class="block text-[9px] font-bold mb-1">Year Became Resident</label><input type="number" id="ccb-world-entry" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">World Inc. (1 Yr Before)</label><input type="number" step="0.01" id="ccb-world-prev1" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">World Inc. (2 Yrs Before)</label><input type="number" step="0.01" id="ccb-world-prev2" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
 
-          <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-300 transition-all shadow-md">
+          <!-- MODULE 6: NOTES & EXTRA CONTEXT -->
+          <div class="space-y-2 pt-6 border-t border-slate-100">
+            <label for="org-notes" class="block text-xs font-bold text-slate-700 uppercase mb-2">Additional Context / Notes</label>
+            <textarea id="org-notes" rows="4" placeholder="Detail any other sources of income, medical receipts, tuition summaries, foreign assets, or specific files uploaded to S3..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all bg-white"></textarea>
+          </div>
+
+          <!-- Transmission Submission -->
+          <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-xl text-base font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/10">
             Transmit Onboarding Organizer
           </button>
         </form>
+      </div>
+
+      <!-- STEP 2: STANDALONE SECURE DOCUMENT UPLOAD CENTER -->
+      <div id="upload-center-card" class="border border-slate-100 p-6 rounded-2xl bg-slate-50/50 space-y-4">
+        <div class="flex items-center gap-3">
+          <span class="inline-flex p-2.5 bg-brand-50 text-brand-600 rounded-xl text-xs font-bold">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+          </span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Secure Document Upload Center</h3>
+            <p class="text-xs text-slate-500">Attach general tax slips, prior-year NOAs, or direct files for your secure vault.</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <input type="file" id="document-upload" class="hidden" multiple />
+          <button type="button" onclick="document.getElementById('document-upload').click()" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-brand-500 hover:bg-brand-400 transition shadow">
+            Choose PDF/JPG Files
+          </button>
+          <button type="button" id="upload-btn" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition">
+            Upload to Vault
+          </button>
+        </div>
+        
+        <div id="queue-list" class="space-y-2 mt-4"></div>
+        <p id="upload-status" class="text-xs text-slate-600 italic mt-2"></p>
       </div>
 
     </div>
@@ -244,15 +525,12 @@ layout: layout.html
 </main>
 
 <script>
-  // Updated Cognito Production Client ID (For Wasim's account!)
+  // Production Client IDs pointing directly to Wasim's AWS account
   const COGNITO_CLIENT_ID = "79d4qhnedttr14qh6gakkh5hk0";
   const COGNITO_REGION = "ca-central-1";
 
-  // Containers
   const authContainer = document.getElementById('auth-container');
   const dashboardContainer = document.getElementById('dashboard-container');
-  
-  // Forms & State elements
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
   const verifyForm = document.getElementById('verify-form');
@@ -261,7 +539,6 @@ layout: layout.html
   const organizerForm = document.getElementById('organizer-form');
   const authTabs = document.getElementById('auth-tabs');
   
-  // Tab Buttons & Interactive Links
   const tabSignIn = document.getElementById('tab-signin');
   const tabSignUp = document.getElementById('tab-signup');
   const linkForgot = document.getElementById('link-forgot');
@@ -269,24 +546,21 @@ layout: layout.html
   const btnChangePass = document.getElementById('btn-change-pass');
   const logoutBtn = document.getElementById('logout-btn');
 
-  // Keep track of the resetting/registering email and our custom upload queue
   let pendingVerificationEmail = "";
   let pendingResetEmail = "";
-  let fileQueue = [];
+  
+  // Two separate memory queues: one for the Standalone Vault, one for the Tax Organizer!
+  let vaultFileQueue = [];
+  let organizerFilesQueue = []; 
 
-  // Check login session on load
   const token = localStorage.getItem('id_token');
-  if (token) {
-    showDashboard();
-  }
+  if (token) { showDashboard(); }
 
   function showDashboard() {
     authContainer.classList.add('hidden');
     dashboardContainer.classList.remove('hidden');
     const userEmail = localStorage.getItem('user_email');
-    if (userEmail) {
-      document.getElementById('client-welcome').innerText = `Welcome, ${userEmail}!`;
-    }
+    if (userEmail) { document.getElementById('client-welcome').innerText = `Welcome, ${userEmail}!`; }
   }
 
   function showLogin() {
@@ -297,14 +571,12 @@ layout: layout.html
     localStorage.clear();
   }
 
-  // Visual Tab Switching Logic
   function switchToSignIn() {
     loginForm.classList.remove('hidden');
     registerForm.classList.add('hidden');
     verifyForm.classList.add('hidden');
     forgotForm.classList.add('hidden');
     resetConfirmForm.classList.add('hidden');
-    
     tabSignIn.className = "flex-1 pb-3 text-sm font-bold border-b-2 border-brand-500 text-brand-600 focus:outline-none transition";
     tabSignUp.className = "flex-1 pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 focus:outline-none transition";
   }
@@ -315,7 +587,6 @@ layout: layout.html
     verifyForm.classList.add('hidden');
     forgotForm.classList.add('hidden');
     resetConfirmForm.classList.add('hidden');
-
     tabSignUp.className = "flex-1 pb-3 text-sm font-bold border-b-2 border-brand-500 text-brand-600 focus:outline-none transition";
     tabSignIn.className = "flex-1 pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 focus:outline-none transition";
   }
@@ -329,12 +600,42 @@ layout: layout.html
     resetConfirmForm.classList.add('hidden');
   }
 
-  tabSignIn.addEventListener('click', switchToSignIn);
-  tabSignUp.addEventListener('click', switchToSignUp);
-  linkForgot.addEventListener('click', switchToForgot);
-  btnCancelForgot.addEventListener('click', showLogin);
+  if (tabSignIn) tabSignIn.addEventListener('click', switchToSignIn);
+  if (tabSignUp) tabSignUp.addEventListener('click', switchToSignUp);
+  if (linkForgot) linkForgot.addEventListener('click', switchToForgot);
+  if (btnCancelForgot) btnCancelForgot.addEventListener('click', showLogin);
 
-  // 1. SECURE SIGN IN FLOW (Cognito InitiateAuth)
+  // ==============================================================
+  // 10. PROGRESSIVE PASSWORD REQUIREMENTS ENGINE
+  // ==============================================================
+  const registerPasswordInput = document.getElementById('register-password');
+  if (registerPasswordInput) {
+    registerPasswordInput.addEventListener('input', () => {
+      const val = registerPasswordInput.value;
+      updateChecklistRow('req-length', val.length >= 8);
+      updateChecklistRow('req-upper', /[A-Z]/.test(val));
+      updateChecklistRow('req-lower', /[a-z]/.test(val));
+      updateChecklistRow('req-number', /\d/.test(val));
+      updateChecklistRow('req-special', /[\!\@\#\$\%\^\&\*\(\)\_\+\-\=\[\]\{\}\;\:\'\"\,\<\.\>\/\?~`]/.test(val));
+    });
+  }
+
+  function updateChecklistRow(id, isPassed) {
+    const row = document.getElementById(id);
+    if (!row) return;
+    const icon = row.querySelector('.req-icon');
+    if (isPassed) {
+      icon.innerText = "✓";
+      row.className = "flex items-center gap-1.5 text-emerald-600 font-extrabold transition-all";
+    } else {
+      icon.innerText = "•";
+      row.className = "flex items-center gap-1.5 text-slate-400 font-normal transition-all";
+    }
+  }
+
+  // ==============================================================
+  // COGNITO TRIGGER SUBMISSIONS
+  // ==============================================================
   if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -356,7 +657,6 @@ layout: layout.html
 
         let result = await response.json();
 
-        // Handle Force Password Change Challenge
         if (response.ok && result.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
           const newPassword = prompt("First-Time Sign-In: Choose a secure permanent password:");
           if (!newPassword) { alert("Sign-in cancelled."); if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = "Sign In"; } return; }
@@ -391,7 +691,6 @@ layout: layout.html
     });
   }
 
-  // 2. SECURE SIGN UP FLOW (Cognito SignUp)
   if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -432,13 +731,12 @@ layout: layout.html
     });
   }
 
-  // 3. SECURE CODE VERIFICATION FLOW (Cognito ConfirmSignUp)
   if (verifyForm) {
     verifyForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const code = document.getElementById('verify-code').value;
       const submitBtn = verifyForm.querySelector('button[type="submit"]');
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = "Verifying Code..."; }
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = "Verifying..."; }
 
       try {
         const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
@@ -468,13 +766,12 @@ layout: layout.html
     });
   }
 
-  // 4. FORGOT PASSWORD REQUEST FLOW (Cognito ForgotPassword)
   if (forgotForm) {
     forgotForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('forgot-email').value;
       const submitBtn = forgotForm.querySelector('button[type="submit"]');
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = "Triggering Reset Code..."; }
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = "Triggering..."; }
 
       try {
         const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
@@ -504,14 +801,13 @@ layout: layout.html
     });
   }
 
-  // 5. CONFIRM PASSWORD RESET FLOW (Cognito ConfirmForgotPassword)
   if (resetConfirmForm) {
     resetConfirmForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const code = document.getElementById('reset-code').value;
       const newPassword = document.getElementById('reset-password-new').value;
       const submitBtn = resetConfirmForm.querySelector('button[type="submit"]');
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = "Saving New Password..."; }
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = "Saving Password..."; }
 
       try {
         const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
@@ -542,7 +838,6 @@ layout: layout.html
     });
   }
 
-  // 6. SECURE LOGGED-IN CHANGE PASSWORD FLOW (Cognito ChangePassword)
   if (btnChangePass) {
     btnChangePass.addEventListener('click', async () => {
       const currentPassword = prompt("Change Password: Enter your CURRENT password:");
@@ -567,9 +862,9 @@ layout: layout.html
         const result = await response.json();
 
         if (response.ok) {
-          alert("Password updated successfully inside your secure AWS user profile!");
+          alert("Password updated successfully inside your secure AWS profile!");
         } else {
-          alert('Failed to update password: ' + (result.message || 'Current password incorrect or new password weak.'));
+          alert('Failed to update password: ' + (result.message || 'Current password incorrect.'));
         }
       } catch (err) {
         console.error(err);
@@ -578,160 +873,225 @@ layout: layout.html
     });
   }
 
-  // 7. SECURE SIGN OUT FLOW
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       showLogin();
     });
   }
 
-  // 8. SECURE DOCUMENT UPLOAD FLOW (Supports MULTIPLE concurrent uploads!)
-  const uploadBtn = document.getElementById('upload-btn');
-  const fileInput = document.getElementById('document-upload');
-  const uploadStatus = document.getElementById('upload-status');
-  const queueList = document.getElementById('queue-list');
+  // ==============================================================
+  // 11. STANDALONE DOCUMENT UPLOAD FLOW (Bottom Vault)
+  // ==============================================================
+  const vaultUploadBtn = document.getElementById('upload-btn');
+  const vaultFileInput = document.getElementById('document-upload');
+  const vaultUploadStatus = document.getElementById('upload-status');
+  const vaultQueueList = document.getElementById('queue-list');
 
-  // Redraw the list of files currently in our local queue with [Remove] buttons
-  function renderQueueList() {
-    if (!queueList) return;
-    queueList.innerHTML = ""; // Clear existing list
+  function renderVaultQueueList() {
+    if (!vaultQueueList) return;
+    vaultQueueList.innerHTML = "";
 
-    if (fileQueue.length === 0) {
-      uploadStatus.innerText = "";
+    if (vaultFileQueue.length === 0) {
+      vaultUploadStatus.innerText = "";
       return;
     }
 
-    uploadStatus.innerText = `Selected ${fileQueue.length} file(s) pending transmission:`;
+    vaultUploadStatus.innerText = `Selected ${vaultFileQueue.length} file(s) pending transmission:`;
 
-    fileQueue.forEach((file, index) => {
+    vaultFileQueue.forEach((file, index) => {
       const row = document.createElement('div');
-      row.className = "flex justify-between items-center bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-semibold text-slate-700";
-      
+      row.className = "flex justify-between items-center bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-semibold text-slate-700 transition-all";
       row.innerHTML = `
         <span class="truncate max-w-[240px]">${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
-        <button type="button" onclick="removeFileFromQueue(${index})" class="text-red-500 hover:text-red-700 hover:underline focus:outline-none">
-          Remove
-        </button>
+        <button type="button" onclick="removeVaultFileFromQueue(${index})" class="text-red-500 hover:text-red-700 hover:underline focus:outline-none">Remove</button>
       `;
-      queueList.appendChild(row);
+      vaultQueueList.appendChild(row);
     });
   }
 
-  // Global function to remove a file from our custom array
-  window.removeFileFromQueue = function(index) {
-    fileQueue.splice(index, 1); // Delete from array
-    renderQueueList(); // Redraw UI
+  window.removeVaultFileFromQueue = function(index) {
+    vaultFileQueue.splice(index, 1);
+    renderVaultQueueList();
   }
 
-  if (uploadBtn && fileInput && uploadStatus) {
-    
-    // Accumulate files in our custom queue every time the user chooses more files
-    fileInput.addEventListener('change', () => {
-      const selectedFiles = fileInput.files;
-      
+  if (vaultUploadBtn && vaultFileInput && vaultUploadStatus) {
+    vaultFileInput.addEventListener('change', () => {
+      const selectedFiles = vaultFileInput.files;
       for (let i = 0; i < selectedFiles.length; i++) {
-        // Prevent duplicate files from being added to the queue
-        const isDuplicate = fileQueue.some(queuedFile => 
-          queuedFile.name === selectedFiles[i].name && 
-          queuedFile.size === selectedFiles[i].size
-        );
-        
-        if (!isDuplicate) {
-          fileQueue.push(selectedFiles[i]);
-        }
+        const isDuplicate = vaultFileQueue.some(q => q.name === selectedFiles[i].name && q.size === selectedFiles[i].size);
+        if (!isDuplicate) vaultFileQueue.push(selectedFiles[i]);
       }
-
-      renderQueueList(); // Redraw our new interactive list
-      fileInput.value = ""; // Clear browser picker so they can click "Choose" again for same file if they wanted to
+      renderVaultQueueList();
+      vaultFileInput.value = "";
     });
 
-    uploadBtn.addEventListener('click', async () => {
-      // Check our custom queue instead of the browser's default file picker
-      if (fileQueue.length === 0) {
-        alert("Please choose one or more PDF files to upload first!");
+    vaultUploadBtn.addEventListener('click', async () => {
+      if (vaultFileQueue.length === 0) {
+        alert("Please choose one or more files to upload first!");
         return;
       }
-
       const userEmail = localStorage.getItem('user_email');
-      if (!userEmail) {
-        alert("Session expired. Please sign in again.");
-        showLogin();
-        return;
-      }
+      if (!userEmail) { alert("Session expired. Please sign in again."); showLogin(); return; }
 
-      uploadBtn.disabled = true;
+      vaultUploadBtn.disabled = true;
 
       try {
-        const totalFiles = fileQueue.length;
-        
-        // Loop sequentially through all accumulated files inside our custom queue
-        for (let i = 0; i < fileQueue.length; i++) {
-          const file = fileQueue[i];
-          uploadStatus.innerText = `[${i + 1}/${totalFiles}] Requesting secure authorization for ${file.name}...`;
+        const totalFiles = vaultFileQueue.length;
+        for (let i = 0; i < vaultFileQueue.length; i++) {
+          const file = vaultFileQueue[i];
+          vaultUploadStatus.innerText = `[${i + 1}/${totalFiles}] Requesting secure authorization for ${file.name}...`;
 
-          // Step 1: Request a secure Presigned URL for this specific file from AWS Lambda
-          // Updated to use Wasim's exact production API Gateway endpoint!
           const authResponse = await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: "getUploadUrl",
-              fileName: file.name,
-              fileType: file.type,
-              userEmail: userEmail
-            })
+            body: JSON.stringify({ action: "getUploadUrl", fileName: file.name, fileType: file.type, userEmail: userEmail })
           });
 
           const authResult = await authResponse.json();
+          if (!authResponse.ok || authResult.status !== 'SUCCESS') throw new Error(authResult.message);
 
-          if (!authResponse.ok || authResult.status !== 'SUCCESS') {
-            throw new Error(authResult.message || `Failed to authorize upload for ${file.name}`);
-          }
+          vaultUploadStatus.innerText = `[${i + 1}/${totalFiles}] Transmitting ${file.name} to Vault...`;
 
-          uploadStatus.innerText = `[${i + 1}/${totalFiles}] Transmitting ${file.name} directly to S3 Vault...`;
-
-          // Step 2: Stream the binary file directly to S3 using the Presigned URL
           const uploadResponse = await fetch(authResult.uploadUrl, {
             method: 'PUT',
             headers: { 'Content-Type': file.type },
             body: file
           });
+          if (!uploadResponse.ok) throw new Error("S3 rejected the file transmission.");
 
-          if (!uploadResponse.ok) {
-            throw new Error("S3 rejected the file transmission.");
-          }
+          vaultUploadStatus.innerText = `[${i + 1}/${totalFiles}] Notifying advisors...`;
 
-          uploadStatus.innerText = `[${i + 1}/${totalFiles}] Securing file and notifying advisors of ${file.name}...`;
-
-          // Step 3: Trigger the Lambda to generate a secure download link and send the SES email
-          // Updated to use Wasim's exact production API Gateway endpoint!
           await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: "notifyUploadComplete",
-              fileKey: authResult.fileKey,
-              userEmail: userEmail
-            })
+            body: JSON.stringify({ action: "notifyUploadComplete", fileKey: authResult.fileKey, userEmail: userEmail })
           });
         }
 
-        // Output success and clear our custom queue and UI
-        uploadStatus.innerText = `Success! All ${totalFiles} files successfully uploaded and encrypted.`;
-        alert(`All ${totalFiles} files successfully stored! Secure email alert dispatched to your advisors.`);
-        fileQueue = []; // Clear our custom queue array
-        renderQueueList(); // Redraw (clear) list
+        vaultUploadStatus.innerText = `Success! ${totalFiles} files uploaded.`;
+        alert(`Successfully stored! Secure email alert dispatched.`);
+        vaultFileQueue = [];
+        renderVaultQueueList();
 
       } catch (err) {
         console.error('Upload Error:', err);
-        uploadStatus.innerText = "Upload failed. Cloud connection or CORS error.";
+        vaultUploadStatus.innerText = "Upload failed. Cloud connection error.";
       } finally {
-        uploadBtn.disabled = false;
+        vaultUploadBtn.disabled = false;
       }
     });
   }
 
-  // 9. SECURE CANADIAN TAX ORGANIZER SUBMISSION (CRA-aligned free onboarding feature!)
+  // ==============================================================
+  // 12. DYNAMIC TAX ORGANIZER LOGIC & INLINE UPLOAD RENDERER
+  // ==============================================================
+  const uberToggleYes = document.getElementById('uber-yes');
+  const uberToggleNo = document.getElementById('uber-no');
+  const uberSection = document.getElementById('uber-section');
+  const rentalToggleYes = document.getElementById('rental-yes');
+  const rentalToggleNo = document.getElementById('rental-no');
+  const rentalSection = document.getElementById('rental-section');
+  const ccbToggleYes = document.getElementById('ccb-yes');
+  const ccbToggleNo = document.getElementById('ccb-no');
+  const ccbSection = document.getElementById('ccb-section');
+
+  function updateConditionalSections() {
+    if (uberToggleYes && uberToggleYes.checked) uberSection.classList.remove('hidden');
+    else if (uberSection) uberSection.classList.add('hidden');
+    if (rentalToggleYes && rentalToggleYes.checked) rentalSection.classList.remove('hidden');
+    else if (rentalSection) rentalSection.classList.add('hidden');
+    if (ccbToggleYes && ccbToggleYes.checked) ccbSection.classList.remove('hidden');
+    else if (ccbSection) ccbSection.classList.add('hidden');
+  }
+
+  [uberToggleYes, uberToggleNo, rentalToggleYes, rentalToggleNo, ccbToggleYes, ccbToggleNo].forEach(radio => {
+    if (radio) radio.addEventListener('change', updateConditionalSections);
+  });
+
+  const familyTableBody = document.getElementById('family-table-body');
+  const residencyTableBody = document.getElementById('residency-table-body');
+  const ownerTableBody = document.getElementById('owner-table-body');
+  const btnAddFamily = document.getElementById('btn-add-family');
+  const btnAddResidency = document.getElementById('btn-add-residency');
+  const btnAddOwner = document.getElementById('btn-add-owner');
+
+  function addFamilyRow() {
+    const emptyRow = document.getElementById('family-empty-row');
+    if (emptyRow) emptyRow.remove();
+    const row = document.createElement('tr');
+    row.className = "family-row border-b border-slate-100 hover:bg-slate-50/50 transition-colors bg-white";
+    row.innerHTML = `<td class="p-3"><input type="text" required placeholder="Dependent Name" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none bg-slate-50/20" /></td><td class="p-3"><input type="text" required placeholder="000-000-000" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none font-mono bg-slate-50/20" /></td><td class="p-3"><input type="date" required class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none bg-white" /></td><td class="p-3"><select required class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none bg-white"><option value="son">Son</option><option value="daughter">Daughter</option><option value="spouse">Spouse</option><option value="parent">Parent</option><option value="other">Other Relative</option></select></td><td class="p-3 text-center"><button type="button" class="text-red-500 hover:text-red-700 hover:underline text-xs" onclick="this.closest('tr').remove(); checkFamilyEmpty();">Remove</button></td>`;
+    familyTableBody.appendChild(row);
+  }
+  function checkFamilyEmpty() { if (familyTableBody.querySelectorAll('.family-row').length === 0) { familyTableBody.innerHTML = `<tr id="family-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No dependents declared. Click "+ Add Dependent" to include one.</td></tr>`; } }
+  
+  function addResidencyRow() {
+    const emptyRow = document.getElementById('residency-empty-row');
+    if (emptyRow) emptyRow.remove();
+    const row = document.createElement('tr');
+    row.className = "residency-row border-b border-slate-100 hover:bg-slate-50/50 transition-colors bg-white";
+    row.innerHTML = `<td class="p-3"><input type="number" min="1" max="12" required placeholder="Months" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none font-bold" /></td><td class="p-3"><input type="text" required placeholder="Property Address" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none" /></td><td class="p-3"><input type="text" required placeholder="Municipality / Landlord" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none" /></td><td class="p-3 text-center"><button type="button" class="text-red-500 hover:text-red-700 hover:underline text-xs" onclick="this.closest('tr').remove(); checkResidencyEmpty();">Remove</button></td>`;
+    residencyTableBody.appendChild(row);
+  }
+  function checkResidencyEmpty() { if (residencyTableBody.querySelectorAll('.residency-row').length === 0) { residencyTableBody.innerHTML = `<tr id="residency-empty-row"><td colspan="4" class="p-4 text-center text-slate-400 italic">No residency rows declared. Click "+ Add Address Row" to add a ledger row.</td></tr>`; } }
+  
+  function addOwnerRow() {
+    const emptyRow = document.getElementById('owner-empty-row');
+    if (emptyRow) emptyRow.remove();
+    const row = document.createElement('tr');
+    row.className = "owner-row border-b border-slate-100 hover:bg-slate-50/50 transition-colors bg-white";
+    row.innerHTML = `<td class="p-2.5"><input type="text" required placeholder="Investor Name" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none" /></td><td class="p-2.5"><input type="text" required placeholder="000-000-000" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none font-mono" /></td><td class="p-2.5"><input type="number" min="1" max="100" required placeholder="%" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none font-bold" /></td><td class="p-2.5"><input type="text" required placeholder="Investor Mailing Address" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none" /></td><td class="p-2.5 text-center"><button type="button" class="text-red-500 hover:text-red-700 hover:underline text-xs" onclick="this.closest('tr').remove(); checkOwnerEmpty();">Remove</button></td>`;
+    ownerTableBody.appendChild(row);
+  }
+  function checkOwnerEmpty() { if (ownerTableBody && ownerTableBody.querySelectorAll('.owner-row').length === 0) { ownerTableBody.innerHTML = `<tr id="owner-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No co-investors declared. Defaults to 100% sole owner.</td></tr>`; } }
+
+  if (btnAddFamily) btnAddFamily.addEventListener('click', addFamilyRow);
+  if (btnAddResidency) btnAddResidency.addEventListener('click', addResidencyRow);
+  if (btnAddOwner) btnAddOwner.addEventListener('click', addOwnerRow);
+
+  function togglePrompt(id, value) {
+    const el = document.getElementById('prompt-' + id);
+    if (el) {
+      if (value === 'yes') { el.classList.remove('hidden'); } 
+      else { el.classList.add('hidden'); }
+    }
+  }
+
+  // INTERACTIVE INLINE FILE QUEUE FOR THE TAX ORGANIZER
+  window.removeOrganizerFile = function(id, containerId) {
+    organizerFilesQueue = organizerFilesQueue.filter(f => f.id !== id);
+    renderOrganizerFiles(containerId);
+  }
+
+  function renderOrganizerFiles(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = "";
+    
+    const relevantFiles = organizerFilesQueue.filter(f => f.containerId === containerId);
+    relevantFiles.forEach(item => {
+      container.innerHTML += `
+        <div class="flex justify-between items-center bg-white border border-brand-200 rounded p-1.5 text-[9px] font-bold text-slate-600 shadow-sm mt-1">
+          <span class="truncate w-3/4 px-1">${item.file.name}</span>
+          <button type="button" onclick="removeOrganizerFile('${item.id}', '${containerId}')" class="text-red-500 hover:underline cursor-pointer">Remove</button>
+        </div>
+      `;
+    });
+  }
+
+  window.handleOrganizerUpload = function(input, prefix, containerId) {
+    if (input.files.length === 0) return;
+    for (let i = 0; i < input.files.length; i++) {
+      const origFile = input.files[i];
+      const renamedFile = new File([origFile], `${prefix} ${origFile.name}`, { type: origFile.type, lastModified: origFile.lastModified });
+      const uniqueId = Math.random().toString(36).substr(2, 9);
+      organizerFilesQueue.push({ id: uniqueId, file: renamedFile, containerId: containerId, fileKey: "" }); // added fileKey array prep
+    }
+    renderOrganizerFiles(containerId);
+    input.value = ""; // Reset picker
+  }
+
+  // SECURE SUBMISSION LOGIC (FILES + JSON DATA)
   if (organizerForm) {
     organizerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -740,43 +1100,162 @@ layout: layout.html
       if (!userEmail) { alert("Session expired. Please log in again."); showLogin(); return; }
 
       const submitBtn = organizerForm.querySelector('button[type="submit"]');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerText = "Transmitting Details securely...";
-      }
-
-      // Gather input data from your new CRA form fields
-      const payload = {
-        action: "submitTaxOrganizer",
-        userEmail: userEmail,
-        fullName: document.getElementById('org-fullname').value,
-        birthDate: document.getElementById('org-dob').value,
-        maritalStatus: document.getElementById('org-marital').value,
-        foreignProperty: organizerForm.querySelector('input[name="org-foreign"]:checked').value,
-        soldResidence: organizerForm.querySelector('input[name="org-sold"]:checked').value,
-        hasDependants: organizerForm.querySelector('input[name="org-dependants"]:checked').value,
-        notes: document.getElementById('org-notes').value
-      };
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = "Transmitting Onboarding Data..."; }
 
       try {
-        // Send data directly to Wasim's production API Gateway endpoint
-        const response = await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
+        // STEP 1: Process Inline File Uploads First
+        if (organizerFilesQueue.length > 0) {
+          for (let i = 0; i < organizerFilesQueue.length; i++) {
+            const fileObj = organizerFilesQueue[i].file;
+            if (submitBtn) submitBtn.innerText = `Uploading Document ${i + 1} of ${organizerFilesQueue.length}...`;
+
+            const authRes = await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: "getUploadUrl", fileName: fileObj.name, fileType: fileObj.type, userEmail: userEmail })
+            });
+            const authResult = await authRes.json();
+            if (!authRes.ok || authResult.status !== 'SUCCESS') throw new Error(authResult.message);
+
+            const uploadRes = await fetch(authResult.uploadUrl, { method: 'PUT', headers: { 'Content-Type': fileObj.type }, body: fileObj });
+            if (!uploadRes.ok) throw new Error("S3 rejected the file transmission.");
+
+            // Save the returned fileKey into the array so we can pass it to the final JSON payload
+            organizerFilesQueue[i].fileKey = authResult.fileKey;
+          }
+        }
+
+        // STEP 2: Process & Submit Text Payload JSON
+        if (submitBtn) submitBtn.innerText = "Finalizing Digital Report...";
+
+        const dependentsArray = [];
+        organizerForm.querySelectorAll('.family-row').forEach(row => {
+          const inputs = row.querySelectorAll('input, select');
+          dependentsArray.push({ name: inputs[0].value, sin: inputs[1].value, dob: inputs[2].value, relationship: inputs[3].value });
+        });
+
+        const residencyArray = [];
+        organizerForm.querySelectorAll('.residency-row').forEach(row => {
+          const inputs = row.querySelectorAll('input');
+          residencyArray.push({ months: inputs[0].value, address: inputs[1].value, landlord: inputs[2].value });
+        });
+
+        const ownersArray = [];
+        organizerForm.querySelectorAll('.owner-row').forEach(row => {
+          const inputs = row.querySelectorAll('input');
+          ownersArray.push({ name: inputs[0].value, sin: inputs[1].value, share: inputs[2].value, address: inputs[3].value });
+        });
+
+        // Strip the raw binary 'File' object out of the queue so we only send the text metadata names to the backend
+        const safeFilePayload = organizerFilesQueue.map(item => ({
+            fileName: item.file.name,
+            fileKey: item.fileKey
+        }));
+
+        const payload = {
+          action: "submitTaxOrganizer",
+          userEmail: userEmail,
+          uploadedFiles: safeFilePayload,
+          howHeard: document.getElementById('org-howheard').value || "Not Specified",
+          personalInfo: {
+            fullName: document.getElementById('org-fullname').value,
+            telephone: document.getElementById('org-telephone').value,
+            address: document.getElementById('org-address').value,
+            maritalStatus: document.getElementById('org-marital').value,
+            dob: document.getElementById('org-dob').value
+          },
+          familyMembers: dependentsArray,
+          statusInCanada: {
+            status: document.getElementById('org-immigration-status').value,
+            entryDate: document.getElementById('org-immigration-entry').value || "N/A"
+          },
+          ontarioResidency: residencyArray,
+          milestones: {
+            tuition: organizerForm.querySelector('input[name="org-tuition"]:checked').value,
+            rrsp: organizerForm.querySelector('input[name="org-rrsp"]:checked').value,
+            charitable: organizerForm.querySelector('input[name="org-charitable"]:checked').value,
+            crypto: organizerForm.querySelector('input[name="org-crypto"]:checked').value,
+            daycare: organizerForm.querySelector('input[name="org-daycare"]:checked').value,
+            workFromHome: organizerForm.querySelector('input[name="org-wfh"]:checked').value,
+            purchasedHome: organizerForm.querySelector('input[name="org-purchased"]:checked').value
+          },
+          selfEmployed: {
+            active: organizerForm.querySelector('input[name="org-uber-toggle"]:checked').value,
+            hstNo: document.getElementById('uber-hst').value || "N/A",
+            accessCode: document.getElementById('uber-access').value || "N/A",
+            periodFrom: document.getElementById('uber-from').value || "N/A",
+            periodTo: document.getElementById('uber-to').value || "N/A",
+            expenses: {
+              fuel: document.getElementById('exp-fuel').value || "0.00",
+              repairs: document.getElementById('exp-repairs').value || "0.00",
+              insurance: document.getElementById('exp-insurance').value || "0.00",
+              license: document.getElementById('exp-licence').value || "0.00",
+              interest: document.getElementById('exp-interest').value || "0.00",
+              carwash: document.getElementById('exp-carwash').value || "0.00",
+              parking: document.getElementById('exp-parking').value || "0.00",
+              tolls: document.getElementById('exp-tolls').value || "0.00",
+              tickets: document.getElementById('exp-tickets').value || "0.00",
+              phone: document.getElementById('exp-phone').value || "0.00",
+              supplies: document.getElementById('exp-supplies').value || "0.00",
+              meals: document.getElementById('exp-meals').value || "0.00"
+            }
+          },
+          rentalIncome: {
+            active: organizerForm.querySelector('input[name="org-rental-toggle"]:checked').value,
+            address: document.getElementById('rent-address').value || "N/A",
+            grossIncome: document.getElementById('rent-gross').value || "0.00",
+            coOwners: ownersArray,
+            expenses: {
+              insurance: document.getElementById('rent-exp-ins').value || "0.00",
+              interest: document.getElementById('rent-exp-interest').value || "0.00",
+              bankCharges: document.getElementById('rent-exp-bank').value || "0.00",
+              office: document.getElementById('rent-exp-office').value || "0.00",
+              professional: document.getElementById('rent-exp-prof').value || "0.00",
+              management: document.getElementById('rent-exp-manage').value || "0.00",
+              repairs: document.getElementById('rent-exp-repairs').value || "0.00",
+              propertyTax: document.getElementById('rent-exp-tax').value || "0.00",
+              utilities: document.getElementById('rent-exp-utilities').value || "0.00"
+            }
+          },
+          childCareBenefit: {
+            active: organizerForm.querySelector('input[name="org-ccb-toggle"]:checked').value,
+            marriageDate: document.getElementById('ccb-marriage-date').value || "N/A",
+            statusChangeDate: document.getElementById('ccb-status-date').value || "N/A",
+            worldIncome: {
+              becameResidentYear: document.getElementById('ccb-world-entry').value || "0.00",
+              oneYearBefore: document.getElementById('ccb-world-prev1').value || "0.00",
+              twoYearsBefore: document.getElementById('ccb-world-prev2').value || "0.00"
+            }
+          },
+          notes: document.getElementById('org-notes').value || "None provided."
+        };
+
+        const jsonResponse = await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
 
-        const result = await response.json();
+        const jsonResult = await jsonResponse.json();
 
-        if (response.ok && result.status === 'SUCCESS') {
-          alert(result.message);
+        if (jsonResponse.ok && jsonResult.status === 'SUCCESS') {
+          alert("Organizer Profile and all attached documents transmitted securely!");
+          
+          // Total UX Reset
           organizerForm.reset();
+          organizerFilesQueue = [];
+          document.querySelectorAll('[id^="list-"]').forEach(list => list.innerHTML = "");
+          document.querySelectorAll('[id^="prompt-"]').forEach(promptBox => promptBox.classList.add('hidden'));
+          familyTableBody.innerHTML = `<tr id="family-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No dependents declared. Click "+ Add Dependent" to include one.</td></tr>`;
+          residencyTableBody.innerHTML = `<tr id="residency-empty-row"><td colspan="4" class="p-4 text-center text-slate-400 italic">No residency rows declared. Click "+ Add Address Row" to add a ledger row.</td></tr>`;
+          ownerTableBody.innerHTML = `<tr id="owner-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No co-investors declared. Defaults to 100% sole owner.</td></tr>`;
+          updateConditionalSections(); 
         } else {
-          alert('Submission failed: ' + (result.message || 'Unknown server error'));
+          alert('Submission failed: ' + (jsonResult.message || 'Unknown server error'));
         }
       } catch (err) {
         console.error('Submit Error:', err);
-        alert('Network error. Unable to establish connection to the AWS Cloud.');
+        alert('Network error. Unable to complete cloud transmission.');
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
