@@ -107,10 +107,12 @@ export const handler = async (event) => {
             // Personal & Status
             csvRows.push(
                 ["Personal", "Full Name", personalInfo.fullName || "N/A"],
+                ["Personal", "SIN", personalInfo.sin || "N/A"],
                 ["Personal", "Email", userEmail],
                 ["Personal", "Telephone", personalInfo.telephone || "N/A"],
                 ["Personal", "Address", personalInfo.address || "N/A"],
                 ["Personal", "Marital Status", personalInfo.maritalStatus || "N/A"],
+                ["Personal", "Spousal Income ($)", personalInfo.spousalIncome || "N/A"],
                 ["Personal", "How Heard", howHeard],
                 ["Status", "Immigration Status", statusInCanada.status || "N/A"],
                 ["Status", "Entry Date", statusInCanada.entryDate || "N/A"]
@@ -123,6 +125,7 @@ export const handler = async (event) => {
                     csvRows.push(["Dependent " + (index + 1), "SIN", mem.sin]);
                     csvRows.push(["Dependent " + (index + 1), "DOB", mem.dob]);
                     csvRows.push(["Dependent " + (index + 1), "Relationship", mem.relationship]);
+                    csvRows.push(["Dependent " + (index + 1), "Disability Approved", mem.disability]);
                 });
             } else {
                 csvRows.push(["Dependents", "Declared", "None"]);
@@ -141,6 +144,8 @@ export const handler = async (event) => {
 
             // Milestones
             csvRows.push(
+                ["Milestones", "Elections Canada", milestones.electionsCanada || "no"],
+                ["Milestones", "Direct Deposit Changed", milestones.directDeposit || "no"],
                 ["Milestones", "Tuition Paid", milestones.tuition || "no"],
                 ["Milestones", "RRSP Contribution", milestones.rrsp || "no"],
                 ["Milestones", "Charitable Donations", milestones.charitable || "no"],
@@ -158,6 +163,8 @@ export const handler = async (event) => {
                     ["UBER (T2125)", "Access Code", selfEmployed.accessCode || "N/A"],
                     ["UBER (T2125)", "Period From", selfEmployed.periodFrom || "N/A"],
                     ["UBER (T2125)", "Period To", selfEmployed.periodTo || "N/A"],
+                    ["UBER (T2125)", "Total KMs Driven", selfEmployed.totalKms || "0"],
+                    ["UBER (T2125)", "Business KMs", selfEmployed.businessKms || "0"],
                     ["UBER (T2125)", "Fuel", selfEmployed.expenses?.fuel || "0"],
                     ["UBER (T2125)", "Repairs", selfEmployed.expenses?.repairs || "0"],
                     ["UBER (T2125)", "Insurance", selfEmployed.expenses?.insurance || "0"],
@@ -178,6 +185,7 @@ export const handler = async (event) => {
             if (rentalIncome.active === "yes") {
                 csvRows.push(["Rental (T776)", "Address", rentalIncome.address || "N/A"]);
                 csvRows.push(["Rental (T776)", "Gross Income", rentalIncome.grossIncome || "0"]);
+                csvRows.push(["Rental (T776)", "Percentage Rented", rentalIncome.percentageRented || "100"]);
                 
                 // Co-Owners Dynamic Loop
                 if (rentalIncome.coOwners && rentalIncome.coOwners.length > 0) {
@@ -247,7 +255,7 @@ export const handler = async (event) => {
             }
 
             // 3. REBUILD THE FULL HTML EMAIL PREVIEW
-            let familyRows = familyMembers.map(m => `<tr><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${m.name}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${m.sin}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${m.dob}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9; text-transform: capitalize;">${m.relationship}</td></tr>`).join("");
+            let familyRows = familyMembers.map(m => `<tr><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${m.name}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${m.sin}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${m.dob}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9; text-transform: capitalize;">${m.relationship}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9; text-transform: uppercase;">${m.disability}</td></tr>`).join("");
             let residencyRows = ontarioResidency.map(r => `<tr><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${r.months} Mos</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${r.address}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${r.landlord}</td></tr>`).join("");
 
             const showSelfEmployed = selfEmployed.active === "yes";
@@ -255,7 +263,8 @@ export const handler = async (event) => {
                 <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
                     <h3 style="color: #059669; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">UBER/Lyft (T2125)</h3>
                     <p style="font-size: 12px;"><strong>HST No:</strong> ${selfEmployed.hstNo || "N/A"} | <strong>Access Code:</strong> ${selfEmployed.accessCode || "N/A"}</p>
-                    <p style="font-size: 12px; margin-bottom: 12px;"><strong>Period:</strong> ${selfEmployed.periodFrom || "N/A"} to ${selfEmployed.periodTo || "N/A"}</p>
+                    <p style="font-size: 12px;"><strong>Period:</strong> ${selfEmployed.periodFrom || "N/A"} to ${selfEmployed.periodTo || "N/A"}</p>
+                    <p style="font-size: 12px; margin-bottom: 12px;"><strong>Total KMs:</strong> ${selfEmployed.totalKms || "0"} | <strong>Business KMs:</strong> ${selfEmployed.businessKms || "0"}</p>
                     <table style="width: 100%; font-size: 12px; border-collapse: collapse; background-color: #f8fafc; border: 1px solid #f1f5f9;">
                         <tr><td style="padding: 8px; border-bottom: 1px solid #f1f5f9; width: 50%;">Fuel: $${selfEmployed.expenses?.fuel || "0.00"}</td><td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">Repairs: $${selfEmployed.expenses?.repairs || "0.00"}</td></tr>
                         <tr><td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">Insurance: $${selfEmployed.expenses?.insurance || "0.00"}</td><td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">Licence: $${selfEmployed.expenses?.license || "0.00"}</td></tr>
@@ -275,6 +284,7 @@ export const handler = async (event) => {
                 <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
                     <h3 style="color: #0284c7; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">Rental Income (T776)</h3>
                     <p style="font-size: 12px;"><strong>Address:</strong> ${rentalIncome.address || "N/A"} | <strong>Gross Income:</strong> $${rentalIncome.grossIncome || "0.00"}</p>
+                    <p style="font-size: 12px; color: #0284c7; margin-bottom: 12px;"><strong>Percentage of Property Rented Out:</strong> ${rentalIncome.percentageRented || "100"}%</p>
                     <table style="width: 100%; font-size: 11px; border-collapse: collapse; margin: 12px 0; border: 1px solid #e2e8f0;"><tr style="background-color: #f1f5f9;"><th style="padding: 6px; text-align: left;">Investor</th><th style="padding: 6px; text-align: left;">SIN</th><th style="padding: 6px; text-align: left;">Share %</th></tr>${coOwnerRows}</table>
                     <table style="width: 100%; font-size: 12px; border-collapse: collapse; background-color: #f8fafc; border: 1px solid #f1f5f9;">
                         <tr><td style="padding: 8px; border-bottom: 1px solid #f1f5f9; width: 50%;">Insurance: $${rentalIncome.expenses?.insurance || "0.00"}</td><td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">Mortgage Int: $${rentalIncome.expenses?.interest || "0.00"}</td></tr>
@@ -313,18 +323,20 @@ export const handler = async (event) => {
                         <h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">1. Personal Profile</h3>
                         <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                             <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569; width: 140px;">Name:</td><td style="padding: 8px 0; font-weight: bold;">${personalInfo.fullName || "N/A"}</td></tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">9-Digit SIN:</td><td style="padding: 8px 0; font-family: monospace;">${personalInfo.sin || "N/A"}</td></tr>
                             <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Email:</td><td style="padding: 8px 0;">${userEmail}</td></tr>
                             <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Telephone:</td><td style="padding: 8px 0;">${personalInfo.telephone || "N/A"}</td></tr>
                             <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Address:</td><td style="padding: 8px 0;">${personalInfo.address || "N/A"}</td></tr>
-                            <tr><td style="padding: 8px 0; font-weight: bold; color: #475569;">Marital Status:</td><td style="padding: 8px 0; text-transform: capitalize;">${personalInfo.maritalStatus || "N/A"}</td></tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Marital Status:</td><td style="padding: 8px 0; text-transform: capitalize;">${personalInfo.maritalStatus || "N/A"}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold; color: #475569;">Spousal Net Inc.:</td><td style="padding: 8px 0; font-weight: bold; color: #059669;">$${personalInfo.spousalIncome || "N/A"}</td></tr>
                         </table>
                     </div>
 
                     <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
                         <h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">2. Family Dependents</h3>
                         <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
-                            <thead><tr style="background-color: #f8fafc; color: #475569;"><th style="padding: 8px;">Name</th><th style="padding: 8px;">SIN</th><th style="padding: 8px;">Birth Date</th><th style="padding: 8px;">Relation</th></tr></thead>
-                            <tbody>${familyRows || "<tr><td style='padding:6px;'>None</td></tr>"}</tbody>
+                            <thead><tr style="background-color: #f8fafc; color: #475569;"><th style="padding: 8px;">Name</th><th style="padding: 8px;">SIN</th><th style="padding: 8px;">Birth Date</th><th style="padding: 8px;">Relation</th><th style="padding: 8px;">DTC</th></tr></thead>
+                            <tbody>${familyRows || "<tr><td colspan='5' style='padding:6px; text-align:center;'>None</td></tr>"}</tbody>
                         </table>
                     </div>
 
@@ -333,14 +345,16 @@ export const handler = async (event) => {
                         <p style="font-size: 13px;"><strong>Immigration:</strong> ${statusInCanada.status || "N/A"} | <strong>Entry Date:</strong> ${statusInCanada.entryDate || "N/A"}</p>
                         <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; border: 1px solid #e2e8f0; margin-top: 10px;">
                             <thead><tr style="background-color: #f1f5f9;"><th style="padding: 8px;">Months</th><th style="padding: 8px;">Address</th><th style="padding: 8px;">Landlord/City</th></tr></thead>
-                            <tbody>${residencyRows || "<tr><td style='padding:6px;'>None</td></tr>"}</tbody>
+                            <tbody>${residencyRows || "<tr><td colspan='3' style='padding:6px; text-align:center;'>None</td></tr>"}</tbody>
                         </table>
                     </div>
 
                     <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
                         <h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">4. Milestones & Tax Disclosures</h3>
                         <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
-                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0; width: 75%;">Paid tuition in a tax year?</td><td style="padding: 10px 0; font-weight: bold;">${(milestones.tuition || "no").toUpperCase()}</td></tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0; width: 75%;">Auth. Elections Canada?</td><td style="padding: 10px 0; font-weight: bold;">${(milestones.electionsCanada || "no").toUpperCase()}</td></tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0;">Direct Deposit Changed?</td><td style="padding: 10px 0; font-weight: bold;">${(milestones.directDeposit || "no").toUpperCase()}</td></tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0;">Paid tuition in a tax year?</td><td style="padding: 10px 0; font-weight: bold;">${(milestones.tuition || "no").toUpperCase()}</td></tr>
                             <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0;">Contributed toward an RRSP portfolio?</td><td style="padding: 10px 0; font-weight: bold;">${(milestones.rrsp || "no").toUpperCase()}</td></tr>
                             <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0;">Made any charitable donations?</td><td style="padding: 10px 0; font-weight: bold;">${(milestones.charitable || "no").toUpperCase()}</td></tr>
                             <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0;">Invested in stocks / Cryptocurrency assets?</td><td style="padding: 10px 0; font-weight: bold;">${(milestones.crypto || "no").toUpperCase()}</td></tr>
@@ -382,8 +396,12 @@ export const handler = async (event) => {
                 <h2 style="color: #0284c7; margin-bottom: 4px;">FiscalX Intake Portal</h2>
                 <p style="font-size: 14px; color: #64748b; margin-top: 0;">New Consultation Request Received</p>
                 <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-                <p style="font-size: 15px;"><strong>Name:</strong> ${fullName}<br/><strong>Email:</strong> ${email}<br/><strong>Service:</strong> ${service}</p>
-                <p style="font-size: 14px; margin-top: 15px;"><strong>Message:</strong><br/>${message || "N/A"}</p>
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <tr><td style="padding: 12px; font-weight: bold; width: 140px; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Name:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${fullName}</td></tr>
+                    <tr><td style="padding: 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Email:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${email}</td></tr>
+                    <tr><td style="padding: 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Service:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${service}</td></tr>
+                    <tr><td style="padding: 12px; font-weight: bold; background-color: #f1f5f9;">Message:</td><td style="padding: 12px;">${message || "N/A"}</td></tr>
+                </table>
             </div>
         `;
 

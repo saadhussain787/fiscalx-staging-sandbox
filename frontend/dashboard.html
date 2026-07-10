@@ -7,13 +7,12 @@ layout: layout.html
   <!-- 1. AUTHENTICATION PORTAL CONTAINER -->
   <div id="auth-container" class="w-full max-w-md bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
     
-    <!-- Auth Tabs -->
     <div id="auth-tabs" class="flex border-b border-slate-100 mb-6">
       <button id="tab-signin" class="flex-1 pb-3 text-sm font-bold border-b-2 border-brand-500 text-brand-600 focus:outline-none transition">Sign In</button>
       <button id="tab-signup" class="flex-1 pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 focus:outline-none transition">Register</button>
     </div>
 
-    <!-- STATE A: SIGN IN FORM -->
+    <!-- SIGN IN FORM -->
     <form id="login-form" class="space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Client Portal Sign-In</h1>
@@ -30,12 +29,10 @@ layout: layout.html
         </div>
         <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" />
       </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all shadow-md shadow-brand-500/10">
-        Sign In to Portal
-      </button>
+      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all shadow-md shadow-brand-500/10">Sign In to Portal</button>
     </form>
 
-    <!-- STATE B: REGISTER (SIGN UP) FORM WITH SINGULAR PASSWORD CHECKLIST -->
+    <!-- REGISTER FORM -->
     <form id="register-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Create Client Account</h1>
@@ -52,7 +49,6 @@ layout: layout.html
       <div>
         <label for="register-password" class="block text-xs font-bold text-slate-700 uppercase mb-2">Create Password</label>
         <input type="password" id="register-password" required placeholder="Minimum 8 characters" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" />
-        
         <div id="password-requirements" class="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] text-slate-500 space-y-1.5 transition-all">
           <p class="font-extrabold text-slate-800 uppercase tracking-widest text-[9px] mb-1">Password Requirements Check:</p>
           <div id="req-length" class="flex items-center gap-1.5 transition-all"><span class="req-icon text-slate-400">•</span> 8 characters minimum</div>
@@ -62,12 +58,10 @@ layout: layout.html
           <div id="req-special" class="flex items-center gap-1.5 transition-all"><span class="req-icon text-slate-400">•</span> One special character (!@#$%^&*)</div>
         </div>
       </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all shadow-md">
-        Create Portal Account
-      </button>
+      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all shadow-md">Create Portal Account</button>
     </form>
 
-    <!-- STATE C: ACCOUNT VERIFICATION FORM -->
+    <!-- VERIFY FORM -->
     <form id="verify-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Verify Your Email</h1>
@@ -77,12 +71,10 @@ layout: layout.html
         <label for="verify-code" class="block text-xs font-bold text-slate-700 uppercase mb-2">6-Digit Verification Code</label>
         <input type="text" id="verify-code" required placeholder="123456" maxlength="6" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-center text-lg font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-brand-500" />
       </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all">
-        Confirm Verification Code
-      </button>
+      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all">Confirm Verification Code</button>
     </form>
 
-    <!-- STATE D: FORGOT PASSWORD REQUEST FORM -->
+    <!-- FORGOT FORM -->
     <form id="forgot-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Reset Password</h1>
@@ -92,13 +84,11 @@ layout: layout.html
         <label for="forgot-email" class="block text-xs font-bold text-slate-700 uppercase mb-2">Email Address</label>
         <input type="email" id="forgot-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
       </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all">
-        Request Reset Code
-      </button>
+      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all">Request Reset Code</button>
       <button type="button" id="btn-cancel-forgot" class="w-full text-center text-xs font-semibold text-slate-500 hover:underline mt-2">Back to Login</button>
     </form>
 
-    <!-- STATE E: CONFIRM PASSWORD RESET FORM -->
+    <!-- RESET CONFIRM FORM -->
     <form id="reset-confirm-form" class="hidden space-y-4">
       <div class="text-center mb-6">
         <h1 class="text-xl font-extrabold text-slate-900">Set New Password</h1>
@@ -112,9 +102,7 @@ layout: layout.html
         <label for="reset-password-new" class="block text-xs font-bold text-slate-700 uppercase mb-2">New Password</label>
         <input type="password" id="reset-password-new" required placeholder="Minimum 8 characters" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
       </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all">
-        Save New Password
-      </button>
+      <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all">Save New Password</button>
     </form>
 
   </div>
@@ -145,35 +133,45 @@ layout: layout.html
 
         <form id="organizer-form" class="space-y-8 bg-white border border-slate-200/60 p-6 sm:p-8 rounded-3xl shadow-sm text-left">
           
-          <!-- MODULE 1: PERSONAL TAX PROFILE -->
+          <!-- MODULE 1: PERSONAL TAX PROFILE (Upgraded with SIN & Dynamic Spousal) -->
           <div class="space-y-4">
             <h3 class="text-sm font-extrabold uppercase tracking-widest text-brand-600 pb-2 border-b border-slate-100">1. Personal Profile Details</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div><label for="org-fullname" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Full Name</label><input type="text" id="org-fullname" required placeholder="John Doe" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
-              <div><label for="org-telephone" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Telephone Number</label><input type="tel" id="org-telephone" required placeholder="(416) 555-0199" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
-              <div><label for="org-dob" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Date of Birth</label><input type="date" id="org-dob" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
+              <div><label for="org-sin" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">9-Digit SIN</label><input type="text" id="org-sin" required maxlength="9" pattern="\\d{9}" placeholder="000111222" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50 font-mono" /></div>
+              <div><label for="org-dob" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Date of Birth</label><input type="date" id="org-dob" required max="2026-12-31" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
+              
               <div class="md:col-span-2"><label for="org-address" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Residential Address</label><input type="text" id="org-address" required placeholder="123 Yonge St, Toronto, ON, M5B 2H1" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
+              <div><label for="org-telephone" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Telephone (10 Digits)</label><input type="tel" id="org-telephone" required maxlength="10" pattern="\\d{10}" placeholder="4165550199" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
+              
               <div>
                 <label for="org-marital" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">CRA Marital Status</label>
-                <select id="org-marital" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50">
+                <select id="org-marital" required onchange="handleMaritalChange()" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50">
                   <option value="" disabled selected>Select marital status...</option>
                   <option value="single">Single</option><option value="married">Married</option><option value="common-law">Common-Law</option><option value="divorced">Divorced</option><option value="separated">Separated</option><option value="widowed">Widowed</option>
                 </select>
               </div>
+              
+              <!-- Dynamic Spousal Income Field -->
+              <div id="spousal-income-container" class="hidden">
+                <label for="org-spousal-income" class="block text-[11px] font-bold text-brand-700 uppercase mb-2">Spouse Net Income ($)</label>
+                <input type="number" step="0.01" min="0" id="org-spousal-income" placeholder="0.00" class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-brand-50/30" />
+              </div>
+
               <div><label for="org-howheard" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">How did you hear of us?</label><input type="text" id="org-howheard" placeholder="Google, Friend, TikTok" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
             </div>
           </div>
 
-          <!-- MODULE 2: FAMILY DEPENDENTS MATRIX -->
+          <!-- MODULE 2: FAMILY DEPENDENTS MATRIX (Upgraded with Disability Column) -->
           <div class="space-y-4 pt-6 border-t border-slate-100">
             <div class="flex justify-between items-center">
               <div><h3 class="text-sm font-extrabold uppercase tracking-widest text-brand-600">2. Family Dependents Declaration</h3><p class="text-[10px] text-slate-500 mt-0.5">Please add details for financially dependent children or relatives.</p></div>
               <button type="button" id="btn-add-family" class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 transition">+ Add Dependent</button>
             </div>
             <div class="overflow-x-auto">
-              <table class="w-full min-w-[600px] border-collapse text-left text-xs bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <thead><tr class="bg-slate-50 text-slate-700 border-b border-slate-200 uppercase tracking-wider font-bold"><th class="p-3">Dependent Full Name</th><th class="p-3 w-32">9-Digit SIN</th><th class="p-3 w-36">Birth Date</th><th class="p-3 w-36">Relationship</th><th class="p-3 w-20 text-center">Action</th></tr></thead>
-                <tbody id="family-table-body" class="divide-y divide-slate-100"><tr id="family-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No dependents declared. Click "+ Add Dependent" to include one.</td></tr></tbody>
+              <table class="w-full min-w-[700px] border-collapse text-left text-xs bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <thead><tr class="bg-slate-50 text-slate-700 border-b border-slate-200 uppercase tracking-wider font-bold"><th class="p-3">Dependent Full Name</th><th class="p-3 w-28">9-Digit SIN</th><th class="p-3 w-32">Birth Date</th><th class="p-3 w-28">Relationship</th><th class="p-3 w-24">Disability?</th><th class="p-3 w-20 text-center">Action</th></tr></thead>
+                <tbody id="family-table-body" class="divide-y divide-slate-100"><tr id="family-empty-row"><td colspan="6" class="p-4 text-center text-slate-400 italic">No dependents declared. Click "+ Add Dependent" to include one.</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -187,7 +185,7 @@ layout: layout.html
                   <option value="citizen">Canadian Citizen</option><option value="pr">Permanent Resident (PR)</option><option value="work-permit">Work Permit Holder</option><option value="study-permit">Study Permit Holder</option><option value="refugee">Refugee Claimant</option>
                 </select>
               </div>
-              <div><label for="org-immigration-entry" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Date of Entry (If new to Canada)</label><input type="date" id="org-immigration-entry" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
+              <div><label for="org-immigration-entry" class="block text-[11px] font-bold text-slate-700 uppercase mb-2">Date of Entry (If new to Canada)</label><input type="date" id="org-immigration-entry" max="2026-12-31" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" /></div>
             </div>
             <div class="pt-4 space-y-3">
               <div class="flex justify-between items-center">
@@ -203,27 +201,45 @@ layout: layout.html
             </div>
           </div>
 
-          <!-- MODULE 4: TAX DISCLOSURES (Horizontal Flex Rows & Custom Hover Buttons) -->
+          <!-- MODULE 4: TAX DISCLOSURES (Upgraded with Elections/Direct Deposit) -->
           <div class="space-y-3 pt-6 border-t border-slate-100">
             <h3 class="text-sm font-extrabold uppercase tracking-widest text-brand-600 mb-4">3. Milestone & Tax Disclosures</h3>
             
             <div class="flex flex-col gap-3 text-xs font-semibold text-slate-700">
               
+              <!-- Elections Canada -->
+              <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col md:flex-row md:items-start justify-between gap-4 transition-all">
+                <div class="md:w-1/2"><span class="block font-bold text-slate-900 text-sm">Elections Canada Authorization?</span><p class="text-[11px] text-slate-500 font-normal mt-1">Do you authorize the CRA to provide your name/address to Elections Canada?</p></div>
+                <div class="md:w-1/2 flex flex-col items-start md:items-end">
+                  <div class="flex gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-elections" value="yes" class="cursor-pointer" /> Yes</label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-elections" value="no" checked class="cursor-pointer" /> No</label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Direct Deposit -->
+              <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col md:flex-row md:items-start justify-between gap-4 transition-all">
+                <div class="md:w-1/2"><span class="block font-bold text-slate-900 text-sm">Direct Deposit Change?</span><p class="text-[11px] text-slate-500 font-normal mt-1">Has your banking information changed since your last tax return?</p></div>
+                <div class="md:w-1/2 flex flex-col items-start md:items-end">
+                  <div class="flex gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-directdeposit" value="yes" class="cursor-pointer" /> Yes</label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-directdeposit" value="no" checked class="cursor-pointer" /> No</label>
+                  </div>
+                </div>
+              </div>
+
               <!-- Tuition Prompter -->
               <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
                 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div class="md:w-1/2">
-                    <span class="block font-bold text-slate-900 text-sm">Paid Tuition Fees?</span>
-                    <p class="text-[11px] text-slate-500 font-normal mt-1">Did you pay fees for higher education studies (T2202)?</p>
-                  </div>
+                  <div class="md:w-1/2"><span class="block font-bold text-slate-900 text-sm">Paid Tuition Fees?</span><p class="text-[11px] text-slate-500 font-normal mt-1">Did you pay fees for higher education studies (T2202)?</p></div>
                   <div class="md:w-1/2 flex flex-col items-start md:items-end">
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 mb-2">
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-tuition" value="yes" onchange="togglePrompt('tuition', this.value)" class="cursor-pointer" /> Yes</label>
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-tuition" value="no" checked onchange="togglePrompt('tuition', this.value)" class="cursor-pointer" /> No</label>
                     </div>
                   </div>
                 </div>
-                <!-- Clean Flush Hidden Drop-Zone -->
                 <div id="prompt-tuition" class="hidden w-full pt-3 mt-3 border-t border-slate-100 transition-all">
                   <span class="font-bold text-slate-800 text-[11px] block mb-2">📁 Please attach T2202/T4A forms:</span>
                   <input type="file" id="file-tuition" multiple onchange="handleOrganizerUpload(this, '[Tuition-T2202]', 'list-tuition')" class="hidden" />
@@ -235,12 +251,9 @@ layout: layout.html
               <!-- RRSP Prompter -->
               <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
                 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div class="md:w-1/2">
-                    <span class="block font-bold text-slate-900 text-sm">Contributed to RRSP?</span>
-                    <p class="text-[11px] text-slate-500 font-normal mt-1">Did you make retirement contributions in the tax year?</p>
-                  </div>
+                  <div class="md:w-1/2"><span class="block font-bold text-slate-900 text-sm">Contributed to RRSP?</span><p class="text-[11px] text-slate-500 font-normal mt-1">Did you make retirement contributions in the tax year?</p></div>
                   <div class="md:w-1/2 flex flex-col items-start md:items-end">
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 mb-2">
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-rrsp" value="yes" onchange="togglePrompt('rrsp', this.value)" class="cursor-pointer" /> Yes</label>
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-rrsp" value="no" checked onchange="togglePrompt('rrsp', this.value)" class="cursor-pointer" /> No</label>
                     </div>
@@ -257,12 +270,9 @@ layout: layout.html
               <!-- Charitable Donation -->
               <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
                 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div class="md:w-1/2">
-                    <span class="block font-bold text-slate-900 text-sm">Charitable Donations?</span>
-                    <p class="text-[11px] text-slate-500 font-normal mt-1">Do you hold official receipts for registered non-profit donations?</p>
-                  </div>
+                  <div class="md:w-1/2"><span class="block font-bold text-slate-900 text-sm">Charitable Donations?</span><p class="text-[11px] text-slate-500 font-normal mt-1">Do you hold official receipts for registered non-profit donations?</p></div>
                   <div class="md:w-1/2 flex flex-col items-start md:items-end">
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 mb-2">
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-charitable" value="yes" onchange="togglePrompt('charitable', this.value)" class="cursor-pointer" /> Yes</label>
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-charitable" value="no" checked onchange="togglePrompt('charitable', this.value)" class="cursor-pointer" /> No</label>
                     </div>
@@ -279,12 +289,9 @@ layout: layout.html
               <!-- Crypto / Stocks -->
               <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
                 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div class="md:w-1/2">
-                    <span class="block font-bold text-slate-900 text-sm">Stock/Crypto Investments?</span>
-                    <p class="text-[11px] text-slate-500 font-normal mt-1">Did you trade stocks, ETFs, or crypto assets during the year?</p>
-                  </div>
+                  <div class="md:w-1/2"><span class="block font-bold text-slate-900 text-sm">Stock/Crypto Investments?</span><p class="text-[11px] text-slate-500 font-normal mt-1">Did you trade stocks, ETFs, or crypto assets during the year?</p></div>
                   <div class="md:w-1/2 flex flex-col items-start md:items-end">
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 mb-2">
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-crypto" value="yes" onchange="togglePrompt('crypto', this.value)" class="cursor-pointer" /> Yes</label>
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-crypto" value="no" checked onchange="togglePrompt('crypto', this.value)" class="cursor-pointer" /> No</label>
                     </div>
@@ -301,12 +308,9 @@ layout: layout.html
               <!-- Daycare -->
               <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
                 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div class="md:w-1/2">
-                    <span class="block font-bold text-slate-900 text-sm">Paid Daycare / Child Care?</span>
-                    <p class="text-[11px] text-slate-500 font-normal mt-1">Did you pay for professional babysitting, nannies, or daycares?</p>
-                  </div>
+                  <div class="md:w-1/2"><span class="block font-bold text-slate-900 text-sm">Paid Daycare / Child Care?</span><p class="text-[11px] text-slate-500 font-normal mt-1">Did you pay for professional babysitting, nannies, or daycares?</p></div>
                   <div class="md:w-1/2 flex flex-col items-start md:items-end">
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 mb-2">
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-daycare" value="yes" onchange="togglePrompt('daycare', this.value)" class="cursor-pointer" /> Yes</label>
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-daycare" value="no" checked onchange="togglePrompt('daycare', this.value)" class="cursor-pointer" /> No</label>
                     </div>
@@ -323,12 +327,9 @@ layout: layout.html
               <!-- WFH -->
               <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
                 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div class="md:w-1/2">
-                    <span class="block font-bold text-slate-900 text-sm">Work From Home?</span>
-                    <p class="text-[11px] text-slate-500 font-normal mt-1">Did you work remotely from home for your employer (T2200)?</p>
-                  </div>
+                  <div class="md:w-1/2"><span class="block font-bold text-slate-900 text-sm">Work From Home?</span><p class="text-[11px] text-slate-500 font-normal mt-1">Did you work remotely from home for your employer (T2200)?</p></div>
                   <div class="md:w-1/2 flex flex-col items-start md:items-end">
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 mb-2">
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-wfh" value="yes" onchange="togglePrompt('wfh', this.value)" class="cursor-pointer" /> Yes</label>
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-wfh" value="no" checked onchange="togglePrompt('wfh', this.value)" class="cursor-pointer" /> No</label>
                     </div>
@@ -345,10 +346,7 @@ layout: layout.html
               <!-- New Home purchase (No files needed) -->
               <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 transition-all">
                 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div class="md:w-1/2">
-                    <span class="block font-bold text-slate-900 text-sm">Purchased a New Home?</span>
-                    <p class="text-[11px] text-slate-500 font-normal mt-1">Are you a first-time home buyer or purchased a secondary home?</p>
-                  </div>
+                  <div class="md:w-1/2"><span class="block font-bold text-slate-900 text-sm">Purchased a New Home?</span><p class="text-[11px] text-slate-500 font-normal mt-1">Are you a first-time home buyer or purchased a secondary home?</p></div>
                   <div class="md:w-1/2 flex flex-col items-start md:items-end">
                     <div class="flex gap-4">
                       <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="org-purchased" value="yes" class="cursor-pointer" /> Yes</label>
@@ -361,10 +359,7 @@ layout: layout.html
               <!-- TRUE ACCORDION: UBER/Lyft -->
               <div class="bg-emerald-50/30 p-4 rounded-xl border border-emerald-100 transition-all">
                 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div class="md:w-1/2">
-                    <span class="block font-bold text-emerald-800 text-sm">Uber/Lyft Driver (T2125)?</span>
-                    <p class="text-[11px] text-slate-600 font-normal mt-1">Did you earn active rideshare or delivery gig income in this tax year?</p>
-                  </div>
+                  <div class="md:w-1/2"><span class="block font-bold text-emerald-800 text-sm">Uber/Lyft Driver (T2125)?</span><p class="text-[11px] text-slate-600 font-normal mt-1">Did you earn active rideshare or delivery gig income in this tax year?</p></div>
                   <div class="md:w-1/2 flex flex-col items-start md:items-end">
                     <div class="flex gap-4">
                       <label class="flex items-center gap-2 cursor-pointer text-emerald-800"><input type="radio" name="org-uber-toggle" id="uber-yes" value="yes" class="cursor-pointer" /> Yes</label>
@@ -372,29 +367,34 @@ layout: layout.html
                     </div>
                   </div>
                 </div>
-                <!-- Embedded Uber Form -->
+                <!-- Embedded Uber Form with Mileage Limits -->
                 <div id="uber-section" class="hidden mt-4 pt-4 border-t border-emerald-100">
                   <div class="bg-white rounded-xl p-5 border border-emerald-100 shadow-sm space-y-4">
                     <h3 class="text-xs font-extrabold uppercase tracking-widest text-emerald-700 pb-2 border-b border-emerald-50">T2125 Expense Ledger</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">9-Digit HST No.</label><input type="text" id="uber-hst" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
-                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">4-Digit Access Code</label><input type="text" id="uber-access" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
-                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Reporting Start</label><input type="date" id="uber-from" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
-                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Reporting End</label><input type="date" id="uber-to" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">15-Char Business HST No.</label><input type="text" id="uber-hst" maxlength="15" placeholder="123456789RT0001" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">4-Digit Access Code</label><input type="text" id="uber-access" maxlength="4" pattern="\\d{4}" placeholder="1234" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Reporting Start</label><input type="date" id="uber-from" max="2026-12-31" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Reporting End</label><input type="date" id="uber-to" max="2026-12-31" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                    </div>
+                    <!-- New KMs Requirement -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-emerald-50 mt-2">
+                      <div><label class="block text-[9px] font-bold text-emerald-800 uppercase mb-1">Total KMs Driven in Year</label><input type="number" step="1" min="0" id="uber-total-kms" placeholder="e.g. 25000" class="w-full px-3 py-1.5 border border-emerald-200 rounded-lg bg-emerald-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-emerald-800 uppercase mb-1">Business KMs Driven</label><input type="number" step="1" min="0" id="uber-business-kms" placeholder="e.g. 15000" class="w-full px-3 py-1.5 border border-emerald-200 rounded-lg bg-emerald-50/50" /></div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs pt-2">
-                      <div><label class="block text-[9px] font-bold mb-1">Fuel & Propane</label><input type="number" step="0.01" id="exp-fuel" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Repairs/Maint</label><input type="number" step="0.01" id="exp-repairs" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Vehicle Insurance</label><input type="number" step="0.01" id="exp-insurance" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Licence/Reg</label><input type="number" step="0.01" id="exp-licence" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Interest Expense</label><input type="number" step="0.01" id="exp-interest" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Carwash</label><input type="number" step="0.01" id="exp-carwash" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Business Parking</label><input type="number" step="0.01" id="exp-parking" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Tolls (407 ETR)</label><input type="number" step="0.01" id="exp-tolls" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Fines (Non-deduct)</label><input type="number" step="0.01" id="exp-tickets" placeholder="0.00" class="w-full px-3 py-1.5 border border-red-200 rounded-lg bg-red-50/50" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Phone Line %</label><input type="number" step="0.01" id="exp-phone" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Supplies</label><input type="number" step="0.01" id="exp-supplies" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Out-of-City Meals</label><input type="number" step="0.01" id="exp-meals" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Fuel & Propane</label><input type="number" min="0" step="0.01" id="exp-fuel" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Repairs/Maint</label><input type="number" min="0" step="0.01" id="exp-repairs" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Vehicle Insurance</label><input type="number" min="0" step="0.01" id="exp-insurance" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Licence/Reg</label><input type="number" min="0" step="0.01" id="exp-licence" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Interest Expense</label><input type="number" min="0" step="0.01" id="exp-interest" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Carwash</label><input type="number" min="0" step="0.01" id="exp-carwash" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Business Parking</label><input type="number" min="0" step="0.01" id="exp-parking" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Tolls (407 ETR)</label><input type="number" min="0" step="0.01" id="exp-tolls" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Fines (Non-deduct)</label><input type="number" min="0" step="0.01" id="exp-tickets" placeholder="0.00" class="w-full px-3 py-1.5 border border-red-200 rounded-lg bg-red-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Phone Line %</label><input type="number" min="0" step="0.01" id="exp-phone" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Supplies</label><input type="number" min="0" step="0.01" id="exp-supplies" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Out-of-City Meals</label><input type="number" min="0" step="0.01" id="exp-meals" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
                     </div>
                   </div>
                 </div>
@@ -403,10 +403,7 @@ layout: layout.html
               <!-- TRUE ACCORDION: Rental Income -->
               <div class="bg-indigo-50/30 p-4 rounded-xl border border-indigo-100 transition-all">
                 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div class="md:w-1/2">
-                    <span class="block font-bold text-indigo-800 text-sm">Have Rental Income (T776)?</span>
-                    <p class="text-[11px] text-slate-600 font-normal mt-1">Do you own real estate investments that generate rental revenues?</p>
-                  </div>
+                  <div class="md:w-1/2"><span class="block font-bold text-indigo-800 text-sm">Have Rental Income (T776)?</span><p class="text-[11px] text-slate-600 font-normal mt-1">Do you own real estate investments that generate rental revenues?</p></div>
                   <div class="md:w-1/2 flex flex-col items-start md:items-end">
                     <div class="flex gap-4">
                       <label class="flex items-center gap-2 cursor-pointer text-indigo-800"><input type="radio" name="org-rental-toggle" id="rental-yes" value="yes" class="cursor-pointer" /> Yes</label>
@@ -419,28 +416,31 @@ layout: layout.html
                   <div class="bg-white rounded-xl p-5 border border-indigo-100 shadow-sm space-y-4">
                     <div class="flex justify-between items-center pb-2 border-b border-indigo-50">
                       <h3 class="text-xs font-extrabold uppercase tracking-widest text-indigo-700">T776 Structuring Matrix</h3>
-                      <button type="button" id="btn-add-owner" class="px-3 py-1 rounded-lg text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">+ Add Co-Investor</button>
+                      <button type="button" id="btn-add-owner" class="px-3 py-1 rounded-lg text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-700">+ Add Co-Investor</button>
                     </div>
                     <div class="overflow-x-auto">
                       <table class="w-full min-w-[550px] border-collapse text-left text-[10px] bg-slate-50 rounded-lg border border-slate-200">
-                        <thead><tr class="text-slate-600 border-b border-slate-200 uppercase"><th class="p-2">Name</th><th class="p-2">SIN</th><th class="p-2">Share %</th><th class="p-2">Address</th><th class="p-2 text-center">Action</th></tr></thead>
+                        <thead><tr class="text-slate-600 border-b border-slate-200 uppercase"><th class="p-2">Name</th><th class="p-2">9-Digit SIN</th><th class="p-2">Share %</th><th class="p-2">Address</th><th class="p-2 text-center">Action</th></tr></thead>
                         <tbody id="owner-table-body"><tr id="owner-empty-row"><td colspan="5" class="p-3 text-center text-slate-400">No co-investors declared. Defaults to 100% sole owner.</td></tr></tbody>
                       </table>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Rental Property Address</label><input type="text" id="rent-address" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
-                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Gross Income ($)</label><input type="number" step="0.01" id="rent-gross" placeholder="0.00" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                      <div class="md:col-span-2"><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Rental Property Address</label><input type="text" id="rent-address" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Gross Income ($)</label><input type="number" min="0" step="0.01" id="rent-gross" placeholder="0.00" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <!-- New Rental % Requirement -->
+                      <div><label class="block text-[9px] font-bold text-indigo-700 uppercase mb-1">Percentage Rented Out (%)</label><input type="number" min="1" max="100" step="1" id="rent-percentage" placeholder="100" class="w-full px-3 py-1.5 rounded-lg border border-indigo-200 text-xs bg-indigo-50/50" /></div>
                     </div>
+                    <h4 class="text-xs font-bold text-indigo-800 uppercase tracking-wider mt-2 pt-2 border-t border-indigo-50">Annual Rental Overhead Expenses ($ CAD)</h4>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pt-2">
-                      <div><label class="block text-[9px] font-bold mb-1">Property Insurance</label><input type="number" step="0.01" id="rent-exp-ins" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Mortgage Interest</label><input type="number" step="0.01" id="rent-exp-interest" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Bank Charges</label><input type="number" step="0.01" id="rent-exp-bank" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Office Expenses</label><input type="number" step="0.01" id="rent-exp-office" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Professional Fees</label><input type="number" step="0.01" id="rent-exp-prof" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Management</label><input type="number" step="0.01" id="rent-exp-manage" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Repairs/Maint</label><input type="number" step="0.01" id="rent-exp-repairs" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Property Tax</label><input type="number" step="0.01" id="rent-exp-tax" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">Utilities</label><input type="number" step="0.01" id="rent-exp-utilities" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Property Insurance</label><input type="number" min="0" step="0.01" id="rent-exp-ins" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Mortgage Interest</label><input type="number" min="0" step="0.01" id="rent-exp-interest" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Bank Charges</label><input type="number" min="0" step="0.01" id="rent-exp-bank" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Office Expenses</label><input type="number" min="0" step="0.01" id="rent-exp-office" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Professional Fees</label><input type="number" min="0" step="0.01" id="rent-exp-prof" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Management</label><input type="number" min="0" step="0.01" id="rent-exp-manage" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Repairs/Maint</label><input type="number" min="0" step="0.01" id="rent-exp-repairs" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Property Tax</label><input type="number" min="0" step="0.01" id="rent-exp-tax" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Utilities</label><input type="number" min="0" step="0.01" id="rent-exp-utilities" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
                     </div>
                   </div>
                 </div>
@@ -449,10 +449,7 @@ layout: layout.html
               <!-- TRUE ACCORDION: CCB Help -->
               <div class="bg-purple-50/30 p-4 rounded-xl border border-purple-100 transition-all">
                 <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div class="md:w-1/2">
-                    <span class="block font-bold text-purple-800 text-sm">Need Child Benefit Help?</span>
-                    <p class="text-[11px] text-slate-600 font-normal mt-1">Do you require registration or audit support with the CRA CCB system?</p>
-                  </div>
+                  <div class="md:w-1/2"><span class="block font-bold text-purple-800 text-sm">Need Child Benefit Help?</span><p class="text-[11px] text-slate-600 font-normal mt-1">Do you require registration or audit support with the CRA CCB system?</p></div>
                   <div class="md:w-1/2 flex flex-col items-start md:items-end">
                     <div class="flex gap-4">
                       <label class="flex items-center gap-2 cursor-pointer text-purple-800"><input type="radio" name="org-ccb-toggle" id="ccb-yes" value="yes" class="cursor-pointer" /> Yes</label>
@@ -463,15 +460,15 @@ layout: layout.html
                 <!-- Embedded CCB Form -->
                 <div id="ccb-section" class="hidden mt-4 pt-4 border-t border-purple-100">
                   <div class="bg-white rounded-xl p-5 border border-purple-100 shadow-sm space-y-4">
-                    <h3 class="text-xs font-extrabold uppercase tracking-widest text-purple-700 pb-2 border-b border-purple-50">Global World Income Ledger</h3>
+                    <h3 class="text-xs font-extrabold uppercase tracking-widest text-purple-700 pb-2 border-b border-purple-50">Global World Income</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Marriage Date</label><input type="date" id="ccb-marriage-date" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
-                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Status Change Date</label><input type="date" id="ccb-status-date" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Marriage Date</label><input type="date" id="ccb-marriage-date" max="2026-12-31" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
+                      <div><label class="block text-[9px] font-bold text-slate-700 uppercase mb-1">Status Change Date</label><input type="date" id="ccb-status-date" max="2026-12-31" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-slate-50/50" /></div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pt-2">
-                      <div><label class="block text-[9px] font-bold mb-1">Year Became Resident</label><input type="number" id="ccb-world-entry" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">World Inc. (1 Yr Before)</label><input type="number" step="0.01" id="ccb-world-prev1" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
-                      <div><label class="block text-[9px] font-bold mb-1">World Inc. (2 Yrs Before)</label><input type="number" step="0.01" id="ccb-world-prev2" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">Year Became Resident</label><input type="number" min="1900" max="2026" step="1" id="ccb-world-entry" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">World Inc. (1 Yr Before)</label><input type="number" min="0" step="0.01" id="ccb-world-prev1" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
+                      <div><label class="block text-[9px] font-bold mb-1">World Inc. (2 Yrs Before)</label><input type="number" min="0" step="0.01" id="ccb-world-prev2" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg" /></div>
                     </div>
                   </div>
                 </div>
@@ -605,9 +602,17 @@ layout: layout.html
   if (linkForgot) linkForgot.addEventListener('click', switchToForgot);
   if (btnCancelForgot) btnCancelForgot.addEventListener('click', showLogin);
 
-  // ==============================================================
-  // 10. PROGRESSIVE PASSWORD REQUIREMENTS ENGINE
-  // ==============================================================
+  // Spousal Income Controller
+  window.handleMaritalChange = function() {
+    const ms = document.getElementById('org-marital').value;
+    const spousalDiv = document.getElementById('spousal-income-container');
+    if (ms === 'married' || ms === 'common-law') {
+      spousalDiv.classList.remove('hidden');
+    } else {
+      spousalDiv.classList.add('hidden');
+    }
+  }
+
   const registerPasswordInput = document.getElementById('register-password');
   if (registerPasswordInput) {
     registerPasswordInput.addEventListener('input', () => {
@@ -633,9 +638,7 @@ layout: layout.html
     }
   }
 
-  // ==============================================================
-  // COGNITO TRIGGER SUBMISSIONS
-  // ==============================================================
+  // Cognito Trigger submissions
   if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1020,10 +1023,10 @@ layout: layout.html
     if (emptyRow) emptyRow.remove();
     const row = document.createElement('tr');
     row.className = "family-row border-b border-slate-100 hover:bg-slate-50/50 transition-colors bg-white";
-    row.innerHTML = `<td class="p-3"><input type="text" required placeholder="Dependent Name" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none bg-slate-50/20" /></td><td class="p-3"><input type="text" required placeholder="000-000-000" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none font-mono bg-slate-50/20" /></td><td class="p-3"><input type="date" required class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none bg-white" /></td><td class="p-3"><select required class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none bg-white"><option value="son">Son</option><option value="daughter">Daughter</option><option value="spouse">Spouse</option><option value="parent">Parent</option><option value="other">Other Relative</option></select></td><td class="p-3 text-center"><button type="button" class="text-red-500 hover:text-red-700 hover:underline text-xs" onclick="this.closest('tr').remove(); checkFamilyEmpty();">Remove</button></td>`;
+    row.innerHTML = `<td class="p-3"><input type="text" required placeholder="Dependent Name" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none bg-slate-50/20" /></td><td class="p-3"><input type="text" maxlength="9" pattern="\\d{9}" required placeholder="000111222" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none font-mono bg-slate-50/20" /></td><td class="p-3"><input type="date" required max="2026-12-31" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none bg-white" /></td><td class="p-3"><select required class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none bg-white"><option value="son">Son</option><option value="daughter">Daughter</option><option value="spouse">Spouse</option><option value="parent">Parent</option><option value="other">Other</option></select></td><td class="p-3"><select required class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-brand-500 outline-none bg-white"><option value="no">No</option><option value="yes">Yes</option></select></td><td class="p-3 text-center"><button type="button" class="text-red-500 hover:text-red-700 hover:underline text-xs" onclick="this.closest('tr').remove(); checkFamilyEmpty();">Remove</button></td>`;
     familyTableBody.appendChild(row);
   }
-  function checkFamilyEmpty() { if (familyTableBody.querySelectorAll('.family-row').length === 0) { familyTableBody.innerHTML = `<tr id="family-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No dependents declared. Click "+ Add Dependent" to include one.</td></tr>`; } }
+  function checkFamilyEmpty() { if (familyTableBody.querySelectorAll('.family-row').length === 0) { familyTableBody.innerHTML = `<tr id="family-empty-row"><td colspan="6" class="p-4 text-center text-slate-400 italic">No dependents declared. Click "+ Add Dependent" to include one.</td></tr>`; } }
   
   function addResidencyRow() {
     const emptyRow = document.getElementById('residency-empty-row');
@@ -1040,7 +1043,7 @@ layout: layout.html
     if (emptyRow) emptyRow.remove();
     const row = document.createElement('tr');
     row.className = "owner-row border-b border-slate-100 hover:bg-slate-50/50 transition-colors bg-white";
-    row.innerHTML = `<td class="p-2.5"><input type="text" required placeholder="Investor Name" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none" /></td><td class="p-2.5"><input type="text" required placeholder="000-000-000" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none font-mono" /></td><td class="p-2.5"><input type="number" min="1" max="100" required placeholder="%" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none font-bold" /></td><td class="p-2.5"><input type="text" required placeholder="Investor Mailing Address" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none" /></td><td class="p-2.5 text-center"><button type="button" class="text-red-500 hover:text-red-700 hover:underline text-xs" onclick="this.closest('tr').remove(); checkOwnerEmpty();">Remove</button></td>`;
+    row.innerHTML = `<td class="p-2.5"><input type="text" required placeholder="Investor Name" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none" /></td><td class="p-2.5"><input type="text" required maxlength="9" pattern="\\d{9}" placeholder="000111222" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none font-mono" /></td><td class="p-2.5"><input type="number" min="1" max="100" required placeholder="%" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none font-bold" /></td><td class="p-2.5"><input type="text" required placeholder="Investor Mailing Address" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none" /></td><td class="p-2.5 text-center"><button type="button" class="text-red-500 hover:text-red-700 hover:underline text-xs" onclick="this.closest('tr').remove(); checkOwnerEmpty();">Remove</button></td>`;
     ownerTableBody.appendChild(row);
   }
   function checkOwnerEmpty() { if (ownerTableBody && ownerTableBody.querySelectorAll('.owner-row').length === 0) { ownerTableBody.innerHTML = `<tr id="owner-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No co-investors declared. Defaults to 100% sole owner.</td></tr>`; } }
@@ -1085,10 +1088,10 @@ layout: layout.html
       const origFile = input.files[i];
       const renamedFile = new File([origFile], `${prefix} ${origFile.name}`, { type: origFile.type, lastModified: origFile.lastModified });
       const uniqueId = Math.random().toString(36).substr(2, 9);
-      organizerFilesQueue.push({ id: uniqueId, file: renamedFile, containerId: containerId, fileKey: "" }); // added fileKey array prep
+      organizerFilesQueue.push({ id: uniqueId, file: renamedFile, containerId: containerId, fileKey: "" }); 
     }
     renderOrganizerFiles(containerId);
-    input.value = ""; // Reset picker
+    input.value = ""; 
   }
 
   // SECURE SUBMISSION LOGIC (FILES + JSON DATA)
@@ -1120,7 +1123,6 @@ layout: layout.html
             const uploadRes = await fetch(authResult.uploadUrl, { method: 'PUT', headers: { 'Content-Type': fileObj.type }, body: fileObj });
             if (!uploadRes.ok) throw new Error("S3 rejected the file transmission.");
 
-            // Save the returned fileKey into the array so we can pass it to the final JSON payload
             organizerFilesQueue[i].fileKey = authResult.fileKey;
           }
         }
@@ -1131,7 +1133,7 @@ layout: layout.html
         const dependentsArray = [];
         organizerForm.querySelectorAll('.family-row').forEach(row => {
           const inputs = row.querySelectorAll('input, select');
-          dependentsArray.push({ name: inputs[0].value, sin: inputs[1].value, dob: inputs[2].value, relationship: inputs[3].value });
+          dependentsArray.push({ name: inputs[0].value, sin: inputs[1].value, dob: inputs[2].value, relationship: inputs[3].value, disability: inputs[4].value });
         });
 
         const residencyArray = [];
@@ -1146,11 +1148,16 @@ layout: layout.html
           ownersArray.push({ name: inputs[0].value, sin: inputs[1].value, share: inputs[2].value, address: inputs[3].value });
         });
 
-        // Strip the raw binary 'File' object out of the queue so we only send the text metadata names to the backend
         const safeFilePayload = organizerFilesQueue.map(item => ({
             fileName: item.file.name,
             fileKey: item.fileKey
         }));
+
+        let spousalIncomeVal = "N/A";
+        const ms = document.getElementById('org-marital').value;
+        if (ms === 'married' || ms === 'common-law') {
+           spousalIncomeVal = document.getElementById('org-spousal-income').value || "0.00";
+        }
 
         const payload = {
           action: "submitTaxOrganizer",
@@ -1159,10 +1166,12 @@ layout: layout.html
           howHeard: document.getElementById('org-howheard').value || "Not Specified",
           personalInfo: {
             fullName: document.getElementById('org-fullname').value,
+            sin: document.getElementById('org-sin').value,
             telephone: document.getElementById('org-telephone').value,
             address: document.getElementById('org-address').value,
-            maritalStatus: document.getElementById('org-marital').value,
-            dob: document.getElementById('org-dob').value
+            maritalStatus: ms,
+            dob: document.getElementById('org-dob').value,
+            spousalIncome: spousalIncomeVal
           },
           familyMembers: dependentsArray,
           statusInCanada: {
@@ -1171,6 +1180,8 @@ layout: layout.html
           },
           ontarioResidency: residencyArray,
           milestones: {
+            electionsCanada: organizerForm.querySelector('input[name="org-elections"]:checked').value,
+            directDeposit: organizerForm.querySelector('input[name="org-directdeposit"]:checked').value,
             tuition: organizerForm.querySelector('input[name="org-tuition"]:checked').value,
             rrsp: organizerForm.querySelector('input[name="org-rrsp"]:checked').value,
             charitable: organizerForm.querySelector('input[name="org-charitable"]:checked').value,
@@ -1185,6 +1196,8 @@ layout: layout.html
             accessCode: document.getElementById('uber-access').value || "N/A",
             periodFrom: document.getElementById('uber-from').value || "N/A",
             periodTo: document.getElementById('uber-to').value || "N/A",
+            totalKms: document.getElementById('uber-total-kms').value || "0",
+            businessKms: document.getElementById('uber-business-kms').value || "0",
             expenses: {
               fuel: document.getElementById('exp-fuel').value || "0.00",
               repairs: document.getElementById('exp-repairs').value || "0.00",
@@ -1204,6 +1217,7 @@ layout: layout.html
             active: organizerForm.querySelector('input[name="org-rental-toggle"]:checked').value,
             address: document.getElementById('rent-address').value || "N/A",
             grossIncome: document.getElementById('rent-gross').value || "0.00",
+            percentageRented: document.getElementById('rent-percentage').value || "100",
             coOwners: ownersArray,
             expenses: {
               insurance: document.getElementById('rent-exp-ins').value || "0.00",
@@ -1241,12 +1255,12 @@ layout: layout.html
         if (jsonResponse.ok && jsonResult.status === 'SUCCESS') {
           alert("Organizer Profile and all attached documents transmitted securely!");
           
-          // Total UX Reset
           organizerForm.reset();
           organizerFilesQueue = [];
           document.querySelectorAll('[id^="list-"]').forEach(list => list.innerHTML = "");
           document.querySelectorAll('[id^="prompt-"]').forEach(promptBox => promptBox.classList.add('hidden'));
-          familyTableBody.innerHTML = `<tr id="family-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No dependents declared. Click "+ Add Dependent" to include one.</td></tr>`;
+          document.getElementById('spousal-income-container').classList.add('hidden');
+          familyTableBody.innerHTML = `<tr id="family-empty-row"><td colspan="6" class="p-4 text-center text-slate-400 italic">No dependents declared. Click "+ Add Dependent" to include one.</td></tr>`;
           residencyTableBody.innerHTML = `<tr id="residency-empty-row"><td colspan="4" class="p-4 text-center text-slate-400 italic">No residency rows declared. Click "+ Add Address Row" to add a ledger row.</td></tr>`;
           ownerTableBody.innerHTML = `<tr id="owner-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No co-investors declared. Defaults to 100% sole owner.</td></tr>`;
           updateConditionalSections(); 
