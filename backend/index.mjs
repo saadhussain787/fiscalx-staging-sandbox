@@ -1,11 +1,16 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 
 const s3 = new S3Client({ region: "ca-central-1" });
 const ses = new SESClient({ region: "ca-central-1" });
+const ddbClient = new DynamoDBClient({ region: "ca-central-1" });
+const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
 
 const BUCKET_NAME = "fiscalx-document-vault-673098723249";
+const TABLE_NAME = "fiscalx-client-onboarding";
 const SENDER_EMAIL = "info@fiscalx.ca"; 
 const OFFICE_EMAIL = "info@fiscalx.ca"; 
 
@@ -104,11 +109,38 @@ export const handler = async (event) => {
 
             const isT2 = taxType.includes("T2");
             const combinedName = isT2 ? corporateInfo.corpName : `${personalInfo.firstName || ""} ${personalInfo.middleName || ""} ${personalInfo.lastName || ""}`.trim();
+            const timestamp = new Date().toISOString();
 
-            // 1. GENERATE THE COMPREHENSIVE EXCEL CSV DATA
+            // 1. SAVE COMPREHENSIVE RECORD TO DYNAMODB (With ROI fields prep)
+            const ddbParams = {
+                TableName: TABLE_NAME,
+                Item: {
+                    userEmail: userEmail,
+                    timestamp: timestamp,
+                    taxType: taxType,
+                    craConsent: craConsent,
+                    clientName: combinedName,
+                    amountOwed: "0.00",       // Prep for ROI Engine
+                    amountCollected: "0.00",  // Prep for ROI Engine
+                    campaignStatus: "Pending", // Prep for ROI Engine
+                    howHeard: howHeard,
+                    notes: notes,
+                    uploadedFiles: uploadedFiles,
+                    personalInfo: personalInfo,
+                    corporateInfo: corporateInfo,
+                    statusInCanada: statusInCanada,
+                    familyMembers: familyMembers,
+                    ontarioResidency: residencyArray || ontarioResidency,
+                    milestones: milestones,
+                    selfEmployed: selfEmployed,
+                    rentalIncome: rentalIncome,
+                    childCareBenefit: childCareBenefit
+                }
+            };
+            await ddbDocClient.send(new PutCommand(ddbParams));
+
+            // 2. GENERATE THE COMPREHENSIVE EXCEL CSV DATA
             const csvRows = [ ["Section", "Field", "Value"] ];
-            
-            // Core System Data
             csvRows.push(
                 ["System", "Tax Type", taxType],
                 ["System", "CRA Consent", craConsent],
@@ -118,7 +150,6 @@ export const handler = async (event) => {
             );
 
             if (isT2) {
-                // Generate T2 Corporate CSV Rows
                 csvRows.push(
                     ["T2 Corporate", "Corporate Name", corporateInfo.corpName || "N/A"],
                     ["T2 Corporate", "Business Number", corporateInfo.businessNumber || "N/A"],
@@ -129,118 +160,61 @@ export const handler = async (event) => {
                     ["T2 Remittance", "GST/HST Registered", corporateInfo.remittance?.gst || "no"],
                     ["T2 Remittance", "Payroll Registered", corporateInfo.remittance?.payroll || "no"]
                 );
-                
                 if (corporateInfo.directors && corporateInfo.directors.length > 0) {
                     corporateInfo.directors.forEach((d, index) => {
-                        csvRows.push(["Director " + (index + 1), "Name", d.name]);
-                        csvRows.push(["Director " + (index + 1), "SIN", d.sin]);
-                        csvRows.push(["Director " + (index + 1), "Share %", d.share]);
-                        csvRows.push(["Director " + (index + 1), "Role", d.role]);
+                        csvRows.push(["Director " + (index + 1), "Name", d.name], ["Director " + (index + 1), "SIN", d.sin], ["Director " + (index + 1), "Share %", d.share], ["Director " + (index + 1), "Role", d.role]);
                     });
-                } else {
-                    csvRows.push(["Directors", "Declared", "None"]);
                 }
-
             } else {
-                // Generate T1 Personal CSV Rows
                 csvRows.push(
-                    ["T1 Personal", "Full Name", combinedName || "N/A"],
-                    ["T1 Personal", "SIN", personalInfo.sin || "N/A"],
-                    ["T1 Personal", "Telephone", personalInfo.telephone || "N/A"],
-                    ["T1 Personal", "Address", personalInfo.address || "N/A"],
-                    ["T1 Personal", "US Citizen", personalInfo.usCitizen || "N/A"],
-                    ["T1 Personal", "Marital Status", personalInfo.maritalStatus || "N/A"],
-                    ["T1 Personal", "Spousal Income ($)", personalInfo.spousalIncome || "0.00"],
-                    ["T1 Status", "Immigration Status", statusInCanada.status || "N/A"],
-                    ["T1 Status", "Entry Date", statusInCanada.entryDate || "N/A"]
+                    ["T1 Personal", "Full Name", combinedName || "N/A"], ["T1 Personal", "SIN", personalInfo.sin || "N/A"], ["T1 Personal", "Telephone", personalInfo.telephone || "N/A"], ["T1 Personal", "Address", personalInfo.address || "N/A"], ["T1 Personal", "US Citizen", personalInfo.usCitizen || "N/A"], ["T1 Personal", "Marital Status", personalInfo.maritalStatus || "N/A"], ["T1 Personal", "Spousal Income ($)", personalInfo.spousalIncome || "0.00"],
+                    ["T1 Status", "Immigration Status", statusInCanada.status || "N/A"], ["T1 Status", "Entry Date", statusInCanada.entryDate || "N/A"]
                 );
-
                 if (familyMembers.length > 0) {
                     familyMembers.forEach((mem, index) => {
-                        csvRows.push(["Dependent " + (index + 1), "Name", mem.name]);
-                        csvRows.push(["Dependent " + (index + 1), "SIN", mem.sin]);
-                        csvRows.push(["Dependent " + (index + 1), "DOB", mem.dob]);
-                        csvRows.push(["Dependent " + (index + 1), "Relationship", mem.relationship]);
-                        csvRows.push(["Dependent " + (index + 1), "Disability", mem.disability]);
+                        csvRows.push(["Dependent " + (index + 1), "Name", mem.name], ["Dependent " + (index + 1), "SIN", mem.sin], ["Dependent " + (index + 1), "DOB", mem.dob], ["Dependent " + (index + 1), "Relationship", mem.relationship], ["Dependent " + (index + 1), "Disability", mem.disability]);
                     });
-                } else {
-                    csvRows.push(["Dependents", "Declared", "None"]);
                 }
-
                 if (ontarioResidency.length > 0) {
                     ontarioResidency.forEach((res, index) => {
-                        csvRows.push(["Residency " + (index + 1), "Months", res.months]);
-                        csvRows.push(["Residency " + (index + 1), "Address", res.address]);
-                        csvRows.push(["Residency " + (index + 1), "Landlord", res.landlord]);
+                        csvRows.push(["Residency " + (index + 1), "Months", res.months], ["Residency " + (index + 1), "Address", res.address], ["Residency " + (index + 1), "Landlord", res.landlord]);
                     });
-                } else {
-                    csvRows.push(["Residency", "Ontario Addresses", "None"]);
                 }
-
                 csvRows.push(
-                    ["Milestones", "Elections Canada", milestones.electionsCanada || "no"],
-                    ["Milestones", "Direct Deposit Changed", milestones.directDeposit || "no"],
-                    ["Milestones", "Tuition Paid", milestones.tuition || "no"],
-                    ["Milestones", "RRSP Contribution", milestones.rrsp || "no"],
-                    ["Milestones", "Charitable Donations", milestones.charitable || "no"],
-                    ["Milestones", "Stock/Crypto", milestones.crypto || "no"],
-                    ["Milestones", "Daycare", milestones.daycare || "no"],
-                    ["Milestones", "Work From Home", milestones.workFromHome || "no"],
-                    ["Milestones", "Purchased Home", milestones.purchasedHome || "no"]
+                    ["Milestones", "Elections Canada", milestones.electionsCanada || "no"], ["Milestones", "Direct Deposit Changed", milestones.directDeposit || "no"], ["Milestones", "Tuition Paid", milestones.tuition || "no"], ["Milestones", "RRSP Contribution", milestones.rrsp || "no"], ["Milestones", "Charitable Donations", milestones.charitable || "no"], ["Milestones", "Stock/Crypto", milestones.crypto || "no"], ["Milestones", "Daycare", milestones.daycare || "no"], ["Milestones", "Work From Home", milestones.workFromHome || "no"], ["Milestones", "Purchased Home", milestones.purchasedHome || "no"]
                 );
-
                 csvRows.push(["UBER (T2125)", "Active", selfEmployed.active || "no"]);
                 if (selfEmployed.active === "yes") {
                     csvRows.push(
-                        ["UBER (T2125)", "HST No", selfEmployed.hstNo || "N/A"],
-                        ["UBER (T2125)", "Access Code", selfEmployed.accessCode || "N/A"],
-                        ["UBER (T2125)", "Period From", selfEmployed.periodFrom || "N/A"],
-                        ["UBER (T2125)", "Period To", selfEmployed.periodTo || "N/A"],
-                        ["UBER (T2125)", "Total KMs Driven", selfEmployed.totalKms || "0"],
-                        ["UBER (T2125)", "Business KMs", selfEmployed.businessKms || "0"],
-                        ["UBER (T2125)", "Fuel", selfEmployed.expenses?.fuel || "0"],
-                        ["UBER (T2125)", "Repairs", selfEmployed.expenses?.repairs || "0"],
-                        ["UBER (T2125)", "Insurance", selfEmployed.expenses?.insurance || "0"],
-                        ["UBER (T2125)", "License", selfEmployed.expenses?.license || "0"],
-                        ["UBER (T2125)", "Interest", selfEmployed.expenses?.interest || "0"],
-                        ["UBER (T2125)", "Carwash", selfEmployed.expenses?.carwash || "0"],
-                        ["UBER (T2125)", "Parking", selfEmployed.expenses?.parking || "0"],
-                        ["UBER (T2125)", "Tolls", selfEmployed.expenses?.tolls || "0"],
-                        ["UBER (T2125)", "Tickets", selfEmployed.expenses?.tickets || "0"],
-                        ["UBER (T2125)", "Phone Line $", selfEmployed.expenses?.phone || "0"],
-                        ["UBER (T2125)", "Supplies", selfEmployed.expenses?.supplies || "0"],
-                        ["UBER (T2125)", "Meals", selfEmployed.expenses?.meals || "0"]
+                        ["UBER (T2125)", "HST No", selfEmployed.hstNo || "N/A"], ["UBER (T2125)", "Access Code", selfEmployed.accessCode || "N/A"], ["UBER (T2125)", "Period From", selfEmployed.periodFrom || "N/A"], ["UBER (T2125)", "Period To", selfEmployed.periodTo || "N/A"], ["UBER (T2125)", "Total KMs Driven", selfEmployed.totalKms || "0"], ["UBER (T2125)", "Business KMs", selfEmployed.businessKms || "0"],
+                        ["UBER (T2125)", "Fuel", selfEmployed.expenses?.fuel || "0"], ["UBER (T2125)", "Repairs", selfEmployed.expenses?.repairs || "0"], ["UBER (T2125)", "Insurance", selfEmployed.expenses?.insurance || "0"], ["UBER (T2125)", "License", selfEmployed.expenses?.license || "0"], ["UBER (T2125)", "Interest", selfEmployed.expenses?.interest || "0"], ["UBER (T2125)", "Carwash", selfEmployed.expenses?.carwash || "0"],
+                        ["UBER (T2125)", "Parking", selfEmployed.expenses?.parking || "0"], ["UBER (T2125)", "Tolls", selfEmployed.expenses?.tolls || "0"], ["UBER (T2125)", "Tickets", selfEmployed.expenses?.tickets || "0"], ["UBER (T2125)", "Phone Line $", selfEmployed.expenses?.phone || "0"], ["UBER (T2125)", "Supplies", selfEmployed.expenses?.supplies || "0"], ["UBER (T2125)", "Meals", selfEmployed.expenses?.meals || "0"]
                     );
                 }
-
                 csvRows.push(["Rental (T776)", "Active", rentalIncome.active || "no"]);
                 if (rentalIncome.active === "yes") {
                     csvRows.push(["Rental (T776)", "Address", rentalIncome.address || "N/A"], ["Rental (T776)", "Gross Income", rentalIncome.grossIncome || "0"], ["Rental (T776)", "Percentage Rented", rentalIncome.percentageRented || "100"]);
                     if (rentalIncome.coOwners && rentalIncome.coOwners.length > 0) {
                         rentalIncome.coOwners.forEach((owner, index) => {
-                            csvRows.push(["Rental Co-Owner " + (index + 1), "Name", owner.name]); csvRows.push(["Rental Co-Owner " + (index + 1), "SIN", owner.sin]); csvRows.push(["Rental Co-Owner " + (index + 1), "Share %", owner.share]); csvRows.push(["Rental Co-Owner " + (index + 1), "Address", owner.address]);
+                            csvRows.push(["Rental Co-Owner " + (index + 1), "Name", owner.name], ["Rental Co-Owner " + (index + 1), "SIN", owner.sin], ["Rental Co-Owner " + (index + 1), "Share %", owner.share], ["Rental Co-Owner " + (index + 1), "Address", owner.address]);
                         });
                     }
                     csvRows.push(
-                        ["Rental (T776)", "Insurance", rentalIncome.expenses?.insurance || "0"], ["Rental (T776)", "Mortgage Interest", rentalIncome.expenses?.interest || "0"], ["Rental (T776)", "Bank Charges", rentalIncome.expenses?.bankCharges || "0"],
-                        ["Rental (T776)", "Office", rentalIncome.expenses?.office || "0"], ["Rental (T776)", "Professional Fees", rentalIncome.expenses?.professional || "0"], ["Rental (T776)", "Management", rentalIncome.expenses?.management || "0"],
-                        ["Rental (T776)", "Repairs", rentalIncome.expenses?.repairs || "0"], ["Rental (T776)", "Property Tax", rentalIncome.expenses?.propertyTax || "0"], ["Rental (T776)", "Utilities", rentalIncome.expenses?.utilities || "0"]
+                        ["Rental (T776)", "Insurance", rentalIncome.expenses?.insurance || "0"], ["Rental (T776)", "Mortgage Interest", rentalIncome.expenses?.interest || "0"], ["Rental (T776)", "Bank Charges", rentalIncome.expenses?.bankCharges || "0"], ["Rental (T776)", "Office", rentalIncome.expenses?.office || "0"], ["Rental (T776)", "Professional Fees", rentalIncome.expenses?.professional || "0"], ["Rental (T776)", "Management", rentalIncome.expenses?.management || "0"], ["Rental (T776)", "Repairs", rentalIncome.expenses?.repairs || "0"], ["Rental (T776)", "Property Tax", rentalIncome.expenses?.propertyTax || "0"], ["Rental (T776)", "Utilities", rentalIncome.expenses?.utilities || "0"]
                     );
                 }
-
                 csvRows.push(["CCB", "Active", childCareBenefit.active || "no"]);
                 if (childCareBenefit.active === "yes") {
                     csvRows.push(["CCB", "Marriage Date", childCareBenefit.marriageDate || "N/A"], ["CCB", "Status Change Date", childCareBenefit.statusChangeDate || "N/A"], ["CCB", "Resident Year", childCareBenefit.worldIncome?.becameResidentYear || "0"], ["CCB", "1 Year Before", childCareBenefit.worldIncome?.oneYearBefore || "0"], ["CCB", "2 Years Before", childCareBenefit.worldIncome?.twoYearsBefore || "0"]);
                 }
             }
             
-            // Generate CSV string & Upload to S3
             const csvString = csvRows.map(row => row.map(cell => `"${(cell||'').toString().replace(/"/g, '""')}"`).join(',')).join('\n');
             const csvKey = `clients/${userEmail}/${Date.now()}-${taxType.substring(0,2)}-Organizer.csv`;
             await s3.send(new PutObjectCommand({ Bucket: BUCKET_NAME, Key: csvKey, Body: csvString, ContentType: "text/csv" }));
             const excelDownloadUrl = await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET_NAME, Key: csvKey }), { expiresIn: 86400 });
 
-            // 2. GENERATE S3 DOWNLOAD LINKS FOR ATTACHED DOCUMENTS
+            // 3. GENERATE S3 DOWNLOAD LINKS FOR ATTACHED DOCUMENTS
             let documentLinksHtml = "";
             if (uploadedFiles.length > 0) {
                 documentLinksHtml = `<div style="margin-top: 30px; background-color: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
@@ -253,7 +227,7 @@ export const handler = async (event) => {
                 documentLinksHtml += `</ul></div>`;
             }
 
-            // 3. BUILD DYNAMIC HTML EMAIL BODY BASED ON TAX TYPE
+            // 4. BUILD DYNAMIC HTML EMAIL BODY BASED ON TAX TYPE
             let specificHtmlBody = "";
 
             if (isT2) {
