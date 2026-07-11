@@ -130,7 +130,7 @@ export const handler = async (event) => {
                     corporateInfo: corporateInfo,
                     statusInCanada: statusInCanada,
                     familyMembers: familyMembers,
-                    ontarioResidency: residencyArray || ontarioResidency,
+                    ontarioResidency: ontarioResidency: ontarioResidency,
                     milestones: milestones,
                     selfEmployed: selfEmployed,
                     rentalIncome: rentalIncome,
