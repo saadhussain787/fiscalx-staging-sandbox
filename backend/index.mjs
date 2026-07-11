@@ -130,7 +130,7 @@ export const handler = async (event) => {
                     corporateInfo: corporateInfo,
                     statusInCanada: statusInCanada,
                     familyMembers: familyMembers,
-                    ontarioResidency: ontarioResidency: ontarioResidency,
+                    ontarioResidency: ontarioResidency, // THIS IS THE FIXED LINE
                     milestones: milestones,
                     selfEmployed: selfEmployed,
                     rentalIncome: rentalIncome,
