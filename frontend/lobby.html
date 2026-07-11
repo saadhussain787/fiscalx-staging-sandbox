@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FiscalX Lobby Display</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* TV Optimization & Aurora Animation */
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #0f172a; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    
+    .aurora-bg {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden; background: #0f172a;
+    }
+    .aurora-blob {
+      position: absolute; filter: blur(90px); opacity: 0.6; animation: float 20s infinite ease-in-out alternate;
+    }
+    .blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #10b981; animation-delay: 0s; }
+    .blob-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: #3b82f6; animation-delay: -5s; }
+    .blob-3 { top: 40%; left: 30%; width: 40vw; height: 40vw; background: #064e3b; animation-delay: -10s; }
+
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
+
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Carousel Fading Logic */
+    .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: 10; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+    .slide.active { opacity: 1; z-index: 20; }
+  </style>
+</head>
+<body class="text-white">
+
+  <!-- Background Auroras -->
+  <div class="aurora-bg">
+    <div class="aurora-blob blob-1"></div>
+    <div class="aurora-blob blob-2"></div>
+    <div class="aurora-blob blob-3"></div>
+  </div>
+
+  <!-- Top Bar (Logo & Clock) -->
+  <div class="absolute top-0 left-0 w-full p-10 flex justify-between items-center z-50">
+    <div class="text-4xl font-extrabold tracking-widest text-white drop-shadow-lg">
+      FISCAL<span class="text-emerald-400">X</span>
+    </div>
+    <div id="live-clock" class="text-3xl font-bold text-slate-200 drop-shadow-md tracking-wider">
+      12:00 PM
+    </div>
+  </div>
+
+  <!-- SLIDE 1: Welcome & Services -->
+  <div id="slide-1" class="slide active p-10">
+    <div class="glass-panel p-16 max-w-4xl text-center w-full">
+      <h1 class="text-6xl font-extrabold mb-6">Welcome to FiscalX</h1>
+      <p class="text-2xl text-emerald-300 font-semibold uppercase tracking-widest mb-10">Professional Corporation</p>
+      <div class="h-24 flex items-center justify-center">
+        <h2 id="rotating-service" class="text-4xl font-bold text-slate-100 transition-opacity duration-500">Corporate Tax Planning</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Live CRA Tax Calendar -->
+  <div id="slide-2" class="slide p-10">
+    <div class="glass-panel p-16 max-w-5xl w-full">
+      <h1 class="text-5xl font-extrabold mb-2 text-center">CRA Tax Deadlines</h1>
+      <p class="text-xl text-emerald-300 text-center mb-10">Stay compliant. Avoid penalties.</p>
+      <div class="grid grid-cols-2 gap-8">
+        <div class="bg-white/10 p-6 rounded-2xl border border-white/10">
+          <h3 class="text-emerald-400 font-bold text-xl mb-1">April 30</h3>
+          <p class="text-2xl font-semibold">T1 Personal Tax Deadline</p>
+        </div>
+        <div class="bg-white/10 p-6 rounded-2xl border border-white/10">
+          <h3 class="text-emerald-400 font-bold text-xl mb-1">June 15</h3>
+          <p class="text-2xl font-semibold">Self-Employed (T2125) Deadline</p>
+        </div>
+        <div class="bg-white/10 p-6 rounded-2xl border border-white/10">
+          <h3 class="text-emerald-400 font-bold text-xl mb-1">Last Day of Feb</h3>
+          <p class="text-2xl font-semibold">T4 & T5 Slips Deadline</p>
+        </div>
+        <div class="bg-white/10 p-6 rounded-2xl border border-white/10">
+          <h3 class="text-emerald-400 font-bold text-xl mb-1">6 Months Post Year-End</h3>
+          <p class="text-2xl font-semibold">T2 Corporate Tax Filing</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: The QR Code Check-in -->
+  <div id="slide-3" class="slide p-10">
+    <div class="glass-panel p-16 max-w-4xl text-center w-full flex flex-col items-center">
+      <h1 class="text-5xl font-extrabold mb-6">Client Check-In Portal</h1>
+      <p class="text-2xl text-slate-300 mb-10">Scan to access your secure document vault</p>
+      <div class="bg-white p-6 rounded-3xl shadow-2xl mb-8">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://www.fiscalx.ca/dashboard/" alt="Client Portal QR Code" class="w-64 h-64">
+      </div>
+      <p class="text-xl font-bold text-emerald-400 tracking-wider">Point your phone camera here 📸</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: 5-Star Reviews -->
+  <div id="slide-4" class="slide p-10">
+    <div class="glass-panel p-16 max-w-4xl text-center w-full">
+      <div class="flex justify-center gap-2 mb-8">
+        <span class="text-5xl">⭐</span><span class="text-5xl">⭐</span><span class="text-5xl">⭐</span><span class="text-5xl">⭐</span><span class="text-5xl">⭐</span>
+      </div>
+      <h1 class="text-4xl font-bold leading-relaxed mb-10 italic drop-shadow-md">
+        "Wasim is incredibly knowledgeable and saved our business thousands of dollars in corporate taxes. The digital portal makes everything effortless."
+      </h1>
+      <p class="text-2xl text-emerald-400 font-bold tracking-widest uppercase">- Google Reviews</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: TikTok Tax Hub (NEW) -->
+  <div id="slide-5" class="slide p-10">
+    <div class="glass-panel p-10 max-w-5xl w-full flex flex-col md:flex-row items-center gap-10">
+      <!-- Left Column: iPhone Video Frame -->
+      <div class="w-full md:w-1/2 flex justify-center">
+        <div class="relative w-[280px] h-[500px] bg-black rounded-[40px] border-[10px] border-slate-800 shadow-2xl overflow-hidden">
+          <iframe src="https://www.tiktok.com/embed/v2/7471412155238173958" 
+                  class="w-full h-full border-0" 
+                  allow="autoplay; encrypted-media; accelerometer; gyroscope; picture-in-picture" 
+                  allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+      <!-- Right Column: Follow Hand-off -->
+      <div class="w-full md:w-1/2 text-center md:text-left flex flex-col items-center md:items-start">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-4xl">📱</span>
+          <h1 class="text-4xl font-extrabold text-white">Daily Wealth Tips</h1>
+        </div>
+        <p class="text-xl text-slate-300 mb-8 leading-relaxed">
+          Scan to follow Wasim on TikTok. Learn core Canadian tax loopholes, corporate write-offs, and wealth strategies in 60 seconds!
+        </p>
+        <div class="bg-white p-4 rounded-2xl shadow-xl mb-6">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://www.tiktok.com/@wasim.kadri.cpa" alt="Follow Wasim on TikTok" class="w-48 h-44">
+        </div>
+        <p class="text-sm font-bold text-emerald-400 tracking-wider">FOLLOW @WASIM.KADRI.CPA 📸</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 1. LIVE CLOCK LOGIC
+    function updateClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      let minutes = now.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; 
+      minutes = minutes < 10 ? '0' + minutes : minutes;
+      document.getElementById('live-clock').innerText = hours + ':' + minutes + ' ' + ampm;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // 2. SLIDE CAROUSEL LOGIC (Fades through all 5 slides)
+    let currentSlide = 1;
+    const totalSlides = 5;
+    setInterval(() => {
+      document.getElementById(`slide-${currentSlide}`).classList.remove('active');
+      currentSlide = currentSlide >= totalSlides ? 1 : currentSlide + 1;
+      document.getElementById(`slide-${currentSlide}`).classList.add('active');
+    }, 12000);
+
+    // 3. ROTATING SERVICES LOGIC (On Slide 1)
+    const services = ["Corporate Tax Planning", "Personal Tax Filing", "Virtual CFO Services", "CRA Audit Representation", "Bookkeeping & Payroll"];
+    let serviceIndex = 0;
+    const serviceEl = document.getElementById('rotating-service');
+    setInterval(() => {
+      serviceEl.style.opacity = 0;
+      setTimeout(() => {
+        serviceIndex = (serviceIndex + 1) % services.length;
+        serviceEl.innerText = services[serviceIndex];
+        serviceEl.style.opacity = 1;
+      }, 500);
+    }, 3000);
+  </script>
+</body>
+</html>
