@@ -4,6 +4,7 @@ layout: layout.html
 
 <main class="flex-1">
   
+  <!-- HERO SECTION -->
   <section class="bg-slate-900 py-16 text-white relative overflow-hidden">
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(63,98,147,0.15),transparent_50%)]"></div>
     <div class="container mx-auto px-4 md:px-8 lg:px-16 text-center relative z-10 space-y-4">
@@ -14,10 +15,12 @@ layout: layout.html
     </div>
   </section>
 
+  <!-- MAIN CONTACT SECTION -->
   <section class="py-16">
     <div class="container mx-auto px-4 md:px-8 lg:px-16">
       <div class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         
+        <!-- LEFT COLUMN: Contact Info -->
         <div class="lg:col-span-4 space-y-6">
           <div class="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm space-y-4">
             <h2 class="text-base font-bold text-slate-900">FiscalX Professional Corporation</h2>
@@ -45,6 +48,7 @@ layout: layout.html
           </div>
 
           <div class="space-y-3">
+            <!-- This hides on mobile, because we will add a floating button for mobile next! -->
             <a href="https://wa.me/14165286605" target="_blank" rel="noopener noreferrer" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl font-semibold shadow hover:bg-green-700 transition">
               Message us on WhatsApp
             </a>
@@ -54,6 +58,7 @@ layout: layout.html
           </div>
         </div>
 
+        <!-- RIGHT COLUMN: The Intake Form -->
         <div class="lg:col-span-8 bg-white rounded-3xl border border-slate-200/60 p-6 sm:p-10 shadow-sm">
           <h3 class="text-xl font-bold text-slate-900 mb-2">Drop Us A Line!</h3>
           <p class="text-sm text-slate-500 mb-6">Fill out the intake details below to schedule a focused tax or corporate compliance review.</p>
@@ -68,15 +73,39 @@ layout: layout.html
                 <label for="business-email" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Email Address</label>
                 <input type="email" id="business-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
               </div>
+              <div class="sm:col-span-2">
+                <label for="phone-number" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Phone Number</label>
+                <input type="tel" id="phone-number" required placeholder="(416) 555-0199" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+              </div>
             </div>
 
+            <!-- UPGRADED DROPDOWN LIST -->
             <div>
               <label for="service-target" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Requested Financial Service</label>
-              <select id="service-target" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+              <select id="service-target" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all cursor-pointer">
                 <option value="" disabled selected>Select an option...</option>
-                <option value="corporate">Corporate Tax prep & Assurance</option>
-                <option value="bookkeeping">Monthly Cloud Bookkeeping</option>
-                <option value="fiduciary">Fiduciary Compliance Advisory</option>
+                
+                <optgroup label="--- PERSONAL TAX SERVICES ---">
+                  <option value="Self-Employed Taxes">Self-Employed Taxes</option>
+                  <option value="Prior Year Taxes">Prior Year Taxes</option>
+                  <option value="Remote Tax Filing Services">Remote Tax Filing Services</option>
+                  <option value="Tax Audit Services">Tax Audit Services</option>
+                  <option value="Tax Adjustments">Tax Adjustments</option>
+                  <option value="Tax Planning Services">Tax Planning Services</option>
+                  <option value="Disability Tax Credit Program">Disability Tax Credit Program</option>
+                  <option value="New Immigrant Tax Services">New Immigrant Tax Services</option>
+                  <option value="Voluntary Disclosure Program">Voluntary Disclosure Program</option>
+                  <option value="Debt and Credit Counselling">Debt and Credit Counselling</option>
+                </optgroup>
+
+                <optgroup label="--- CORPORATE TAX SERVICES ---">
+                  <option value="Corporate Tax Return">Corporate Tax Return</option>
+                  <option value="Accounting Services">Accounting Services</option>
+                  <option value="Bookkeeping Services">Bookkeeping Services</option>
+                  <option value="Registration of New Business">Registration of New Business</option>
+                  <option value="Winding Up a Business">Winding Up a Business</option>
+                </optgroup>
+                
               </select>
             </div>
 
@@ -85,4 +114,67 @@ layout: layout.html
               <textarea id="message-body" rows="4" placeholder="Briefly detail your accounting requirement or business scope..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all"></textarea>
             </div>
 
-            <button type=
+            <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-xl text-base font-bold text-white bg-brand-600 hover:bg-brand-500 transition-all shadow-md">
+              Send Secure Request
+            </button>
+          </form>
+          
+        </div>
+      </div>
+      <div class="text-center mt-8 text-xs text-slate-400">
+        &copy; 2026 FiscalX. All rights reserved.
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- AWS BACKEND CONNECTION SCRIPT -->
+<script>
+  const intakeForm = document.getElementById('intake-form');
+  if(intakeForm) {
+    intakeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = intakeForm.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerText;
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Transmitting to Advisors...";
+
+      // Grab the phone number and safely attach it to the message so we don't break the backend!
+      const userPhone = document.getElementById('phone-number').value;
+      const userMessage = document.getElementById('message-body').value;
+      const combinedMessage = "CLIENT PHONE NUMBER: " + userPhone + "\n\n" + userMessage;
+
+      const payload = {
+        fullName: document.getElementById('full-name').value,
+        email: document.getElementById('business-email').value,
+        service: document.getElementById('service-target').value,
+        message: combinedMessage
+      };
+
+      try {
+        const response = await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        
+        if(response.ok && result.status === 'SUCCESS') {
+          alert("Thank you! Your request has been securely sent to the FiscalX team.");
+          intakeForm.reset();
+        } else {
+          alert("Submission error: " + (result.message || "Failed to process request."));
+        }
+      } catch (err) {
+        console.error("Submission Error:", err);
+        alert("Network error. Unable to connect to secure cloud servers.");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalText;
+      }
+    });
+  }
+</script>
