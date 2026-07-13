@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "npx @11ty/eleventy --serve",
+    "watch:css": "npx @tailwindcss/cli -i ./frontend/input.css -o ./frontend/style.css --watch",
+    "build:css": "npx @tailwindcss/cli -i ./frontend/input.css -o ./frontend/style.css --minify",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

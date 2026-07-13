@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* This tells Tailwind to scan all HTML files in this folder for new colors! */
+@source "./**/*.html";
+
 @theme {
   --color-brand-50: #f0f4f8;
   --color-brand-100: #dbe3ed;
