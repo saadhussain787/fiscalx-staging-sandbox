@@ -74,10 +74,9 @@ layout: layout.html
                 <input type="email" id="business-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
               </div>
               <div class="sm:col-span-2">
-                <label for="phone-number" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Phone Number</label>
-                <input type="tel" id="phone-number" required placeholder="(416) 555-0199" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
-              </div>
-            </div>
+             <label for="phone-number" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Phone Number (10 Digits)</label>
+             <input type="tel" id="phone-number" required maxlength="10" pattern="\d{10}" title="Please enter exactly 10 digits without spaces or dashes" placeholder="4165550199" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all font-mono" />
+           </div>
 
             <!-- UPGRADED DROPDOWN LIST -->
             <div>
@@ -131,6 +130,24 @@ layout: layout.html
 
 <!-- AWS BACKEND CONNECTION SCRIPT -->
 <script>
+  // URL Handoff Script: Auto-selects the dropdown based on Homepage Pillar clicks
+  document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const requestedService = urlParams.get('service');
+    if (requestedService) {
+      const selectMenu = document.getElementById('service-target');
+      if (selectMenu) {
+        // Find the matching option and select it
+        for (let i = 0; i < selectMenu.options.length; i++) {
+          if (selectMenu.options[i].value === requestedService) {
+            selectMenu.selectedIndex = i;
+            break;
+          }
+        }
+      }
+    }
+  });
+
   const intakeForm = document.getElementById('intake-form');
   if(intakeForm) {
     intakeForm.addEventListener('submit', async (e) => {
