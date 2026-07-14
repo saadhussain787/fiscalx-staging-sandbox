@@ -305,7 +305,7 @@ export const handler = async (event) => {
         }
 
         // ==============================================================
-        // ACTION F: UPDATE CLIENT KANBAN STATUS (FIXED SCHEMA)
+        // ACTION F: UPDATE CLIENT KANBAN STATUS
         // ==============================================================
         if (data.action === "updateClientStatus") {
             const adminEmail = data.adminEmail;
@@ -313,17 +313,14 @@ export const handler = async (event) => {
             const clientTimestamp = data.timestamp;
             const newStatus = data.newStatus;
 
-            // 1. Security Check
             if (!adminEmail || !AUTHORIZED_STAFF.includes(adminEmail.toLowerCase())) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
             }
 
-            // 2. Data Validation
             if (!clientEmail || !clientTimestamp) {
                 return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing required keys: Email or Timestamp." }) };
             }
 
-            // 3. Database Update with forced String typing
             try {
                 const updateParams = {
                     TableName: TABLE_NAME,
@@ -342,6 +339,34 @@ export const handler = async (event) => {
             } catch (updateError) {
                 console.error("DynamoDB Update Error:", updateError);
                 return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Database update failed: " + updateError.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION G: GENERATE SECURE DOWNLOAD URL FOR ADMINS
+        // ==============================================================
+        if (data.action === "getDownloadUrl") {
+            const adminEmail = data.adminEmail;
+            const fileKey = data.fileKey;
+
+            // Security check: Only allowed staff can request a file decryption
+            if (!adminEmail || !AUTHORIZED_STAFF.includes(adminEmail.toLowerCase())) {
+                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Decryption Request." }) };
+            }
+
+            if (!fileKey) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "No file key provided." }) };
+            }
+
+            try {
+                // Generate a highly secure URL that self-destructs in exactly 60 seconds
+                const downloadCommand = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileKey });
+                const secureUrl = await getSignedUrl(s3, downloadCommand, { expiresIn: 60 });
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", secureUrl: secureUrl }) };
+            } catch (s3Error) {
+                console.error("S3 Decryption Error:", s3Error);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Failed to unlock document vault." }) };
             }
         }
 
