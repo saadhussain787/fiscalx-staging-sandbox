@@ -37,9 +37,7 @@ export const handler = async (event) => {
     try {
         const data = JSON.parse(event.body || "{}");
 
-        // ==============================================================
         // ACTION A: GENERATE SECURE S3 PRESIGNED UPLOAD URL
-        // ==============================================================
         if (data.action === "getUploadUrl") {
             const fileName = data.fileName;
             const fileType = data.fileType;
@@ -55,13 +53,48 @@ export const handler = async (event) => {
             };
         }
 
-        // ==============================================================
         // ACTION B: NOTIFY UPLOAD COMPLETE
-        // ==============================================================
         if (data.action === "notifyUploadComplete") {
             const fileKey = data.fileKey;
             const userEmail = data.userEmail;
             const fileName = fileKey.split("/").pop(); 
+
+            const cleanFileName = fileName.substring(13); 
+
+            try {
+                const scanParams = {
+                    TableName: TABLE_NAME,
+                    FilterExpression: "userEmail = :email",
+                    ExpressionAttributeValues: { ":email": userEmail }
+                };
+                const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
+                const userRecords = scanResult.Items || [];
+
+                if (userRecords.length > 0) {
+                    userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    const latestRecord = userRecords[0];
+
+                    const existingFiles = latestRecord.uploadedFiles || [];
+                    
+                    if (!existingFiles.some(f => f.fileKey === fileKey)) {
+                        existingFiles.push({ fileName: cleanFileName, fileKey: fileKey });
+
+                        const updateParams = {
+                            TableName: TABLE_NAME,
+                            Key: { 
+                                userEmail: latestRecord.userEmail,
+                                timestamp: latestRecord.timestamp
+                            },
+                            UpdateExpression: "set uploadedFiles = :f",
+                            ExpressionAttributeValues: { ":f": existingFiles }
+                        };
+                        await ddbDocClient.send(new UpdateCommand(updateParams));
+                        console.log(`Successfully attached file ${cleanFileName} to active card for ${userEmail}`);
+                    }
+                }
+            } catch (dbError) {
+                console.error("Failed to automatically link S3 upload to DynamoDB record:", dbError);
+            }
 
             const downloadCommand = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileKey });
             const downloadUrl = await getSignedUrl(s3, downloadCommand, { expiresIn: 86400 });
@@ -75,7 +108,7 @@ export const handler = async (event) => {
                     <p style="font-size: 15px;">A client has successfully uploaded a new document to their secure private folder:</p>
                     <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
                         <tr><td style="padding: 12px; font-weight: bold; color: #475569; width: 140px; border-bottom: 1px solid #e2e8f0;">Client Email:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${userEmail}</td></tr>
-                        <tr><td style="padding: 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0;">File Name:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${fileName.substring(13)}</td></tr>
+                        <tr><td style="padding: 12px; font-weight: bold; color: #475569; border-bottom: 1px solid #e2e8f0;">File Name:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${cleanFileName}</td></tr>
                     </table>
                     <div style="text-align: center; margin: 30px 0;">
                         <a href="${downloadUrl}" target="_blank" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; font-size: 14px; border-radius: 8px;">Download Document Securely</a>
@@ -93,7 +126,7 @@ export const handler = async (event) => {
         }
 
         // ==============================================================
-        // ACTION C: SUBMIT CANADIAN TAX ORGANIZER
+        // ACTION C: SUBMIT CANADIAN TAX ORGANIZER (SMART STATUS INHERITANCE)
         // ==============================================================
         if (data.action === "submitTaxOrganizer") {
             const {
@@ -106,11 +139,30 @@ export const handler = async (event) => {
             const combinedName = isT2 ? corporateInfo.corpName : `${personalInfo.firstName || ""} ${personalInfo.middleName || ""} ${personalInfo.lastName || ""}`.trim();
             const timestamp = new Date().toISOString();
 
+            // NEW: Scan to see if this client already has a status, and inherit it!
+            let activeStatus = "Pending";
+            try {
+                const scanParams = {
+                    TableName: TABLE_NAME,
+                    FilterExpression: "userEmail = :email",
+                    ExpressionAttributeValues: { ":email": userEmail }
+                };
+                const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
+                const userRecords = scanResult.Items || [];
+                if (userRecords.length > 0) {
+                    userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    // Inherit whatever status Wasim set them to last
+                    activeStatus = userRecords[0].campaignStatus || "Pending";
+                }
+            } catch (dbError) {
+                console.error("Failed to inherit active status:", dbError);
+            }
+
             const ddbParams = {
                 TableName: TABLE_NAME,
                 Item: {
                     userEmail: userEmail, timestamp: timestamp, taxType: taxType, craConsent: craConsent, clientName: combinedName,
-                    amountOwed: "0.00", amountCollected: "0.00", campaignStatus: "Pending", howHeard: howHeard, notes: notes,
+                    amountOwed: "0.00", amountCollected: "0.00", campaignStatus: activeStatus, howHeard: howHeard, notes: notes,
                     uploadedFiles: uploadedFiles, personalInfo: personalInfo, corporateInfo: corporateInfo, statusInCanada: statusInCanada,
                     familyMembers: familyMembers, ontarioResidency: ontarioResidency, milestones: milestones, selfEmployed: selfEmployed,
                     rentalIncome: rentalIncome, childCareBenefit: childCareBenefit
@@ -349,7 +401,6 @@ export const handler = async (event) => {
             const adminEmail = data.adminEmail;
             const fileKey = data.fileKey;
 
-            // Security check: Only allowed staff can request a file decryption
             if (!adminEmail || !AUTHORIZED_STAFF.includes(adminEmail.toLowerCase())) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Decryption Request." }) };
             }
@@ -359,7 +410,6 @@ export const handler = async (event) => {
             }
 
             try {
-                // Generate a highly secure URL that self-destructs in exactly 60 seconds
                 const downloadCommand = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileKey });
                 const secureUrl = await getSignedUrl(s3, downloadCommand, { expiresIn: 60 });
 

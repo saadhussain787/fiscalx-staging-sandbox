@@ -208,7 +208,6 @@
       } catch (error) { document.getElementById('kanban-status').innerText = "Network Error connecting to Database."; }
     }
 
-    // Upgraded: Intelligently handles moving cards backwards
     function deduplicateClients(clients) {
       clients.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       
@@ -216,15 +215,42 @@
 
       clients.forEach(client => {
         const email = client.userEmail.toLowerCase();
+        const formTime = new Date(client.timestamp).getTime();
+
+        // 1. Math S3 timestamp check for "New Activity"
+        let hasStandaloneUploads = false;
+        let newestFileTimestamp = 0; // NEW: Track the absolute newest file uploaded
+        
+        if (client.uploadedFiles) {
+          client.uploadedFiles.forEach(file => {
+            const filenamePart = file.fileKey.split('/').pop();
+            const fileTimestamp = parseInt(filenamePart.split('-')[0]);
+            if (!isNaN(fileTimestamp)) {
+              if (fileTimestamp > newestFileTimestamp) {
+                newestFileTimestamp = fileTimestamp; // Remember newest file
+              }
+              if (fileTimestamp > (formTime + 10000)) {
+                hasStandaloneUploads = true;
+              }
+            }
+          });
+        }
+        
+        // NEW: Check if this staff member already viewed this file inside local storage
+        const lastViewed = localStorage.getItem('viewed_' + email);
+        if (lastViewed && newestFileTimestamp <= parseInt(lastViewed)) {
+          // If the newest file is older than or equal to their last view, clear the alert!
+          hasStandaloneUploads = false;
+        }
         
         if (!uniqueClients[email]) {
           uniqueClients[email] = { 
             ...client, 
             uploadedFiles: [...(client.uploadedFiles || [])],
-            hasNewActivity: false 
+            hasNewActivity: hasStandaloneUploads 
           };
         } else {
-          // Merge files
+          // Merge S3 files
           if (client.uploadedFiles && client.uploadedFiles.length > 0) {
             client.uploadedFiles.forEach(file => {
               const isAlreadyListed = uniqueClients[email].uploadedFiles.some(f => f.fileKey === file.fileKey);
@@ -234,12 +260,17 @@
             });
           }
 
-          // FIXED STATE MACHINE: Only pull an older status forward IF the active card's status is still "Pending"
+          // Preserve column status if any older card was "In Progress" or "Completed"
           if (client.campaignStatus === "In Progress" || client.campaignStatus === "Completed") {
             if (uniqueClients[email].campaignStatus === "Pending") {
               uniqueClients[email].hasNewActivity = true;
               uniqueClients[email].campaignStatus = client.campaignStatus;
             }
+          }
+
+          // Preserves the New Activity flag if any merged file was a standalone upload
+          if (hasStandaloneUploads) {
+            uniqueClients[email].hasNewActivity = true;
           }
         }
       });
@@ -309,12 +340,22 @@
       const totalFiles = client.uploadedFiles ? client.uploadedFiles.length : 0;
       document.getElementById('modal-file-title').innerText = `Secure Document Vault (${totalFiles} Merged Files)`;
 
+      // NEW: Track the absolute newest file uploaded
+      let newestFileTimestamp = 0;
+
       const fileListDiv = document.getElementById('modal-file-list');
       fileListDiv.innerHTML = "";
       if (client.uploadedFiles && client.uploadedFiles.length > 0) {
         client.uploadedFiles.forEach(file => {
           const safeKey = file.fileKey.replace(/'/g, "\\'");
           const safeName = file.fileName.replace(/'/g, "\\'");
+
+          // Track the newest file timestamp
+          const filenamePart = file.fileKey.split('/').pop();
+          const fileTimestamp = parseInt(filenamePart.split('-')[0]);
+          if (!isNaN(fileTimestamp) && fileTimestamp > newestFileTimestamp) {
+            newestFileTimestamp = fileTimestamp;
+          }
 
           fileListDiv.innerHTML += `
             <div class="flex items-center justify-between bg-white/5 border border-white/10 p-3 rounded-lg">
@@ -325,6 +366,13 @@
             </div>`;
         });
       } else { fileListDiv.innerHTML = `<p class="text-xs text-slate-500 italic">No files uploaded by this client.</p>`; }
+
+      // NEW: Mark files as read by saving the newest file's timestamp in local memory
+      if (newestFileTimestamp > 0) {
+        localStorage.setItem('viewed_' + email.toLowerCase(), newestFileTimestamp);
+        // Instantly redraw the board in the background so the amber pulse turns off immediately!
+        renderKanbanBoard(window.allClients);
+      }
 
       modal.classList.remove('hidden');
     }
