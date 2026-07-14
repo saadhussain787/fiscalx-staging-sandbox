@@ -2,8 +2,8 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-// UPDATED: Added ScanCommand so we can read the table for the CRM
-import { DynamoDBDocumentClient, PutCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
+// UPDATED: Added UpdateCommand so we can move Kanban cards
+import { DynamoDBDocumentClient, PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 const s3 = new S3Client({ region: "ca-central-1" });
 const ses = new SESClient({ region: "ca-central-1" });
@@ -120,7 +120,6 @@ export const handler = async (event) => {
             const combinedName = isT2 ? corporateInfo.corpName : `${personalInfo.firstName || ""} ${personalInfo.middleName || ""} ${personalInfo.lastName || ""}`.trim();
             const timestamp = new Date().toISOString();
 
-            // 1. SAVE COMPREHENSIVE RECORD TO DYNAMODB (With ROI fields prep)
             const ddbParams = {
                 TableName: TABLE_NAME,
                 Item: {
@@ -129,9 +128,9 @@ export const handler = async (event) => {
                     taxType: taxType,
                     craConsent: craConsent,
                     clientName: combinedName,
-                    amountOwed: "0.00",       // Prep for ROI Engine
-                    amountCollected: "0.00",  // Prep for ROI Engine
-                    campaignStatus: "Pending", // Prep for ROI Engine
+                    amountOwed: "0.00",       
+                    amountCollected: "0.00",  
+                    campaignStatus: "Pending", 
                     howHeard: howHeard,
                     notes: notes,
                     uploadedFiles: uploadedFiles,
@@ -148,7 +147,6 @@ export const handler = async (event) => {
             };
             await ddbDocClient.send(new PutCommand(ddbParams));
 
-            // 2. GENERATE THE COMPREHENSIVE EXCEL CSV DATA
             const csvRows = [ ["Section", "Field", "Value"] ];
             csvRows.push(
                 ["System", "Tax Type", taxType],
@@ -223,7 +221,6 @@ export const handler = async (event) => {
             await s3.send(new PutObjectCommand({ Bucket: BUCKET_NAME, Key: csvKey, Body: csvString, ContentType: "text/csv" }));
             const excelDownloadUrl = await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET_NAME, Key: csvKey }), { expiresIn: 86400 });
 
-            // 3. GENERATE S3 DOWNLOAD LINKS FOR ATTACHED DOCUMENTS
             let documentLinksHtml = "";
             if (uploadedFiles.length > 0) {
                 documentLinksHtml = `<div style="margin-top: 30px; background-color: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
@@ -236,9 +233,7 @@ export const handler = async (event) => {
                 documentLinksHtml += `</ul></div>`;
             }
 
-            // 4. BUILD DYNAMIC HTML EMAIL BODY BASED ON TAX TYPE
             let specificHtmlBody = "";
-
             if (isT2) {
                 let directorRows = (corporateInfo.directors || []).map(d => `<tr><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${d.name}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${d.sin}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${d.share}%</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${d.role}</td></tr>`).join("");
                 if (!directorRows) directorRows = `<tr><td colspan='4' style='padding:6px; text-align:center;'>None Declared</td></tr>`;
@@ -327,17 +322,14 @@ export const handler = async (event) => {
         if (data.action === "getCrmData") {
             const adminEmail = data.adminEmail;
 
-            // 1. Verify this request is actually coming from an authorized staff member
             if (!adminEmail || !AUTHORIZED_STAFF.includes(adminEmail.toLowerCase())) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
             }
 
-            // 2. Scan the DynamoDB table to get all clients
             const scanParams = { TableName: TABLE_NAME };
             const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
             const clients = scanResult.Items || [];
 
-            // 3. Calculate statistics for the top of the dashboard
             const total = clients.length;
             const inProgress = clients.filter(c => c.campaignStatus === 'Pending' || c.campaignStatus === 'In Progress').length;
             const completed = clients.filter(c => c.campaignStatus === 'Completed').length;
@@ -347,9 +339,36 @@ export const handler = async (event) => {
                 body: JSON.stringify({
                     status: "SUCCESS",
                     stats: { total, inProgress, completed },
-                    clients: clients // Sending the array of clients back to the browser
+                    clients: clients 
                 })
             };
+        }
+
+        // ==============================================================
+        // ACTION F: UPDATE CLIENT KANBAN STATUS
+        // ==============================================================
+        if (data.action === "updateClientStatus") {
+            const adminEmail = data.adminEmail;
+            const clientEmail = data.clientEmail;
+            const newStatus = data.newStatus;
+
+            // Security Check
+            if (!adminEmail || !AUTHORIZED_STAFF.includes(adminEmail.toLowerCase())) {
+                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
+            }
+
+            // Update the specific client's status in DynamoDB
+            const updateParams = {
+                TableName: TABLE_NAME,
+                Key: { userEmail: clientEmail },
+                UpdateExpression: "set campaignStatus = :s",
+                ExpressionAttributeValues: { ":s": newStatus },
+                ReturnValues: "UPDATED_NEW"
+            };
+
+            await ddbDocClient.send(new UpdateCommand(updateParams));
+
+            return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Status updated successfully." }) };
         }
 
         // ==============================================================
