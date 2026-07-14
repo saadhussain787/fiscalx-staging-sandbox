@@ -3,23 +3,37 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+// NEW: Import Cognito SDK to dynamically check user groups in real-time
+import { CognitoIdentityProviderClient, AdminListGroupsForUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 
 const s3 = new S3Client({ region: "ca-central-1" });
 const ses = new SESClient({ region: "ca-central-1" });
 const ddbClient = new DynamoDBClient({ region: "ca-central-1" });
 const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
+const cognito = new CognitoIdentityProviderClient({ region: "ca-central-1" });
 
 const BUCKET_NAME = "fiscalx-document-vault-673098723249";
 const TABLE_NAME = "fiscalx-client-onboarding";
+const USER_POOL_ID = "ca-central-1_omKzLVfdI"; // From your live Cognito URL!
 const SENDER_EMAIL = "info@fiscalx.ca"; 
 const OFFICE_EMAIL = "info@fiscalx.ca"; 
 
-const AUTHORIZED_STAFF = [
-    "wasim@fiscalx.ca",
-    "saad@fiscalx.ca",
-    "admin@fiscalx.ca",
-    "cooldude014317@gmail.com"
-];
+// NEW: Helper function to query Cognito in real-time and check if user is Staff
+async function isStaff(email) {
+    if (!email) return false;
+    try {
+        const command = new AdminListGroupsForUserCommand({
+            UserPoolId: USER_POOL_ID,
+            Username: email.trim()
+        });
+        const result = await cognito.send(command);
+        const groups = (result.Groups || []).map(g => g.GroupName);
+        return groups.includes("Staff");
+    } catch (err) {
+        console.error(`Cognito group check failed for ${email}:`, err);
+        return false;
+    }
+}
 
 export const handler = async (event) => {
     console.log("Incoming Event Payload:", JSON.stringify(event));
@@ -37,7 +51,9 @@ export const handler = async (event) => {
     try {
         const data = JSON.parse(event.body || "{}");
 
+        // ==============================================================
         // ACTION A: GENERATE SECURE S3 PRESIGNED UPLOAD URL
+        // ==============================================================
         if (data.action === "getUploadUrl") {
             const fileName = data.fileName;
             const fileType = data.fileType;
@@ -53,7 +69,9 @@ export const handler = async (event) => {
             };
         }
 
+        // ==============================================================
         // ACTION B: NOTIFY UPLOAD COMPLETE
+        // ==============================================================
         if (data.action === "notifyUploadComplete") {
             const fileKey = data.fileKey;
             const userEmail = data.userEmail;
@@ -126,7 +144,7 @@ export const handler = async (event) => {
         }
 
         // ==============================================================
-        // ACTION C: SUBMIT CANADIAN TAX ORGANIZER (SMART STATUS INHERITANCE)
+        // ACTION C: SUBMIT CANADIAN TAX ORGANIZER
         // ==============================================================
         if (data.action === "submitTaxOrganizer") {
             const {
@@ -139,7 +157,6 @@ export const handler = async (event) => {
             const combinedName = isT2 ? corporateInfo.corpName : `${personalInfo.firstName || ""} ${personalInfo.middleName || ""} ${personalInfo.lastName || ""}`.trim();
             const timestamp = new Date().toISOString();
 
-            // NEW: Scan to see if this client already has a status, and inherit it!
             let activeStatus = "Pending";
             try {
                 const scanParams = {
@@ -151,7 +168,6 @@ export const handler = async (event) => {
                 const userRecords = scanResult.Items || [];
                 if (userRecords.length > 0) {
                     userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                    // Inherit whatever status Wasim set them to last
                     activeStatus = userRecords[0].campaignStatus || "Pending";
                 }
             } catch (dbError) {
@@ -338,7 +354,9 @@ export const handler = async (event) => {
         if (data.action === "getCrmData") {
             const adminEmail = data.adminEmail;
 
-            if (!adminEmail || !AUTHORIZED_STAFF.includes(adminEmail.toLowerCase())) {
+            // FIXED: Dynamically check groups using Cognito SDK! No hardcoded lists!
+            const isAuthorized = await isStaff(adminEmail);
+            if (!isAuthorized) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
             }
 
@@ -357,7 +375,7 @@ export const handler = async (event) => {
         }
 
         // ==============================================================
-        // ACTION F: UPDATE CLIENT KANBAN STATUS
+        // ACTION F: UPDATE CLIENT KANBAN STATUS (FIXED SCHEMA)
         // ==============================================================
         if (data.action === "updateClientStatus") {
             const adminEmail = data.adminEmail;
@@ -365,7 +383,9 @@ export const handler = async (event) => {
             const clientTimestamp = data.timestamp;
             const newStatus = data.newStatus;
 
-            if (!adminEmail || !AUTHORIZED_STAFF.includes(adminEmail.toLowerCase())) {
+            // FIXED: Dynamically check groups using Cognito SDK! No hardcoded lists!
+            const isAuthorized = await isStaff(adminEmail);
+            if (!isAuthorized) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
             }
 
@@ -401,7 +421,9 @@ export const handler = async (event) => {
             const adminEmail = data.adminEmail;
             const fileKey = data.fileKey;
 
-            if (!adminEmail || !AUTHORIZED_STAFF.includes(adminEmail.toLowerCase())) {
+            // FIXED: Dynamically check groups using Cognito SDK! No hardcoded lists!
+            const isAuthorized = await isStaff(adminEmail);
+            if (!isAuthorized) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Decryption Request." }) };
             }
 

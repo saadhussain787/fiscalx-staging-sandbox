@@ -171,14 +171,29 @@
     let activeClientTimestamp = ""; 
     window.allClients = [];
 
-    const AUTHORIZED_STAFF = [
-      "wasim@fiscalx.ca", "saad@fiscalx.ca", "admin@fiscalx.ca", "cooldude014317@gmail.com"
-    ];
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+      } catch (e) { return null; }
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       const token = localStorage.getItem('admin_id_token');
       const email = localStorage.getItem('admin_email');
-      if (token && email && AUTHORIZED_STAFF.includes(email.toLowerCase())) { showCRM(email); }
+      
+      const payload = token ? parseJwt(token) : null;
+      const groups = payload ? payload['cognito:groups'] || [] : [];
+
+      if (token && email && groups.includes('Staff')) {
+        showCRM(email);
+      } else if (token) {
+        showLogin();
+      }
     });
 
     async function showCRM(email) {
@@ -217,9 +232,8 @@
         const email = client.userEmail.toLowerCase();
         const formTime = new Date(client.timestamp).getTime();
 
-        // 1. Math S3 timestamp check for "New Activity"
         let hasStandaloneUploads = false;
-        let newestFileTimestamp = 0; // NEW: Track the absolute newest file uploaded
+        let newestFileTimestamp = 0; 
         
         if (client.uploadedFiles) {
           client.uploadedFiles.forEach(file => {
@@ -227,7 +241,7 @@
             const fileTimestamp = parseInt(filenamePart.split('-')[0]);
             if (!isNaN(fileTimestamp)) {
               if (fileTimestamp > newestFileTimestamp) {
-                newestFileTimestamp = fileTimestamp; // Remember newest file
+                newestFileTimestamp = fileTimestamp; 
               }
               if (fileTimestamp > (formTime + 10000)) {
                 hasStandaloneUploads = true;
@@ -236,10 +250,8 @@
           });
         }
         
-        // NEW: Check if this staff member already viewed this file inside local storage
         const lastViewed = localStorage.getItem('viewed_' + email);
         if (lastViewed && newestFileTimestamp <= parseInt(lastViewed)) {
-          // If the newest file is older than or equal to their last view, clear the alert!
           hasStandaloneUploads = false;
         }
         
@@ -250,7 +262,6 @@
             hasNewActivity: hasStandaloneUploads 
           };
         } else {
-          // Merge S3 files
           if (client.uploadedFiles && client.uploadedFiles.length > 0) {
             client.uploadedFiles.forEach(file => {
               const isAlreadyListed = uniqueClients[email].uploadedFiles.some(f => f.fileKey === file.fileKey);
@@ -260,7 +271,6 @@
             });
           }
 
-          // Preserve column status if any older card was "In Progress" or "Completed"
           if (client.campaignStatus === "In Progress" || client.campaignStatus === "Completed") {
             if (uniqueClients[email].campaignStatus === "Pending") {
               uniqueClients[email].hasNewActivity = true;
@@ -268,7 +278,6 @@
             }
           }
 
-          // Preserves the New Activity flag if any merged file was a standalone upload
           if (hasStandaloneUploads) {
             uniqueClients[email].hasNewActivity = true;
           }
@@ -340,7 +349,6 @@
       const totalFiles = client.uploadedFiles ? client.uploadedFiles.length : 0;
       document.getElementById('modal-file-title').innerText = `Secure Document Vault (${totalFiles} Merged Files)`;
 
-      // NEW: Track the absolute newest file uploaded
       let newestFileTimestamp = 0;
 
       const fileListDiv = document.getElementById('modal-file-list');
@@ -350,7 +358,6 @@
           const safeKey = file.fileKey.replace(/'/g, "\\'");
           const safeName = file.fileName.replace(/'/g, "\\'");
 
-          // Track the newest file timestamp
           const filenamePart = file.fileKey.split('/').pop();
           const fileTimestamp = parseInt(filenamePart.split('-')[0]);
           if (!isNaN(fileTimestamp) && fileTimestamp > newestFileTimestamp) {
@@ -367,10 +374,8 @@
         });
       } else { fileListDiv.innerHTML = `<p class="text-xs text-slate-500 italic">No files uploaded by this client.</p>`; }
 
-      // NEW: Mark files as read by saving the newest file's timestamp in local memory
       if (newestFileTimestamp > 0) {
         localStorage.setItem('viewed_' + email.toLowerCase(), newestFileTimestamp);
-        // Instantly redraw the board in the background so the amber pulse turns off immediately!
         renderKanbanBoard(window.allClients);
       }
 
@@ -474,20 +479,68 @@
       crmScreen.classList.add('hidden'); loginScreen.classList.remove('hidden');
     }
 
+    // Upgraded: We now inject the required "name" attribute dynamically to bypass console restriction!
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('admin-email-input').value.trim(); const password = document.getElementById('admin-password-input').value;
+      const email = document.getElementById('admin-email-input').value.trim(); 
+      const password = document.getElementById('admin-password-input').value;
       const submitBtn = loginForm.querySelector('button');
-      if (!AUTHORIZED_STAFF.includes(email.toLowerCase())) { alert("Access Denied."); return; }
-      submitBtn.disabled = true; submitBtn.innerText = "Authenticating...";
+      
+      submitBtn.disabled = true; 
+      submitBtn.innerText = "Authenticating...";
+      
       try {
         const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
           method: 'POST', headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth' },
           body: JSON.stringify({ AuthFlow: "USER_PASSWORD_AUTH", ClientId: COGNITO_CLIENT_ID, AuthParameters: { USERNAME: email, PASSWORD: password } })
         });
-        const result = await response.json();
-        if (result.AuthenticationResult) { localStorage.setItem('admin_id_token', result.AuthenticationResult.IdToken); localStorage.setItem('admin_email', email); showCRM(email); } 
-        else { alert('Login failed: Check your credentials.'); }
+        let result = await response.json();
+        
+        // Intercept First-Time Login Challenge
+        if (response.ok && result.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
+          const newPassword = prompt("First-Time Sign-In: Please choose a secure permanent password:");
+          if (!newPassword) {
+            alert("Sign-in cancelled.");
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Secure Login";
+            return;
+          }
+          
+          submitBtn.innerText = "Setting Permanent Password...";
+          const challengeResponse = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
+            method: 'POST', headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': 'AWSCognitoIdentityProviderService.RespondToAuthChallenge' },
+            body: JSON.stringify({
+              ChallengeName: "NEW_PASSWORD_REQUIRED",
+              ClientId: COGNITO_CLIENT_ID,
+              Session: result.Session,
+              ChallengeResponses: {
+                USERNAME: email,
+                NEW_PASSWORD: newPassword,
+                "userAttributes.name": "Staff Member" // FIXED: Dynamically bypasses the greyed-out S3 console error!
+              }
+            })
+          });
+          result = await challengeResponse.json();
+        }
+
+        if (result.AuthenticationResult) {
+          const idToken = result.AuthenticationResult.IdToken;
+          const payload = parseJwt(idToken);
+          const groups = payload ? payload['cognito:groups'] || [] : [];
+          
+          if (!groups.includes('Staff')) {
+            alert("Access Denied: You do not have staff permissions to access this CRM.");
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Secure Login";
+            return;
+          }
+
+          localStorage.setItem('admin_id_token', idToken); 
+          localStorage.setItem('admin_email', email); 
+          showCRM(email);
+        } else { 
+          alert('Login failed: ' + (result.message || 'Check your credentials.')); 
+        }
       } catch (err) { alert('Network error.'); } finally { submitBtn.disabled = false; submitBtn.innerText = "Secure Login"; }
     });
     logoutBtn.addEventListener('click', showLogin);
