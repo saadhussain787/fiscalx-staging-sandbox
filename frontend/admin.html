@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FiscalX | Staff Admin Portal</title>
+  <!-- Isolated Tailwind CSS specifically for the Admin Portal to prevent layout clashes -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0B0F19] text-white min-h-screen relative overflow-hidden font-sans">
+  
+  <!-- Aurora Background Effect -->
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-gradient-to-b from-teal-500/10 via-emerald-500/5 to-transparent rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="max-w-5xl mx-auto relative z-10 pt-20 px-6">
+    
+    <!-- 1. STAFF LOGIN SCREEN -->
+    <div id="admin-login-screen" class="max-w-md mx-auto bg-white/5 border border-white/10 p-8 rounded-3xl backdrop-blur-xl mt-12">
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold tracking-tight bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent">
+          FiscalX Staff Portal
+        </h1>
+        <p class="text-sm text-slate-400 mt-2">Authorized personnel only.</p>
+      </div>
+      
+      <form id="admin-login-form" class="space-y-5">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 uppercase mb-2">Staff Email</label>
+          <input type="email" id="admin-email-input" required class="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/20 text-white focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-300 uppercase mb-2">Password</label>
+          <input type="password" id="admin-password-input" required class="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/20 text-white focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+        <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-bold text-slate-900 bg-teal-500 hover:bg-teal-400 transition-all">
+          Secure Login
+        </button>
+      </form>
+    </div>
+
+    <!-- 2. MAIN CRM DASHBOARD (Hidden until logged in) -->
+    <div id="admin-crm-screen" class="hidden">
+      <!-- Header Section -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-white/10 pb-6 mb-8">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent">
+            Practice Management CRM
+          </h1>
+          <p class="text-sm text-slate-400 mt-1">Logged in as: <span id="active-admin-email" class="text-teal-300 font-medium"></span></p>
+        </div>
+        <div class="mt-4 md:mt-0 flex gap-3">
+          <button id="admin-logout-btn" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition">
+            Sign Out
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+        <div class="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
+          <p class="text-xs text-slate-400 uppercase tracking-wider">Total Leads</p>
+          <p class="text-3xl font-bold mt-1 text-teal-400">0</p>
+        </div>
+        <div class="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
+          <p class="text-xs text-slate-400 uppercase tracking-wider">In Progress</p>
+          <p class="text-3xl font-bold mt-1 text-amber-400">0</p>
+        </div>
+        <div class="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
+          <p class="text-xs text-slate-400 uppercase tracking-wider">Completed</p>
+          <p class="text-3xl font-bold mt-1 text-emerald-400">0</p>
+        </div>
+      </div>
+
+      <!-- Kanban Board Placeholder -->
+      <div class="p-12 text-center rounded-2xl border border-dashed border-white/10 bg-white/5">
+        <p class="text-slate-400">Kanban Board & Client List will load here once we connect the API.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const COGNITO_CLIENT_ID = "79d4qhnedttr14qh6gakkh5hk0";
+    const COGNITO_REGION = "ca-central-1";
+
+    const loginScreen = document.getElementById('admin-login-screen');
+    const crmScreen = document.getElementById('admin-crm-screen');
+    const loginForm = document.getElementById('admin-login-form');
+    const logoutBtn = document.getElementById('admin-logout-btn');
+    const displayEmail = document.getElementById('active-admin-email');
+
+    // List of allowed staff emails (Added your test email here)
+    const AUTHORIZED_STAFF = [
+      "wasim@fiscalx.ca",
+      "saad@fiscalx.ca",
+      "admin@fiscalx.ca",
+      "cooldude014317@gmail.com"
+    ];
+
+    // Check session on load
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('admin_id_token');
+      const email = localStorage.getItem('admin_email');
+      
+      if (token && email && AUTHORIZED_STAFF.includes(email.toLowerCase())) {
+        showCRM(email);
+      }
+    });
+
+    function showCRM(email) {
+      loginScreen.classList.add('hidden');
+      crmScreen.classList.remove('hidden');
+      displayEmail.innerText = email;
+    }
+
+    function showLogin() {
+      localStorage.removeItem('admin_id_token');
+      localStorage.removeItem('admin_email');
+      crmScreen.classList.add('hidden');
+      loginScreen.classList.remove('hidden');
+    }
+
+    // Handle Login
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('admin-email-input').value.trim();
+      const password = document.getElementById('admin-password-input').value;
+      const submitBtn = loginForm.querySelector('button');
+
+      if (!AUTHORIZED_STAFF.includes(email.toLowerCase())) {
+        alert("Access Denied: This email is not authorized for staff access.");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Authenticating...";
+
+      try {
+        const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth' },
+          body: JSON.stringify({ AuthFlow: "USER_PASSWORD_AUTH", ClientId: COGNITO_CLIENT_ID, AuthParameters: { USERNAME: email, PASSWORD: password } })
+        });
+        
+        const result = await response.json();
+        
+        if (result.AuthenticationResult) {
+          localStorage.setItem('admin_id_token', result.AuthenticationResult.IdToken);
+          localStorage.setItem('admin_email', email);
+          showCRM(email);
+        } else {
+          alert('Login failed: Check your credentials.');
+        }
+      } catch (err) {
+        alert('Network error connecting to AWS authentication.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Secure Login";
+      }
+    });
+
+    // Handle Logout
+    logoutBtn.addEventListener('click', showLogin);
+  </script>
+</body>
+</html>

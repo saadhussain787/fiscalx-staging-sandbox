@@ -2,7 +2,8 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+// UPDATED: Added ScanCommand so we can read the table for the CRM
+import { DynamoDBDocumentClient, PutCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 
 const s3 = new S3Client({ region: "ca-central-1" });
 const ses = new SESClient({ region: "ca-central-1" });
@@ -13,6 +14,14 @@ const BUCKET_NAME = "fiscalx-document-vault-673098723249";
 const TABLE_NAME = "fiscalx-client-onboarding";
 const SENDER_EMAIL = "info@fiscalx.ca"; 
 const OFFICE_EMAIL = "info@fiscalx.ca"; 
+
+// Backend security check for staff access
+const AUTHORIZED_STAFF = [
+    "wasim@fiscalx.ca",
+    "saad@fiscalx.ca",
+    "admin@fiscalx.ca",
+    "cooldude014317@gmail.com"
+];
 
 export const handler = async (event) => {
     console.log("Incoming Event Payload:", JSON.stringify(event));
@@ -130,7 +139,7 @@ export const handler = async (event) => {
                     corporateInfo: corporateInfo,
                     statusInCanada: statusInCanada,
                     familyMembers: familyMembers,
-                    ontarioResidency: ontarioResidency, // THIS IS THE FIXED LINE
+                    ontarioResidency: ontarioResidency, 
                     milestones: milestones,
                     selfEmployed: selfEmployed,
                     rentalIncome: rentalIncome,
@@ -310,6 +319,37 @@ export const handler = async (event) => {
             await ses.send(sesOrganizerCommand);
 
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Your onboarding organizer and files have been securely compiled and delivered." }) };
+        }
+
+        // ==============================================================
+        // ACTION E: FETCH CRM DATA FOR ADMIN PORTAL
+        // ==============================================================
+        if (data.action === "getCrmData") {
+            const adminEmail = data.adminEmail;
+
+            // 1. Verify this request is actually coming from an authorized staff member
+            if (!adminEmail || !AUTHORIZED_STAFF.includes(adminEmail.toLowerCase())) {
+                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
+            }
+
+            // 2. Scan the DynamoDB table to get all clients
+            const scanParams = { TableName: TABLE_NAME };
+            const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
+            const clients = scanResult.Items || [];
+
+            // 3. Calculate statistics for the top of the dashboard
+            const total = clients.length;
+            const inProgress = clients.filter(c => c.campaignStatus === 'Pending' || c.campaignStatus === 'In Progress').length;
+            const completed = clients.filter(c => c.campaignStatus === 'Completed').length;
+
+            return {
+                statusCode: 200, headers: headers,
+                body: JSON.stringify({
+                    status: "SUCCESS",
+                    stats: { total, inProgress, completed },
+                    clients: clients // Sending the array of clients back to the browser
+                })
+            };
         }
 
         // ==============================================================
