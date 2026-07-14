@@ -37,7 +37,9 @@ export const handler = async (event) => {
     try {
         const data = JSON.parse(event.body || "{}");
 
+        // ==============================================================
         // ACTION A: GENERATE SECURE S3 PRESIGNED UPLOAD URL
+        // ==============================================================
         if (data.action === "getUploadUrl") {
             const fileName = data.fileName;
             const fileType = data.fileType;
@@ -53,7 +55,9 @@ export const handler = async (event) => {
             };
         }
 
+        // ==============================================================
         // ACTION B: NOTIFY UPLOAD COMPLETE
+        // ==============================================================
         if (data.action === "notifyUploadComplete") {
             const fileKey = data.fileKey;
             const userEmail = data.userEmail;
@@ -88,7 +92,9 @@ export const handler = async (event) => {
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
         }
 
+        // ==============================================================
         // ACTION C: SUBMIT CANADIAN TAX ORGANIZER
+        // ==============================================================
         if (data.action === "submitTaxOrganizer") {
             const {
                 userEmail = "Unknown", taxType = "T1 Personal", craConsent = "Not Provided", howHeard = "Not Specified",
@@ -274,7 +280,9 @@ export const handler = async (event) => {
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Your onboarding organizer and files have been securely compiled and delivered." }) };
         }
 
+        // ==============================================================
         // ACTION E: FETCH CRM DATA FOR ADMIN PORTAL
+        // ==============================================================
         if (data.action === "getCrmData") {
             const adminEmail = data.adminEmail;
 
@@ -296,35 +304,50 @@ export const handler = async (event) => {
             };
         }
 
+        // ==============================================================
         // ACTION F: UPDATE CLIENT KANBAN STATUS (FIXED SCHEMA)
+        // ==============================================================
         if (data.action === "updateClientStatus") {
             const adminEmail = data.adminEmail;
             const clientEmail = data.clientEmail;
-            const clientTimestamp = data.timestamp; // We now demand the timestamp
+            const clientTimestamp = data.timestamp;
             const newStatus = data.newStatus;
 
+            // 1. Security Check
             if (!adminEmail || !AUTHORIZED_STAFF.includes(adminEmail.toLowerCase())) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
             }
 
-            // Fixed: We now provide both keys that DynamoDB requires
-            const updateParams = {
-                TableName: TABLE_NAME,
-                Key: { 
-                    userEmail: clientEmail,
-                    timestamp: clientTimestamp 
-                },
-                UpdateExpression: "set campaignStatus = :s",
-                ExpressionAttributeValues: { ":s": newStatus },
-                ReturnValues: "UPDATED_NEW"
-            };
+            // 2. Data Validation
+            if (!clientEmail || !clientTimestamp) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing required keys: Email or Timestamp." }) };
+            }
 
-            await ddbDocClient.send(new UpdateCommand(updateParams));
+            // 3. Database Update with forced String typing
+            try {
+                const updateParams = {
+                    TableName: TABLE_NAME,
+                    Key: { 
+                        "userEmail": String(clientEmail),
+                        "timestamp": String(clientTimestamp) 
+                    },
+                    UpdateExpression: "set campaignStatus = :s",
+                    ExpressionAttributeValues: { ":s": String(newStatus) },
+                    ReturnValues: "UPDATED_NEW"
+                };
 
-            return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Status updated successfully." }) };
+                await ddbDocClient.send(new UpdateCommand(updateParams));
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Status updated successfully." }) };
+            
+            } catch (updateError) {
+                console.error("DynamoDB Update Error:", updateError);
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Database update failed: " + updateError.message }) };
+            }
         }
 
+        // ==============================================================
         // ACTION D: PROCESS THE STANDARD CONTACT INTAKE FORM
+        // ==============================================================
         const fullName = data.fullName; const email = data.email; const service = data.service; const message = data.message;
         const intakeHtml = `
             <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
