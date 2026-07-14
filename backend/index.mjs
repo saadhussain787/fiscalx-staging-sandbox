@@ -2,7 +2,6 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-// UPDATED: Added UpdateCommand so we can move Kanban cards
 import { DynamoDBDocumentClient, PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 const s3 = new S3Client({ region: "ca-central-1" });
@@ -15,7 +14,6 @@ const TABLE_NAME = "fiscalx-client-onboarding";
 const SENDER_EMAIL = "info@fiscalx.ca"; 
 const OFFICE_EMAIL = "info@fiscalx.ca"; 
 
-// Backend security check for staff access
 const AUTHORIZED_STAFF = [
     "wasim@fiscalx.ca",
     "saad@fiscalx.ca",
@@ -39,9 +37,7 @@ export const handler = async (event) => {
     try {
         const data = JSON.parse(event.body || "{}");
 
-        // ==============================================================
         // ACTION A: GENERATE SECURE S3 PRESIGNED UPLOAD URL
-        // ==============================================================
         if (data.action === "getUploadUrl") {
             const fileName = data.fileName;
             const fileType = data.fileType;
@@ -57,9 +53,7 @@ export const handler = async (event) => {
             };
         }
 
-        // ==============================================================
-        // ACTION B: NOTIFY UPLOAD COMPLETE (For the Bottom Standalone Vault)
-        // ==============================================================
+        // ACTION B: NOTIFY UPLOAD COMPLETE
         if (data.action === "notifyUploadComplete") {
             const fileKey = data.fileKey;
             const userEmail = data.userEmail;
@@ -94,26 +88,12 @@ export const handler = async (event) => {
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
         }
 
-        // ==============================================================
-        // ACTION C: SUBMIT CANADIAN TAX ORGANIZER (T1 & T2 DYNAMIC ROUTING)
-        // ==============================================================
+        // ACTION C: SUBMIT CANADIAN TAX ORGANIZER
         if (data.action === "submitTaxOrganizer") {
             const {
-                userEmail = "Unknown",
-                taxType = "T1 Personal",
-                craConsent = "Not Provided",
-                howHeard = "Not Specified",
-                personalInfo = {},
-                familyMembers = [],
-                statusInCanada = {},
-                ontarioResidency = [],
-                milestones = {},
-                selfEmployed = {},
-                rentalIncome = {},
-                childCareBenefit = {},
-                corporateInfo = {},
-                notes = "None provided.",
-                uploadedFiles = [] 
+                userEmail = "Unknown", taxType = "T1 Personal", craConsent = "Not Provided", howHeard = "Not Specified",
+                personalInfo = {}, familyMembers = [], statusInCanada = {}, ontarioResidency = [], milestones = {},
+                selfEmployed = {}, rentalIncome = {}, childCareBenefit = {}, corporateInfo = {}, notes = "None provided.", uploadedFiles = [] 
             } = data;
 
             const isT2 = taxType.includes("T2");
@@ -123,49 +103,27 @@ export const handler = async (event) => {
             const ddbParams = {
                 TableName: TABLE_NAME,
                 Item: {
-                    userEmail: userEmail,
-                    timestamp: timestamp,
-                    taxType: taxType,
-                    craConsent: craConsent,
-                    clientName: combinedName,
-                    amountOwed: "0.00",       
-                    amountCollected: "0.00",  
-                    campaignStatus: "Pending", 
-                    howHeard: howHeard,
-                    notes: notes,
-                    uploadedFiles: uploadedFiles,
-                    personalInfo: personalInfo,
-                    corporateInfo: corporateInfo,
-                    statusInCanada: statusInCanada,
-                    familyMembers: familyMembers,
-                    ontarioResidency: ontarioResidency, 
-                    milestones: milestones,
-                    selfEmployed: selfEmployed,
-                    rentalIncome: rentalIncome,
-                    childCareBenefit: childCareBenefit
+                    userEmail: userEmail, timestamp: timestamp, taxType: taxType, craConsent: craConsent, clientName: combinedName,
+                    amountOwed: "0.00", amountCollected: "0.00", campaignStatus: "Pending", howHeard: howHeard, notes: notes,
+                    uploadedFiles: uploadedFiles, personalInfo: personalInfo, corporateInfo: corporateInfo, statusInCanada: statusInCanada,
+                    familyMembers: familyMembers, ontarioResidency: ontarioResidency, milestones: milestones, selfEmployed: selfEmployed,
+                    rentalIncome: rentalIncome, childCareBenefit: childCareBenefit
                 }
             };
             await ddbDocClient.send(new PutCommand(ddbParams));
 
             const csvRows = [ ["Section", "Field", "Value"] ];
             csvRows.push(
-                ["System", "Tax Type", taxType],
-                ["System", "CRA Consent", craConsent],
-                ["System", "Client Email", userEmail],
-                ["System", "Client Notes", notes],
-                ["System", "How Heard", howHeard]
+                ["System", "Tax Type", taxType], ["System", "CRA Consent", craConsent], ["System", "Client Email", userEmail],
+                ["System", "Client Notes", notes], ["System", "How Heard", howHeard]
             );
 
             if (isT2) {
                 csvRows.push(
-                    ["T2 Corporate", "Corporate Name", corporateInfo.corpName || "N/A"],
-                    ["T2 Corporate", "Business Number", corporateInfo.businessNumber || "N/A"],
-                    ["T2 Corporate", "Date of Incorporation", corporateInfo.incDate || "N/A"],
-                    ["T2 Corporate", "Fiscal Year End", corporateInfo.fiscalYearEnd || "N/A"],
-                    ["T2 Corporate", "Bookkeeping Software", corporateInfo.software || "N/A"],
-                    ["T2 Corporate", "Primary Industry", corporateInfo.industry || "N/A"],
-                    ["T2 Remittance", "GST/HST Registered", corporateInfo.remittance?.gst || "no"],
-                    ["T2 Remittance", "Payroll Registered", corporateInfo.remittance?.payroll || "no"]
+                    ["T2 Corporate", "Corporate Name", corporateInfo.corpName || "N/A"], ["T2 Corporate", "Business Number", corporateInfo.businessNumber || "N/A"],
+                    ["T2 Corporate", "Date of Incorporation", corporateInfo.incDate || "N/A"], ["T2 Corporate", "Fiscal Year End", corporateInfo.fiscalYearEnd || "N/A"],
+                    ["T2 Corporate", "Bookkeeping Software", corporateInfo.software || "N/A"], ["T2 Corporate", "Primary Industry", corporateInfo.industry || "N/A"],
+                    ["T2 Remittance", "GST/HST Registered", corporateInfo.remittance?.gst || "no"], ["T2 Remittance", "Payroll Registered", corporateInfo.remittance?.payroll || "no"]
                 );
                 if (corporateInfo.directors && corporateInfo.directors.length > 0) {
                     corporateInfo.directors.forEach((d, index) => {
@@ -316,9 +274,7 @@ export const handler = async (event) => {
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Your onboarding organizer and files have been securely compiled and delivered." }) };
         }
 
-        // ==============================================================
         // ACTION E: FETCH CRM DATA FOR ADMIN PORTAL
-        // ==============================================================
         if (data.action === "getCrmData") {
             const adminEmail = data.adminEmail;
 
@@ -336,31 +292,28 @@ export const handler = async (event) => {
 
             return {
                 statusCode: 200, headers: headers,
-                body: JSON.stringify({
-                    status: "SUCCESS",
-                    stats: { total, inProgress, completed },
-                    clients: clients 
-                })
+                body: JSON.stringify({ status: "SUCCESS", stats: { total, inProgress, completed }, clients: clients })
             };
         }
 
-        // ==============================================================
-        // ACTION F: UPDATE CLIENT KANBAN STATUS
-        // ==============================================================
+        // ACTION F: UPDATE CLIENT KANBAN STATUS (FIXED SCHEMA)
         if (data.action === "updateClientStatus") {
             const adminEmail = data.adminEmail;
             const clientEmail = data.clientEmail;
+            const clientTimestamp = data.timestamp; // We now demand the timestamp
             const newStatus = data.newStatus;
 
-            // Security Check
             if (!adminEmail || !AUTHORIZED_STAFF.includes(adminEmail.toLowerCase())) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
             }
 
-            // Update the specific client's status in DynamoDB
+            // Fixed: We now provide both keys that DynamoDB requires
             const updateParams = {
                 TableName: TABLE_NAME,
-                Key: { userEmail: clientEmail },
+                Key: { 
+                    userEmail: clientEmail,
+                    timestamp: clientTimestamp 
+                },
                 UpdateExpression: "set campaignStatus = :s",
                 ExpressionAttributeValues: { ":s": newStatus },
                 ReturnValues: "UPDATED_NEW"
@@ -371,9 +324,7 @@ export const handler = async (event) => {
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Status updated successfully." }) };
         }
 
-        // ==============================================================
         // ACTION D: PROCESS THE STANDARD CONTACT INTAKE FORM
-        // ==============================================================
         const fullName = data.fullName; const email = data.email; const service = data.service; const message = data.message;
         const intakeHtml = `
             <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
@@ -398,6 +349,6 @@ export const handler = async (event) => {
 
     } catch (error) {
         console.error("Error processing request:", error);
-        return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Failed to parse request data." }) };
+        return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: error.message }) };
     }
 };

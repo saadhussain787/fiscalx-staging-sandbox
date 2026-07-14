@@ -8,7 +8,6 @@
 </head>
 <body class="bg-[#0B0F19] text-white min-h-screen relative overflow-hidden font-sans">
   
-  <!-- Aurora Background Effect -->
   <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-gradient-to-b from-teal-500/10 via-emerald-500/5 to-transparent rounded-full blur-3xl pointer-events-none"></div>
 
   <div class="max-w-7xl mx-auto relative z-10 pt-20 px-6 pb-12">
@@ -37,9 +36,8 @@
       </form>
     </div>
 
-    <!-- 2. MAIN CRM DASHBOARD (Hidden until logged in) -->
+    <!-- 2. MAIN CRM DASHBOARD -->
     <div id="admin-crm-screen" class="hidden">
-      <!-- Header Section -->
       <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-white/10 pb-6 mb-8">
         <div>
           <h1 class="text-3xl font-bold tracking-tight bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent">
@@ -54,7 +52,6 @@
         </div>
       </div>
 
-      <!-- Stats Row -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
         <div class="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
           <p class="text-xs text-slate-400 uppercase tracking-wider">Total Leads</p>
@@ -70,13 +67,9 @@
         </div>
       </div>
 
-      <!-- Error / Status Message -->
       <p id="kanban-status" class="text-sm text-slate-400 mb-6 italic"></p>
 
-      <!-- 3-COLUMN KANBAN BOARD -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <!-- Column 1: Pending Leads -->
         <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col h-[600px]">
           <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
             <h3 class="font-bold text-slate-200 tracking-wide">Pending / New</h3>
@@ -84,8 +77,6 @@
           </div>
           <div id="col-pending" class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide"></div>
         </div>
-
-        <!-- Column 2: In Progress -->
         <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col h-[600px]">
           <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
             <h3 class="font-bold text-slate-200 tracking-wide">In Progress</h3>
@@ -93,8 +84,6 @@
           </div>
           <div id="col-progress" class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide"></div>
         </div>
-
-        <!-- Column 3: Completed -->
         <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col h-[600px]">
           <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
             <h3 class="font-bold text-slate-200 tracking-wide">Completed</h3>
@@ -102,16 +91,14 @@
           </div>
           <div id="col-completed" class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide"></div>
         </div>
-
       </div>
     </div>
   </div>
 
-  <!-- 3. CLIENT DETAIL MODAL (Hidden by default) -->
+  <!-- 3. CLIENT DETAIL MODAL -->
   <div id="client-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center px-4 bg-[#0B0F19]/80 backdrop-blur-sm">
     <div class="bg-[#131A2B] border border-white/10 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
       
-      <!-- Modal Header -->
       <div class="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-white/5">
         <h3 class="text-lg font-bold text-slate-200" id="modal-client-name">Client Name</h3>
         <button onclick="closeModal()" class="text-slate-400 hover:text-white transition">
@@ -119,9 +106,7 @@
         </button>
       </div>
       
-      <!-- Modal Body (Scrollable) -->
       <div class="p-6 overflow-y-auto flex-1 space-y-6">
-        
         <div class="grid grid-cols-2 gap-4">
           <div>
             <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">Email</p>
@@ -135,28 +120,25 @@
 
         <div class="pt-4 border-t border-white/10">
           <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Workflow Status</p>
-          <div class="flex gap-2">
-            <span id="modal-status-badge" class="bg-slate-800 text-slate-300 text-xs font-bold px-3 py-1.5 rounded-lg border border-white/10">Pending</span>
-            <!-- We will add a dropdown here later to change status -->
+          <div class="flex items-center gap-3">
+            <select id="modal-status-dropdown" onchange="updateClientStatus(this.value)" class="bg-black/40 border border-white/10 text-white text-sm font-bold rounded-lg focus:ring-teal-500 focus:border-teal-500 block p-2.5">
+              <option value="Pending">Pending / New</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+            <span id="status-update-spinner" class="text-xs text-teal-400 hidden animate-pulse">Saving to cloud...</span>
           </div>
         </div>
 
         <div class="pt-4 border-t border-white/10">
           <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Secure Document Vault</p>
-          <div id="modal-file-list" class="space-y-2">
-            <!-- Files inject here -->
-          </div>
+          <div id="modal-file-list" class="space-y-2"></div>
         </div>
-
       </div>
       
-      <!-- Modal Footer -->
       <div class="px-6 py-4 border-t border-white/10 bg-black/20 flex justify-end">
-        <button onclick="closeModal()" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition">
-          Close Window
-        </button>
+        <button onclick="closeModal()" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition">Close Window</button>
       </div>
-
     </div>
   </div>
 
@@ -176,8 +158,9 @@
     const logoutBtn = document.getElementById('admin-logout-btn');
     const displayEmail = document.getElementById('active-admin-email');
     const modal = document.getElementById('client-modal');
-
-    // Global variable to store clients so the modal can find them
+    
+    let activeClientEmail = ""; 
+    let activeClientTimestamp = ""; // Fixed: Now tracking the precise timestamp
     window.allClients = [];
 
     const AUTHORIZED_STAFF = [
@@ -193,45 +176,35 @@
     async function showCRM(email) {
       loginScreen.classList.add('hidden'); crmScreen.classList.remove('hidden'); displayEmail.innerText = email;
       document.getElementById('kanban-status').innerText = "Syncing with secure AWS vault...";
-
       try {
         const response = await fetch(API_URL, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: "getCrmData", adminEmail: email })
         });
-        
         const result = await response.json();
-        
         if (response.ok && result.status === 'SUCCESS') {
           document.getElementById('stat-total').innerText = result.stats.total;
           document.getElementById('stat-progress').innerText = result.stats.inProgress;
           document.getElementById('stat-completed').innerText = result.stats.completed;
           document.getElementById('kanban-status').innerText = ""; 
-          
-          window.allClients = result.clients; // Save for modal
+          window.allClients = result.clients; 
           renderKanbanBoard(result.clients);
-        } else {
-          document.getElementById('kanban-status').innerText = "Error fetching data.";
-        }
-      } catch (error) {
-        document.getElementById('kanban-status').innerText = "Network Error connecting to Database.";
-      }
+        } else { document.getElementById('kanban-status').innerText = "Error fetching data."; }
+      } catch (error) { document.getElementById('kanban-status').innerText = "Network Error connecting to Database."; }
     }
 
     function renderKanbanBoard(clients) {
       const colPending = document.getElementById('col-pending');
       const colProgress = document.getElementById('col-progress');
       const colCompleted = document.getElementById('col-completed');
-      
       colPending.innerHTML = ""; colProgress.innerHTML = ""; colCompleted.innerHTML = "";
       let countPending = 0; let countProgress = 0; let countCompleted = 0;
 
       clients.forEach(client => {
         const dateObj = new Date(client.timestamp);
         const niceDate = dateObj.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
-        const safeEmail = client.userEmail.replace(/'/g, "\\'"); // Escaping for JS function
+        const safeEmail = client.userEmail.replace(/'/g, "\\'"); 
 
-        // Note: Added onclick event to the entire card
         const cardHtml = `
           <div onclick="openModal('${safeEmail}')" class="bg-[#131A2B] border border-white/5 p-4 rounded-xl shadow-lg hover:border-teal-500/50 transition-colors cursor-pointer relative group">
             <div class="flex justify-between items-start mb-2">
@@ -246,57 +219,83 @@
             </div>
           </div>
         `;
-
         const status = client.campaignStatus || 'Pending';
         if (status === 'Completed') { colCompleted.innerHTML += cardHtml; countCompleted++; } 
         else if (status === 'In Progress') { colProgress.innerHTML += cardHtml; countProgress++; } 
         else { colPending.innerHTML += cardHtml; countPending++; }
       });
-
       document.getElementById('count-pending').innerText = countPending;
       document.getElementById('count-progress').innerText = countProgress;
       document.getElementById('count-completed').innerText = countCompleted;
     }
 
-    // Modal Logic
     function openModal(email) {
-      // Find the specific client from our global array
       const client = window.allClients.find(c => c.userEmail === email);
       if (!client) return;
+      
+      activeClientEmail = email; 
+      activeClientTimestamp = client.timestamp; // Fixed: Store the specific timestamp
 
       document.getElementById('modal-client-name').innerText = client.clientName || 'Unnamed Client';
       document.getElementById('modal-client-email').innerText = client.userEmail;
       document.getElementById('modal-tax-type').innerText = client.taxType || 'Unknown';
-      document.getElementById('modal-status-badge').innerText = client.campaignStatus || 'Pending';
+      
+      const dropdown = document.getElementById('modal-status-dropdown');
+      dropdown.value = client.campaignStatus || 'Pending';
       
       const fileListDiv = document.getElementById('modal-file-list');
       fileListDiv.innerHTML = "";
-
       if (client.uploadedFiles && client.uploadedFiles.length > 0) {
         client.uploadedFiles.forEach(file => {
-          // For now, these are just visual. In the next step, we will make them downloadable!
           fileListDiv.innerHTML += `
             <div class="flex items-center justify-between bg-white/5 border border-white/10 p-3 rounded-lg">
               <span class="text-xs text-slate-300 truncate pr-4">📄 ${file.fileName}</span>
               <span class="text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-1 rounded">Secured</span>
-            </div>
-          `;
+            </div>`;
         });
-      } else {
-        fileListDiv.innerHTML = `<p class="text-xs text-slate-500 italic">No files uploaded by this client.</p>`;
-      }
+      } else { fileListDiv.innerHTML = `<p class="text-xs text-slate-500 italic">No files uploaded by this client.</p>`; }
 
       modal.classList.remove('hidden');
     }
 
-    function closeModal() {
-      modal.classList.add('hidden');
-    }
+    function closeModal() { modal.classList.add('hidden'); activeClientEmail = ""; activeClientTimestamp = ""; }
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-    // Close modal if user clicks outside of it
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
+    async function updateClientStatus(newStatus) {
+      const adminEmail = localStorage.getItem('admin_email');
+      const spinner = document.getElementById('status-update-spinner');
+      const dropdown = document.getElementById('modal-status-dropdown');
+      
+      if (!activeClientEmail || !activeClientTimestamp || !adminEmail) return;
+
+      spinner.classList.remove('hidden');
+      dropdown.disabled = true;
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            action: "updateClientStatus", 
+            adminEmail: adminEmail, 
+            clientEmail: activeClientEmail, 
+            timestamp: activeClientTimestamp, // Fixed: Safely sending both keys
+            newStatus: newStatus 
+          })
+        });
+        const result = await response.json();
+        
+        if (response.ok && result.status === 'SUCCESS') {
+          await showCRM(adminEmail);
+        } else {
+          alert("Error updating status: " + result.message);
+        }
+      } catch (err) {
+        alert("Network error updating status.");
+      } finally {
+        spinner.classList.add('hidden');
+        dropdown.disabled = false;
+      }
+    }
 
     function showLogin() {
       localStorage.removeItem('admin_id_token'); localStorage.removeItem('admin_email');
