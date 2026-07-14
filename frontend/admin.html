@@ -8,6 +8,7 @@
 </head>
 <body class="bg-[#0B0F19] text-white min-h-screen relative overflow-hidden font-sans">
   
+  <!-- Aurora Background Effect -->
   <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-gradient-to-b from-teal-500/10 via-emerald-500/5 to-transparent rounded-full blur-3xl pointer-events-none"></div>
 
   <div class="max-w-7xl mx-auto relative z-10 pt-20 px-6 pb-12">
@@ -38,6 +39,7 @@
 
     <!-- 2. MAIN CRM DASHBOARD -->
     <div id="admin-crm-screen" class="hidden">
+      <!-- Header Section -->
       <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-white/10 pb-6 mb-8">
         <div>
           <h1 class="text-3xl font-bold tracking-tight bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent">
@@ -52,6 +54,7 @@
         </div>
       </div>
 
+      <!-- Stats Row -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
         <div class="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
           <p class="text-xs text-slate-400 uppercase tracking-wider">Total Leads</p>
@@ -67,9 +70,12 @@
         </div>
       </div>
 
+      <!-- Status Message -->
       <p id="kanban-status" class="text-sm text-slate-400 mb-6 italic"></p>
 
+      <!-- 3-COLUMN KANBAN BOARD -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Column 1: Pending Leads -->
         <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col h-[600px]">
           <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
             <h3 class="font-bold text-slate-200 tracking-wide">Pending / New</h3>
@@ -77,6 +83,7 @@
           </div>
           <div id="col-pending" class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide"></div>
         </div>
+        <!-- Column 2: In Progress -->
         <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col h-[600px]">
           <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
             <h3 class="font-bold text-slate-200 tracking-wide">In Progress</h3>
@@ -84,6 +91,7 @@
           </div>
           <div id="col-progress" class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide"></div>
         </div>
+        <!-- Column 3: Completed -->
         <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col h-[600px]">
           <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
             <h3 class="font-bold text-slate-200 tracking-wide">Completed</h3>
@@ -131,7 +139,7 @@
         </div>
 
         <div class="pt-4 border-t border-white/10">
-          <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Secure Document Vault</p>
+          <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2 font-bold" id="modal-file-title">Secure Document Vault</p>
           <div id="modal-file-list" class="space-y-2"></div>
         </div>
       </div>
@@ -160,7 +168,7 @@
     const modal = document.getElementById('client-modal');
     
     let activeClientEmail = ""; 
-    let activeClientTimestamp = ""; // Fixed: Now tracking the precise timestamp
+    let activeClientTimestamp = ""; 
     window.allClients = [];
 
     const AUTHORIZED_STAFF = [
@@ -183,14 +191,60 @@
         });
         const result = await response.json();
         if (response.ok && result.status === 'SUCCESS') {
-          document.getElementById('stat-total').innerText = result.stats.total;
-          document.getElementById('stat-progress').innerText = result.stats.inProgress;
-          document.getElementById('stat-completed').innerText = result.stats.completed;
+          const deduplicatedClients = deduplicateClients(result.clients);
+          
+          const total = deduplicatedClients.length;
+          const inProgress = deduplicatedClients.filter(c => c.campaignStatus === 'Pending' || c.campaignStatus === 'In Progress').length;
+          const completed = deduplicatedClients.filter(c => c.campaignStatus === 'Completed').length;
+
+          document.getElementById('stat-total').innerText = total;
+          document.getElementById('stat-progress').innerText = inProgress;
+          document.getElementById('stat-completed').innerText = completed;
           document.getElementById('kanban-status').innerText = ""; 
-          window.allClients = result.clients; 
-          renderKanbanBoard(result.clients);
+          
+          window.allClients = deduplicatedClients; 
+          renderKanbanBoard(deduplicatedClients);
         } else { document.getElementById('kanban-status').innerText = "Error fetching data."; }
       } catch (error) { document.getElementById('kanban-status').innerText = "Network Error connecting to Database."; }
+    }
+
+    // Upgraded: Intelligently handles moving cards backwards
+    function deduplicateClients(clients) {
+      clients.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      const uniqueClients = {};
+
+      clients.forEach(client => {
+        const email = client.userEmail.toLowerCase();
+        
+        if (!uniqueClients[email]) {
+          uniqueClients[email] = { 
+            ...client, 
+            uploadedFiles: [...(client.uploadedFiles || [])],
+            hasNewActivity: false 
+          };
+        } else {
+          // Merge files
+          if (client.uploadedFiles && client.uploadedFiles.length > 0) {
+            client.uploadedFiles.forEach(file => {
+              const isAlreadyListed = uniqueClients[email].uploadedFiles.some(f => f.fileKey === file.fileKey);
+              if (!isAlreadyListed) {
+                uniqueClients[email].uploadedFiles.push(file);
+              }
+            });
+          }
+
+          // FIXED STATE MACHINE: Only pull an older status forward IF the active card's status is still "Pending"
+          if (client.campaignStatus === "In Progress" || client.campaignStatus === "Completed") {
+            if (uniqueClients[email].campaignStatus === "Pending") {
+              uniqueClients[email].hasNewActivity = true;
+              uniqueClients[email].campaignStatus = client.campaignStatus;
+            }
+          }
+        }
+      });
+      
+      return Object.values(uniqueClients);
     }
 
     function renderKanbanBoard(clients) {
@@ -204,11 +258,20 @@
         const dateObj = new Date(client.timestamp);
         const niceDate = dateObj.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
         const safeEmail = client.userEmail.replace(/'/g, "\\'"); 
+        const safeTimestamp = client.timestamp.replace(/'/g, "\\'"); 
+
+        const badgeHtml = client.hasNewActivity 
+          ? `<span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded animate-pulse border border-amber-500/20">New Activity</span>`
+          : `<span class="text-[10px] font-bold uppercase tracking-wider text-teal-400 bg-teal-400/10 px-2.5 py-1 rounded">${client.taxType || 'Unknown'}</span>`;
+        
+        const borderClass = client.hasNewActivity 
+          ? 'border-amber-500/40 shadow-lg shadow-amber-500/5 animate-pulse' 
+          : 'border-white/5 hover:border-teal-500/50';
 
         const cardHtml = `
-          <div onclick="openModal('${safeEmail}')" class="bg-[#131A2B] border border-white/5 p-4 rounded-xl shadow-lg hover:border-teal-500/50 transition-colors cursor-pointer relative group">
+          <div onclick="openModal('${safeEmail}', '${safeTimestamp}')" class="bg-[#131A2B] border ${borderClass} p-4 rounded-xl shadow-lg transition-colors cursor-pointer relative group">
             <div class="flex justify-between items-start mb-2">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-teal-400 bg-teal-400/10 px-2 py-0.5 rounded">${client.taxType || 'Unknown'}</span>
+              ${badgeHtml}
               <span class="text-[10px] text-slate-500">${niceDate}</span>
             </div>
             <h4 class="font-bold text-sm text-slate-200 mb-1 truncate">${client.clientName || 'Unnamed Client'}</h4>
@@ -229,12 +292,12 @@
       document.getElementById('count-completed').innerText = countCompleted;
     }
 
-    function openModal(email) {
-      const client = window.allClients.find(c => c.userEmail === email);
+    function openModal(email, timestamp) {
+      const client = window.allClients.find(c => c.userEmail === email && c.timestamp === timestamp);
       if (!client) return;
       
       activeClientEmail = email; 
-      activeClientTimestamp = client.timestamp; // Fixed: Store the specific timestamp
+      activeClientTimestamp = timestamp; 
 
       document.getElementById('modal-client-name').innerText = client.clientName || 'Unnamed Client';
       document.getElementById('modal-client-email').innerText = client.userEmail;
@@ -243,14 +306,22 @@
       const dropdown = document.getElementById('modal-status-dropdown');
       dropdown.value = client.campaignStatus || 'Pending';
       
+      const totalFiles = client.uploadedFiles ? client.uploadedFiles.length : 0;
+      document.getElementById('modal-file-title').innerText = `Secure Document Vault (${totalFiles} Merged Files)`;
+
       const fileListDiv = document.getElementById('modal-file-list');
       fileListDiv.innerHTML = "";
       if (client.uploadedFiles && client.uploadedFiles.length > 0) {
         client.uploadedFiles.forEach(file => {
+          const safeKey = file.fileKey.replace(/'/g, "\\'");
+          const safeName = file.fileName.replace(/'/g, "\\'");
+
           fileListDiv.innerHTML += `
             <div class="flex items-center justify-between bg-white/5 border border-white/10 p-3 rounded-lg">
               <span class="text-xs text-slate-300 truncate pr-4">📄 ${file.fileName}</span>
-              <span class="text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-1 rounded">Secured</span>
+              <button onclick="decryptAndDownload('${safeKey}', '${safeName}', this)" class="text-[10px] font-bold text-teal-400 bg-teal-500/10 hover:bg-teal-500 hover:text-slate-950 px-3 py-1.5 rounded transition">
+                Decrypt & Download
+              </button>
             </div>`;
         });
       } else { fileListDiv.innerHTML = `<p class="text-xs text-slate-500 italic">No files uploaded by this client.</p>`; }
@@ -260,6 +331,59 @@
 
     function closeModal() { modal.classList.add('hidden'); activeClientEmail = ""; activeClientTimestamp = ""; }
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    async function decryptAndDownload(fileKey, fileName, buttonElement) {
+      const adminEmail = localStorage.getItem('admin_email');
+      if (!adminEmail || !fileKey) return;
+
+      const originalText = buttonElement.innerText;
+      buttonElement.disabled = true;
+      buttonElement.innerText = "Decrypting...";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            action: "getDownloadUrl", 
+            adminEmail: adminEmail, 
+            fileKey: fileKey 
+          })
+        });
+        const result = await response.json();
+        
+        if (response.ok && result.status === 'SUCCESS') {
+          const fileResponse = await fetch(result.secureUrl);
+          const blob = await fileResponse.blob();
+
+          if ('showSaveFilePicker' in window) {
+            try {
+              const handle = await window.showSaveFilePicker({ suggestedName: fileName });
+              const writable = await handle.createWritable();
+              await writable.write(blob);
+              await writable.close();
+            } catch (userCancelError) {
+              console.log("Save cancelled by the user.");
+            }
+          } else {
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(downloadUrl);
+          }
+        } else {
+          alert("Decryption failed: " + result.message);
+        }
+      } catch (err) {
+        alert("Network error trying to unlock document vault.");
+      } finally {
+        buttonElement.disabled = false;
+        buttonElement.innerText = originalText;
+      }
+    }
 
     async function updateClientStatus(newStatus) {
       const adminEmail = localStorage.getItem('admin_email');
@@ -278,7 +402,7 @@
             action: "updateClientStatus", 
             adminEmail: adminEmail, 
             clientEmail: activeClientEmail, 
-            timestamp: activeClientTimestamp, // Fixed: Safely sending both keys
+            timestamp: activeClientTimestamp, 
             newStatus: newStatus 
           })
         });
