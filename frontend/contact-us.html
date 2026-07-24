@@ -3,6 +3,7 @@ layout: layout.html
 ---
 
 <main class="flex-1">
+  <!-- HERO SECTION -->
   <section class="bg-slate-900 py-16 text-white relative overflow-hidden">
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(63,98,147,0.15),transparent_50%)]"></div>
     <div class="container mx-auto px-4 md:px-8 lg:px-16 text-center relative z-10 space-y-4">
@@ -11,22 +12,25 @@ layout: layout.html
     </div>
   </section>
 
-  <section class="py-16">
+  <!-- MAIN CONTACT SECTION -->
+  <section class="py-16 bg-slate-50/50">
     <div class="container mx-auto px-4 md:px-8 lg:px-16">
-      <div class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+      <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        <!-- LEFT COLUMN: Office Details -->
+        <!-- LEFT COLUMN: Office Info & Direct Actions -->
         <div class="lg:col-span-4 space-y-6">
-          <div class="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm space-y-4">
-            <h2 class="text-base font-bold text-slate-900">FiscalX Professional Corporation</h2>
+          <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
+            <h2 class="text-base font-extrabold text-slate-900">FiscalX Professional Corporation</h2>
             <div class="space-y-4 text-sm text-slate-600">
-              <div class="flex items-start gap-2.5">
+              <div class="flex items-start gap-3">
                 <span class="font-bold text-slate-800">Address:</span>
-                <a href="https://www.google.com/maps/dir/?api=1&destination=255+Duncan+Mill+Rd+Suite+206+North+York+ON+M3B+3H9" target="_blank" class="text-slate-600 hover:text-brand-500 hover:underline">255 Duncan Mill Rd, Suite 206,<br>North York, ON M3B 3H9</a>
+                <a href="https://www.google.com/maps/dir/?api=1&destination=255+Duncan+Mill+Rd+Suite+206+North+York+ON+M3B+3H9" target="_blank" class="text-slate-600 hover:text-brand-500 hover:underline leading-relaxed">
+                  255 Duncan Mill Rd, Suite 206,<br>North York, ON M3B 3H9
+                </a>
               </div>
-              <div class="flex items-start gap-2.5">
+              <div class="flex items-start gap-3">
                 <span class="font-bold text-slate-800">Office Line:</span>
-                <a href="tel:16474509235" class="text-brand-500 hover:underline">(647) 450-9235</a>
+                <a href="tel:16474509235" class="text-brand-500 font-semibold hover:underline">(647) 450-9235</a>
               </div>
               <hr class="border-slate-100">
               <div>
@@ -35,112 +39,147 @@ layout: layout.html
               </div>
             </div>
           </div>
+
           <div class="space-y-3">
-            <a href="https://wa.me/14165286605" target="_blank" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl font-semibold shadow hover:bg-green-700 transition">Message us on WhatsApp</a>
-            <a href="mailto:info@fiscalx.ca?subject=Contact%20Inquiry" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand-500 text-white rounded-xl font-semibold shadow hover:bg-brand-600 transition">Email Our Advisors</a>
+            <a href="https://wa.me/14165286605" target="_blank" class="w-full inline-flex items-center justify-center gap-2.5 px-5 py-4 bg-green-600 text-white rounded-2xl font-bold text-sm shadow-md hover:bg-green-700 transition-all">
+              💬 Message Us on WhatsApp
+            </a>
+            <a href="mailto:info@fiscalx.ca?subject=Contact%20Inquiry" class="w-full inline-flex items-center justify-center gap-2.5 px-5 py-4 bg-brand-500 text-white rounded-2xl font-bold text-sm shadow-md hover:bg-brand-600 transition-all">
+              ✉️ Email Our Advisors
+            </a>
           </div>
         </div>
 
-        <!-- RIGHT COLUMN: Intake Form & Smart Booking Engine -->
-        <div class="lg:col-span-8 bg-white rounded-3xl border border-slate-200/60 p-6 sm:p-10 shadow-sm">
-          <h3 class="text-xl font-bold text-slate-900 mb-2">Drop Us A Line!</h3>
-          <p class="text-sm text-slate-500 mb-6">Fill out the intake details below to schedule a focused tax or corporate compliance review.</p>
+        <!-- RIGHT COLUMN: SCHEDULER + INTAKE FORM (BOTH 100% VISIBLE) -->
+        <div class="lg:col-span-8 space-y-8">
           
-          <form id="intake-form" class="space-y-6">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <!-- 1. CALENDLY-STYLE SMART SCHEDULER WIDGET -->
+          <div class="bg-white rounded-3xl border border-brand-200/80 shadow-md overflow-hidden">
+            <div class="bg-gradient-to-r from-slate-900 to-brand-950 p-6 sm:p-8 text-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <label for="full-name" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Full Name</label>
-                <input type="text" id="full-name" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
-              </div>
-              <div>
-                <label for="business-email" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Email Address</label>
-                <input type="email" id="business-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
-              </div>
-              <div class="sm:col-span-2">
-                <label for="phone-number" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Phone Number (10 Digits)</label>
-                <input type="tel" id="phone-number" required maxlength="10" pattern="\d{10}" placeholder="4165550199" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all font-mono" />
-              </div>
-              
-              <!-- RESTORED: FULL 15-SERVICE DROPDOWN LIST -->
-              <div>
-                <label for="service-target" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Requested Financial Service</label>
-                <select id="service-target" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all cursor-pointer">
-                  <option value="" disabled selected>Select an option...</option>
-                  
-                  <optgroup label="--- PERSONAL TAX SERVICES ---">
-                    <option value="Self-Employed Taxes">Self-Employed Taxes</option>
-                    <option value="Prior Year Taxes">Prior Year Taxes</option>
-                    <option value="Remote Tax Filing Services">Remote Tax Filing Services</option>
-                    <option value="Tax Audit Services">Tax Audit Services</option>
-                    <option value="Tax Adjustments">Tax Adjustments</option>
-                    <option value="Tax Planning Services">Tax Planning Services</option>
-                    <option value="Disability Tax Credit Program">Disability Tax Credit Program</option>
-                    <option value="New Immigrant Tax Services">New Immigrant Tax Services</option>
-                    <option value="Voluntary Disclosure Program">Voluntary Disclosure Program</option>
-                    <option value="Debt and Credit Counselling">Debt and Credit Counselling</option>
-                  </optgroup>
-
-                  <optgroup label="--- CORPORATE TAX SERVICES ---">
-                    <option value="Corporate Tax Return">Corporate Tax Return</option>
-                    <option value="Accounting Services">Accounting Services</option>
-                    <option value="Bookkeeping Services">Bookkeeping Services</option>
-                    <option value="Registration of New Business">Registration of New Business</option>
-                    <option value="Winding Up a Business">Winding Up a Business</option>
-                  </optgroup>
-                </select>
-              </div>
-
-              <div class="sm:col-span-2">
-                <label for="message-body" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Message Context</label>
-                <textarea id="message-body" rows="4" placeholder="Briefly detail your business scope..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all"></textarea>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/20 text-brand-300 text-[10px] font-bold uppercase tracking-widest border border-brand-400/30 mb-2">
+                  ⚡ Live Outlook Calendar Sync
+                </span>
+                <h3 class="text-xl font-extrabold tracking-tight">Schedule a 1-on-1 Consultation</h3>
+                <p class="text-xs text-slate-300 mt-1">Book directly into Wasim Kadri, CPA's schedule.</p>
               </div>
             </div>
-            <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-xl text-base font-bold text-white bg-brand-600 hover:bg-brand-500 transition-all shadow-md">
-              Send Secure Request
-            </button>
-          </form>
 
-          <!-- SMART BOOKING ENGINE UI -->
-          <div class="mt-12 pt-10 border-t border-slate-200">
-            <h3 class="text-xl font-bold text-slate-900 mb-2">Prefer to Schedule a Call?</h3>
-            <p class="text-sm text-slate-500 mb-6">Select a meeting type, date, and time to instantly book with Wasim.</p>
-            
-            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 sm:p-6">
-              <!-- STEP 1: Meeting Type -->
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">1. Select Meeting Type</label>
-              <div class="grid grid-cols-2 gap-3 mb-6">
-                <button type="button" id="type-teams" class="meeting-type-btn border border-brand-500 bg-brand-500 text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all shadow-sm">🎥 MS Teams</button>
-                <button type="button" id="type-office" class="meeting-type-btn border border-slate-300 bg-white text-slate-700 hover:border-brand-500 hover:text-brand-600 font-semibold py-3 px-4 rounded-xl text-sm transition-all shadow-sm">🏢 In-Office</button>
+            <div class="p-6 sm:p-8 space-y-6">
+              <!-- STEP 1: Meeting Format -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">1. Choose Meeting Format</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <button type="button" id="type-teams" class="meeting-type-btn border-2 border-brand-500 bg-brand-50 text-brand-700 font-extrabold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm">
+                    🎥 MS Teams Video
+                  </button>
+                  <button type="button" id="type-office" class="meeting-type-btn border border-slate-200 bg-white text-slate-700 hover:border-brand-500 font-bold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm">
+                    🏢 In-Office Visit
+                  </button>
+                </div>
               </div>
 
-              <!-- STEP 2: Date -->
-              <label for="booking-date" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">2. Select a Date</label>
-              <input type="date" id="booking-date" class="w-full sm:w-1/2 px-4 py-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all mb-6 cursor-pointer" />
-
-              <!-- STEP 3: Time Slots -->
-              <div id="time-slot-container" class="hidden">
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">3. Available Time Slots</label>
-                <div id="time-slots" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6"></div>
+              <!-- STEP 2: Pick Date & Time -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label for="booking-date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">2. Select Date</label>
+                  <input type="date" id="booking-date" class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50 cursor-pointer" />
+                </div>
+                
+                <div id="time-slot-container" class="hidden">
+                  <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">3. Available Slots</label>
+                  <div id="time-slots" class="grid grid-cols-2 gap-2"></div>
+                </div>
               </div>
 
-              <div id="booking-confirmation" class="hidden bg-brand-50 border border-brand-200 rounded-xl p-4 transition-all">
-                <p class="text-sm text-brand-800 font-medium mb-3">You selected: <span id="selected-time-display" class="font-bold text-brand-900"></span></p>
-                <button type="button" id="confirm-booking-btn" class="w-full inline-flex items-center justify-center px-4 py-3 rounded-lg text-sm font-bold text-white bg-brand-600 hover:bg-brand-500 transition-all shadow">
-                  Confirm & Reserve Time
+              <!-- STEP 3: Client Details & Confirmation -->
+              <div id="booking-confirmation" class="hidden pt-6 border-t border-slate-100 space-y-4 transition-all">
+                <div class="bg-brand-50/60 border border-brand-200/80 rounded-2xl p-4">
+                  <p class="text-xs text-brand-900 font-bold">Selected Appointment:</p>
+                  <p id="selected-time-display" class="text-sm font-extrabold text-brand-700 mt-0.5"></p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input type="text" id="booking-name" required placeholder="Your Full Name *" class="px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 outline-none" />
+                  <input type="email" id="booking-email" required placeholder="Your Email Address *" class="px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 outline-none" />
+                  <input type="tel" id="booking-phone" placeholder="Phone (Optional)" maxlength="10" class="px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 outline-none font-mono" />
+                </div>
+
+                <button type="button" id="confirm-booking-btn" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-2xl text-sm font-extrabold text-white bg-brand-600 hover:bg-brand-500 transition-all shadow-lg shadow-brand-500/20">
+                  Confirm & Reserve Appointment
                 </button>
               </div>
             </div>
           </div>
-          
+
+          <!-- 2. GENERAL INTAKE FORM (ALWAYS VISIBLE BELOW SCHEDULER) -->
+          <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6">
+            <div>
+              <h3 class="text-xl font-extrabold text-slate-900 mb-1">Prefer to Send a Message?</h3>
+              <p class="text-xs text-slate-500">Fill out the intake details below for general questions or document quotes.</p>
+            </div>
+            
+            <form id="intake-form" class="space-y-5">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label for="full-name" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Full Name</label>
+                  <input type="text" id="full-name" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+                </div>
+                <div>
+                  <label for="business-email" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Email Address</label>
+                  <input type="email" id="business-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label for="phone-number" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Phone Number (10 Digits)</label>
+                  <input type="tel" id="phone-number" required maxlength="10" pattern="\d{10}" placeholder="4165550199" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all font-mono" />
+                </div>
+                
+                <div class="sm:col-span-2">
+                  <label for="service-target" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Requested Financial Service</label>
+                  <select id="service-target" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all cursor-pointer">
+                    <option value="" disabled selected>Select an option...</option>
+                    <optgroup label="--- PERSONAL TAX SERVICES ---">
+                      <option value="Self-Employed Taxes">Self-Employed Taxes</option>
+                      <option value="Prior Year Taxes">Prior Year Taxes</option>
+                      <option value="Remote Tax Filing Services">Remote Tax Filing Services</option>
+                      <option value="Tax Audit Services">Tax Audit Services</option>
+                      <option value="Tax Adjustments">Tax Adjustments</option>
+                      <option value="Tax Planning Services">Tax Planning Services</option>
+                      <option value="Disability Tax Credit Program">Disability Tax Credit Program</option>
+                      <option value="New Immigrant Tax Services">New Immigrant Tax Services</option>
+                      <option value="Voluntary Disclosure Program">Voluntary Disclosure Program</option>
+                      <option value="Debt and Credit Counselling">Debt and Credit Counselling</option>
+                    </optgroup>
+                    <optgroup label="--- CORPORATE TAX SERVICES ---">
+                      <option value="Corporate Tax Return">Corporate Tax Return</option>
+                      <option value="Accounting Services">Accounting Services</option>
+                      <option value="Bookkeeping Services">Bookkeeping Services</option>
+                      <option value="Registration of New Business">Registration of New Business</option>
+                      <option value="Winding Up a Business">Winding Up a Business</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                <div class="sm:col-span-2">
+                  <label for="message-body" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Message Context</label>
+                  <textarea id="message-body" rows="4" placeholder="Briefly detail your business scope..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all"></textarea>
+                </div>
+              </div>
+              <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-xl text-sm font-bold text-white bg-slate-800 hover:bg-slate-700 transition-all shadow-md">
+                Send Message
+              </button>
+            </form>
+          </div>
+
         </div>
       </div>
-      <div class="text-center mt-8 text-xs text-slate-400">&copy; 2026 FiscalX. All rights reserved.</div>
+      <div class="text-center mt-12 text-xs text-slate-400">&copy; 2026 FiscalX Professional Corporation. All rights reserved.</div>
     </div>
   </section>
 </main>
 
 <script>
-  // 1. UPGRADED: Robust URL Handoff Script for Homepage Pillar Cards
+  // 1. URL HANDOFF FOR HOMEPAGE CARD CLICKS
   document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const requestedService = urlParams.get('service');
@@ -163,7 +202,7 @@ layout: layout.html
     }
   });
 
-  // 2. Contact Form Submission
+  // 2. INTAKE FORM SUBMISSION
   const intakeForm = document.getElementById('intake-form');
   if(intakeForm) {
     intakeForm.addEventListener('submit', async (e) => {
@@ -192,7 +231,7 @@ layout: layout.html
     });
   }
 
-  // 3. Booking Engine Logic
+  // 3. CALENDLY-STYLE SCHEDULER LOGIC
   let activeMeetingType = "Microsoft Teams";
   let activeBookingDate = "";
   let activeBookingTime = "";
@@ -202,8 +241,8 @@ layout: layout.html
   
   function updateMeetingType(type, activeBtn, inactiveBtn) {
     activeMeetingType = type;
-    activeBtn.className = "meeting-type-btn border border-brand-500 bg-brand-500 text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all shadow-sm";
-    inactiveBtn.className = "meeting-type-btn border border-slate-300 bg-white text-slate-700 hover:border-brand-500 hover:text-brand-600 font-semibold py-3 px-4 rounded-xl text-sm transition-all shadow-sm";
+    activeBtn.className = "meeting-type-btn border-2 border-brand-500 bg-brand-50 text-brand-700 font-extrabold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm";
+    inactiveBtn.className = "meeting-type-btn border border-slate-200 bg-white text-slate-700 hover:border-brand-500 font-bold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm";
     if(activeBookingTime) document.getElementById('selected-time-display').innerText = `${activeMeetingType} on ${activeBookingDate} at ${activeBookingTime}`;
   }
 
@@ -248,16 +287,16 @@ layout: layout.html
         btn.innerText = slot.time;
         
         if (!slot.isAvailable) {
-          btn.className = "time-btn border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed font-semibold py-2 px-4 rounded-xl text-sm line-through";
+          btn.className = "time-btn border border-slate-200 text-slate-400 bg-slate-100 cursor-not-allowed font-semibold py-2.5 px-3 rounded-xl text-xs line-through";
           btn.disabled = true;
         } else {
-          btn.className = "time-btn border border-slate-300 text-slate-700 bg-white hover:border-brand-500 hover:text-brand-600 font-semibold py-2 px-4 rounded-xl text-sm transition-all shadow-sm";
+          btn.className = "time-btn border border-slate-200 text-slate-700 bg-white hover:border-brand-500 font-bold py-2.5 px-3 rounded-xl text-xs transition-all shadow-sm";
           btn.onclick = () => {
             document.querySelectorAll('.time-btn:not(:disabled)').forEach(b => {
               b.classList.remove('bg-brand-500', 'text-white', 'border-brand-500');
-              b.classList.add('bg-white', 'text-slate-700', 'border-slate-300');
+              b.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
             });
-            btn.classList.remove('bg-white', 'text-slate-700', 'border-slate-300');
+            btn.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
             btn.classList.add('bg-brand-500', 'text-white', 'border-brand-500');
             
             activeBookingTime = slot.time;
@@ -273,13 +312,12 @@ layout: layout.html
 
   if (confirmBtn) {
     confirmBtn.addEventListener('click', async () => {
-      const name = document.getElementById('full-name').value.trim();
-      const email = document.getElementById('business-email').value.trim();
-      const phone = document.getElementById('phone-number').value.trim();
-      const service = document.getElementById('service-target').value || "General Consultation";
+      const name = document.getElementById('booking-name').value.trim();
+      const email = document.getElementById('booking-email').value.trim();
+      const phone = document.getElementById('booking-phone').value.trim() || "Not Provided";
 
-      if (!name || !email || !phone) { 
-        alert("Please fill out your Full Name, Email, and Phone Number in the form above before booking!"); 
+      if (!name || !email) { 
+        alert("Please enter your Full Name and Email Address before confirming!"); 
         return; 
       }
 
@@ -294,7 +332,7 @@ layout: layout.html
         fullName: name,
         email: email,
         phone: phone,
-        service: service
+        service: "Direct Calendar Booking"
       };
 
       try {
@@ -311,6 +349,9 @@ layout: layout.html
           bookingConfirmation.classList.add('hidden');
           timeSlotContainer.classList.add('hidden');
           datePicker.value = "";
+          document.getElementById('booking-name').value = "";
+          document.getElementById('booking-email').value = "";
+          document.getElementById('booking-phone').value = "";
         } else {
           alert("Booking error: " + (result.message || "Failed to secure slot."));
         }
