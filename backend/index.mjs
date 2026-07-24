@@ -553,7 +553,7 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
+// ==============================================================
         // ACTION J: UPDATE BILLING STATUS & FINAL RETURNS (CASHFLOW SECURE)
         // ==============================================================
         if (data.action === "updateBillingStatus") {
@@ -563,39 +563,46 @@ export const handler = async (event) => {
             if (!isAuthorized) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
             }
-            if (!clientEmail || !timestamp) {
+            if (!clientEmail) {
                 return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing client identity keys." }) };
             }
 
             try {
-                // Update DynamoDB to lock/unlock the files
-                const updateParams = {
+                // Find ALL historical records for this client email
+                const scanParams = {
                     TableName: TABLE_NAME,
-                    Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) },
-                    UpdateExpression: "set finalFiles = :f, paymentConfirmed = :p",
-                    ExpressionAttributeValues: { ":f": finalFiles, ":p": paymentConfirmed },
-                    ReturnValues: "UPDATED_NEW"
+                    FilterExpression: "userEmail = :email",
+                    ExpressionAttributeValues: { ":email": String(clientEmail) }
                 };
-                await ddbDocClient.send(new UpdateCommand(updateParams));
+                const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
+                const items = scanResult.Items || [];
 
-                // Bonus Automation: If payment is flipped to TRUE, email the client instantly!
+                // Update paymentConfirmed and finalFiles across ALL records for this email
+                for (const item of items) {
+                    const updateParams = {
+                        TableName: TABLE_NAME,
+                        Key: { "userEmail": item.userEmail, "timestamp": item.timestamp },
+                        UpdateExpression: "set finalFiles = :f, paymentConfirmed = :p",
+                        ExpressionAttributeValues: { ":f": finalFiles, ":p": paymentConfirmed }
+                    };
+                    await ddbDocClient.send(new UpdateCommand(updateParams));
+                }
+
+                // If payment is flipped to TRUE, send confirmation email
                 if (paymentConfirmed === true) {
                     const unlockHtml = `
                         <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
                             <h2 style="color: #10b981; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
                             <p style="font-size: 14px; color: #64748b; margin-top: 0;">Payment Confirmed - Documents Unlocked</p>
                             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-                            <p style="font-size: 15px; line-height: 1.6;">Hello,</p>
-                            <p style="font-size: 15px; line-height: 1.6;">Thank you for your payment. Wasim Kadri, CPA has successfully finalized your tax return.</p>
+                            <p style="font-size: 15px;">Hello,</p>
+                            <p style="font-size: 15px;">Thank you for your payment. Wasim Kadri, CPA has finalized your tax return.</p>
                             <div style="margin: 25px 0; padding: 20px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; text-align: center;">
                                 <span style="font-size: 16px; font-weight: bold; color: #065f46;">✅ Your secure tax documents are now unlocked and ready for download.</span>
                             </div>
                             <div style="text-align: center; margin: 30px 0;">
                                 <a href="https://www.fiscalx.ca/dashboard/" target="_blank" style="background-color: #10b981; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; font-size: 14px; border-radius: 8px;">Log In & Download Returns</a>
                             </div>
-                            <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
-                                This is an automated transmission on behalf of Wasim Kadri, CPA (FiscalX).
-                            </p>
                         </div>
                     `;
                     const sesCommand = new SendEmailCommand({
@@ -609,7 +616,7 @@ export const handler = async (event) => {
                     await ses.send(sesCommand);
                 }
 
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Billing status updated successfully." }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Billing status updated successfully across all records." }) };
             } catch (updateError) {
                 console.error("DynamoDB Billing Update Error:", updateError);
                 return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Database update failed: " + updateError.message }) };

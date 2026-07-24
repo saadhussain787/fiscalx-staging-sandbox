@@ -12,6 +12,7 @@
 
   <div class="max-w-7xl mx-auto relative z-10 pt-20 px-6 pb-12">
     
+    <!-- STAFF LOGIN SCREEN -->
     <div id="admin-login-screen" class="max-w-md mx-auto bg-white/5 border border-white/10 p-8 rounded-3xl backdrop-blur-xl mt-12">
       <div class="text-center mb-8">
         <h1 class="text-2xl font-bold tracking-tight bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent">
@@ -35,6 +36,7 @@
       </form>
     </div>
 
+    <!-- MAIN CRM DASHBOARD -->
     <div id="admin-crm-screen" class="hidden">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-white/10 pb-6 mb-8">
         <div>
@@ -93,6 +95,7 @@
     </div>
   </div>
 
+  <!-- CLIENT DETAIL MODAL -->
   <div id="client-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center px-4 bg-[#0B0F19]/80 backdrop-blur-sm">
     <div class="bg-[#131A2B] border border-white/10 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
       
@@ -148,7 +151,7 @@
           <div id="modal-file-list" class="space-y-2"></div>
         </div>
 
-        <!-- NEW: FINAL DELIVERABLES & BILLING LOCK -->
+        <!-- FINAL DELIVERABLES & BILLING LOCK -->
         <div id="final-deliverables-box" class="pt-4 border-t border-white/10 hidden">
           <p class="text-[10px] text-emerald-400 uppercase tracking-wider font-extrabold mb-3">Final Deliverables & Cashflow Lock</p>
           <div class="bg-black/20 border border-emerald-500/20 rounded-xl p-4 space-y-4">
@@ -162,7 +165,7 @@
               <button onclick="document.getElementById('modal-final-upload').click()" class="text-xs font-bold text-white bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition">Choose Files</button>
             </div>
             
-            <div id="final-queue-list" class="space-y-1"></div>
+            <div id="final-queue-list" class="space-y-2"></div>
 
             <div class="flex items-center gap-3 pt-3 border-t border-white/10">
               <input type="checkbox" id="modal-payment-checkbox" class="w-5 h-5 text-emerald-500 rounded bg-slate-900 border-white/20 focus:ring-emerald-500 focus:ring-2">
@@ -246,6 +249,7 @@
       } catch (error) { document.getElementById('kanban-status').innerText = "Network Error connecting to Database."; }
     }
 
+    // FIXED: Strictly uses paymentConfirmed boolean from the newest record!
     function deduplicateClients(clients) {
       clients.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       const uniqueClients = {};
@@ -270,7 +274,11 @@
         
         if (!uniqueClients[email]) {
           uniqueClients[email] = { 
-            ...client, uploadedFiles: [...(client.uploadedFiles || [])], hasNewActivity: hasStandaloneUploads, finalFiles: [...(client.finalFiles || [])] 
+            ...client, 
+            uploadedFiles: [...(client.uploadedFiles || [])], 
+            hasNewActivity: hasStandaloneUploads, 
+            finalFiles: [...(client.finalFiles || [])],
+            paymentConfirmed: client.paymentConfirmed || false 
           };
         } else {
           if (client.uploadedFiles && client.uploadedFiles.length > 0) {
@@ -288,7 +296,6 @@
               uniqueClients[email].hasNewActivity = true; uniqueClients[email].campaignStatus = client.campaignStatus;
             }
           }
-          if (client.paymentConfirmed === true) uniqueClients[email].paymentConfirmed = true;
           if (hasStandaloneUploads) uniqueClients[email].hasNewActivity = true;
         }
       });
@@ -335,7 +342,14 @@
       if (!client) return;
       
       activeClientEmail = email; activeClientTimestamp = timestamp; 
-      activeClientPhone = client.personalInfo ? client.personalInfo.telephone || "" : ""; 
+      // Multi-Source Phone Extractor (Checks Booking Engine, Tax Organizer, and Notes text)
+      let rawPhone = client.phone || (client.personalInfo ? client.personalInfo.telephone : "") || "";
+      if (!rawPhone && (client.notes || client.message)) {
+        const textToSearch = (client.notes || "") + " " + (client.message || "");
+        const phoneMatch = textToSearch.match(/\d{10}/);
+        if (phoneMatch) rawPhone = phoneMatch[0];
+      }
+      activeClientPhone = rawPhone; 
 
       document.getElementById('modal-client-name').innerText = client.clientName || 'Unnamed Client';
       document.getElementById('modal-client-email').innerText = client.userEmail;
@@ -369,7 +383,6 @@
 
       if (newestFileTimestamp > 0) { localStorage.setItem('viewed_' + email.toLowerCase(), newestFileTimestamp); renderKanbanBoard(window.allClients); }
 
-      // FIXED SYNTAX: Show Final Deliverables Box ONLY if status is 'Completed'
       const finalDeliverablesBox = document.getElementById('final-deliverables-box');
       if (client.campaignStatus === 'Completed') {
         finalDeliverablesBox.classList.remove('hidden');
@@ -388,21 +401,56 @@
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
     const finalUploadInput = document.getElementById('modal-final-upload');
-    finalUploadInput.addEventListener('change', () => {
-      const files = finalUploadInput.files;
-      for (let i = 0; i < files.length; i++) {
-        if (!newFinalFilesQueue.some(f => f.name === files[i].name)) newFinalFilesQueue.push(files[i]);
-      }
-      renderFinalQueue();
-      finalUploadInput.value = "";
-    });
-
-    function renderFinalQueue() {
-      const qDiv = document.getElementById('final-queue-list'); qDiv.innerHTML = "";
-      existingFinalFiles.forEach(file => { qDiv.innerHTML += `<div class="flex justify-between items-center text-xs text-slate-400 bg-black/40 px-3 py-2 rounded"><span>🔒 ${file.fileName} (Secured)</span></div>`; });
-      newFinalFilesQueue.forEach((file, idx) => { qDiv.innerHTML += `<div class="flex justify-between items-center text-xs text-amber-400 bg-amber-500/10 px-3 py-2 rounded"><span>⏳ ${file.name} (Pending Save)</span><button onclick="removeFinalFile(${idx})" class="hover:text-amber-300">Remove</button></div>`; });
+    if (finalUploadInput) {
+      finalUploadInput.addEventListener('change', () => {
+        const files = finalUploadInput.files;
+        for (let i = 0; i < files.length; i++) {
+          if (!newFinalFilesQueue.some(f => f.name === files[i].name)) newFinalFilesQueue.push(files[i]);
+        }
+        renderFinalQueue();
+        finalUploadInput.value = "";
+      });
     }
-    window.removeFinalFile = function(idx) { newFinalFilesQueue.splice(idx, 1); renderFinalQueue(); };
+
+    // ADDED: Red Delete Button for existing deliverables!
+    function renderFinalQueue() {
+      const qDiv = document.getElementById('final-queue-list'); 
+      if (!qDiv) return;
+      qDiv.innerHTML = "";
+
+      existingFinalFiles.forEach((file, idx) => { 
+        qDiv.innerHTML += `
+          <div class="flex justify-between items-center text-xs text-slate-300 bg-black/40 px-3 py-2 rounded-lg border border-white/5">
+            <span class="truncate pr-2 font-medium">🔒 ${file.fileName}</span>
+            <button type="button" onclick="removeExistingFinalFile(${idx})" class="text-red-400 hover:text-red-300 font-bold transition-all px-2 py-0.5 rounded hover:bg-red-500/10">
+              Delete
+            </button>
+          </div>`; 
+      });
+
+      newFinalFilesQueue.forEach((file, idx) => { 
+        qDiv.innerHTML += `
+          <div class="flex justify-between items-center text-xs text-amber-400 bg-amber-500/10 px-3 py-2 rounded-lg border border-amber-500/20">
+            <span class="truncate pr-2 font-medium">⏳ ${file.name} (Pending Save)</span>
+            <button type="button" onclick="removeFinalFile(${idx})" class="text-amber-300 hover:underline font-bold">
+              Remove
+            </button>
+          </div>`; 
+      });
+    }
+
+    // ADDED: Function to remove an already-uploaded final return
+    window.removeExistingFinalFile = function(idx) {
+      if (confirm("Remove this deliverable file? Click 'Save Billing' to confirm.")) {
+        existingFinalFiles.splice(idx, 1);
+        renderFinalQueue();
+      }
+    };
+
+    window.removeFinalFile = function(idx) { 
+      newFinalFilesQueue.splice(idx, 1); 
+      renderFinalQueue(); 
+    };
 
     async function saveBillingLock(btn) {
       const adminEmail = localStorage.getItem('admin_email');
@@ -426,7 +474,7 @@
           allFinalKeys.push({ fileName: "FINAL-" + fileObj.name, fileKey: authResult.fileKey });
         }
 
-        btn.innerText = "Locking Database & Notifying Client...";
+        btn.innerText = "Locking Database & Syncing Client...";
         const dbRes = await fetch(API_URL, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: "updateBillingStatus", adminEmail: adminEmail, clientEmail: activeClientEmail, timestamp: activeClientTimestamp, finalFiles: allFinalKeys, paymentConfirmed: isPaid })
@@ -434,9 +482,9 @@
         const dbResult = await dbRes.json();
 
         if (dbRes.ok && dbResult.status === 'SUCCESS') {
-          alert(isPaid ? "Payment confirmed! Client has been emailed and their files are unlocked." : "Files securely saved and locked pending payment.");
+          alert(isPaid ? "Payment confirmed! Client has been emailed and their files are unlocked." : "Billing status and files updated successfully!");
           await showCRM(adminEmail); 
-        } else { alert("Failed to secure billing lock."); }
+        } else { alert("Failed to update billing lock."); }
 
       } catch(err) { alert("Network error during billing lock."); } finally { btn.disabled = false; btn.innerText = "Save Billing & Notify Client"; }
     }
