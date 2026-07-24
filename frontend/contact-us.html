@@ -60,20 +60,36 @@ layout: layout.html
                 <label for="phone-number" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Phone Number (10 Digits)</label>
                 <input type="tel" id="phone-number" required maxlength="10" pattern="\d{10}" placeholder="4165550199" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all font-mono" />
               </div>
+              
+              <!-- RESTORED: FULL 15-SERVICE DROPDOWN LIST -->
               <div>
                 <label for="service-target" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Requested Financial Service</label>
                 <select id="service-target" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all cursor-pointer">
                   <option value="" disabled selected>Select an option...</option>
+                  
                   <optgroup label="--- PERSONAL TAX SERVICES ---">
                     <option value="Self-Employed Taxes">Self-Employed Taxes</option>
                     <option value="Prior Year Taxes">Prior Year Taxes</option>
+                    <option value="Remote Tax Filing Services">Remote Tax Filing Services</option>
+                    <option value="Tax Audit Services">Tax Audit Services</option>
+                    <option value="Tax Adjustments">Tax Adjustments</option>
+                    <option value="Tax Planning Services">Tax Planning Services</option>
+                    <option value="Disability Tax Credit Program">Disability Tax Credit Program</option>
+                    <option value="New Immigrant Tax Services">New Immigrant Tax Services</option>
+                    <option value="Voluntary Disclosure Program">Voluntary Disclosure Program</option>
+                    <option value="Debt and Credit Counselling">Debt and Credit Counselling</option>
                   </optgroup>
+
                   <optgroup label="--- CORPORATE TAX SERVICES ---">
                     <option value="Corporate Tax Return">Corporate Tax Return</option>
                     <option value="Accounting Services">Accounting Services</option>
+                    <option value="Bookkeeping Services">Bookkeeping Services</option>
+                    <option value="Registration of New Business">Registration of New Business</option>
+                    <option value="Winding Up a Business">Winding Up a Business</option>
                   </optgroup>
                 </select>
               </div>
+
               <div class="sm:col-span-2">
                 <label for="message-body" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Message Context</label>
                 <textarea id="message-body" rows="4" placeholder="Briefly detail your business scope..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all"></textarea>
@@ -124,14 +140,19 @@ layout: layout.html
 </main>
 
 <script>
+  // 1. UPGRADED: Robust URL Handoff Script for Homepage Pillar Cards
   document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const requestedService = urlParams.get('service');
     if (requestedService) {
       const selectMenu = document.getElementById('service-target');
       if (selectMenu) {
+        const decodedParam = decodeURIComponent(requestedService).trim().toLowerCase();
         for (let i = 0; i < selectMenu.options.length; i++) {
-          if (selectMenu.options[i].value === requestedService) { selectMenu.selectedIndex = i; break; }
+          if (selectMenu.options[i].value.trim().toLowerCase() === decodedParam) {
+            selectMenu.selectedIndex = i;
+            break;
+          }
         }
       }
     }
@@ -142,6 +163,7 @@ layout: layout.html
     }
   });
 
+  // 2. Contact Form Submission
   const intakeForm = document.getElementById('intake-form');
   if(intakeForm) {
     intakeForm.addEventListener('submit', async (e) => {
@@ -170,6 +192,7 @@ layout: layout.html
     });
   }
 
+  // 3. Booking Engine Logic
   let activeMeetingType = "Microsoft Teams";
   let activeBookingDate = "";
   let activeBookingTime = "";
