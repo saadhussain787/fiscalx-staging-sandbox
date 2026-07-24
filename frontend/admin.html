@@ -138,6 +138,23 @@
           </div>
         </div>
 
+        <!-- NEW: DYNAMIC DOCUMENT REQUEST & NUDGE CENTER -->
+        <div class="pt-4 border-t border-white/10">
+          <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Request Missing Document / Nudge Client</p>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <select id="modal-request-doc" class="flex-1 bg-black/40 border border-white/10 text-white text-xs font-bold rounded-lg p-2.5 outline-none"></select>
+            <div class="flex gap-2">
+              <button onclick="sendEmailNudge(this)" class="text-xs font-bold text-teal-400 bg-teal-500/10 hover:bg-teal-500 hover:text-slate-950 px-3.5 py-2.5 rounded transition">
+                ✉️ Email Request
+              </button>
+              <button onclick="sendWhatsAppNudge()" class="text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500 hover:text-slate-950 px-3.5 py-2.5 rounded transition">
+                💬 WhatsApp Nudge
+              </button>
+            </div>
+          </div>
+          <span id="nudge-spinner" class="text-[10px] text-teal-400 hidden animate-pulse mt-2 block">Transmitting request email...</span>
+        </div>
+
         <div class="pt-4 border-t border-white/10">
           <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2 font-bold" id="modal-file-title">Secure Document Vault</p>
           <div id="modal-file-list" class="space-y-2"></div>
@@ -169,7 +186,12 @@
     
     let activeClientEmail = ""; 
     let activeClientTimestamp = ""; 
+    let activeClientPhone = ""; // NEW: Track phone number for WhatsApp
     window.allClients = [];
+
+    const AUTHORIZED_STAFF = [
+      "wasim@fiscalx.ca", "saad@fiscalx.ca", "admin@fiscalx.ca", "cooldude014317@gmail.com"
+    ];
 
     function parseJwt(token) {
       try {
@@ -338,13 +360,46 @@
       
       activeClientEmail = email; 
       activeClientTimestamp = timestamp; 
+      activeClientPhone = client.personalInfo ? client.personalInfo.telephone || "" : ""; // Pull phone number for WhatsApp
 
       document.getElementById('modal-client-name').innerText = client.clientName || 'Unnamed Client';
       document.getElementById('modal-client-email').innerText = client.userEmail;
-      document.getElementById('modal-tax-type').innerText = client.taxType || 'Unknown';
+      
+      const taxType = client.taxType || 'T1 Personal';
+      document.getElementById('modal-tax-type').innerText = taxType;
       
       const dropdown = document.getElementById('modal-status-dropdown');
       dropdown.value = client.campaignStatus || 'Pending';
+
+      // NEW: Dynamically populate Document Request dropdown based on T1 vs T2
+      const requestDropdown = document.getElementById('modal-request-doc');
+      requestDropdown.innerHTML = ""; // Clear options
+      
+      const t1Documents = [
+        "Prior Year Notice of Assessment (NOA)",
+        "T4 Employment Income Slip",
+        "Void Cheque / Direct Deposit Form",
+        "T2202 Tuition Fees Certificate",
+        "RRSP Contribution Receipt",
+        "Charitable Donation Slip",
+        "T5008 Stock/Investment Ledger",
+        "Daycare / Child Care Invoices",
+        "T2200 Work From Home Form",
+        "Rideshare/Uber T2125 Expense Log",
+        "Rental Property T776 Income Matrix"
+      ];
+
+      const t2Documents = [
+        "Articles of Incorporation",
+        "Corporate Trial Balance / General Ledger",
+        "Corporate Financial Statements",
+        "Corporate T2 Tax Disclosures"
+      ];
+
+      const activeDocs = taxType.includes("T2") ? t2Documents : t1Documents;
+      activeDocs.forEach(doc => {
+        requestDropdown.innerHTML += `<option value="${doc}">${doc}</option>`;
+      });
       
       const totalFiles = client.uploadedFiles ? client.uploadedFiles.length : 0;
       document.getElementById('modal-file-title').innerText = `Secure Document Vault (${totalFiles} Merged Files)`;
@@ -382,8 +437,70 @@
       modal.classList.remove('hidden');
     }
 
-    function closeModal() { modal.classList.add('hidden'); activeClientEmail = ""; activeClientTimestamp = ""; }
+    function closeModal() { modal.classList.add('hidden'); activeClientEmail = ""; activeClientTimestamp = ""; activeClientPhone = ""; }
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    // NEW: Send HTML Email Document Request Nudge
+    async function sendEmailNudge(buttonElement) {
+      const adminEmail = localStorage.getItem('admin_email');
+      const clientName = document.getElementById('modal-client-name').innerText;
+      const requestedDocName = document.getElementById('modal-request-doc').value;
+      const spinner = document.getElementById('nudge-spinner');
+
+      if (!adminEmail || !activeClientEmail || !requestedDocName) return;
+
+      buttonElement.disabled = true;
+      spinner.classList.remove('hidden');
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: "sendDocumentReminder",
+            adminEmail: adminEmail,
+            clientEmail: activeClientEmail,
+            clientName: clientName,
+            requestedDocName: requestedDocName
+          })
+        });
+        const result = await response.json();
+        
+        if (response.ok && result.status === 'SUCCESS') {
+          alert(`Success! Email reminder sent to ${activeClientEmail} requesting: ${requestedDocName}`);
+        } else {
+          alert("Reminder failed: " + result.message);
+        }
+      } catch (err) {
+        alert("Network error trying to transmit reminder email.");
+      } finally {
+        buttonElement.disabled = false;
+        spinner.classList.add('hidden');
+      }
+    }
+
+    // NEW: Open WhatsApp Click-to-Chat Nudge
+    function sendWhatsAppNudge() {
+      const clientName = document.getElementById('modal-client-name').innerText;
+      const requestedDocName = document.getElementById('modal-request-doc').value;
+      
+      let phone = activeClientPhone;
+
+      // Defensive Check: If phone is missing, prompt the admin to enter it manually
+      if (!phone || phone.length < 10) {
+        phone = prompt("Client phone number missing. Please enter their 10-digit number to launch WhatsApp:", "");
+        if (!phone) return; // Exit if they click cancel
+      }
+
+      // Format phone number to clean digits (Canadian / US Country Code prefix '+1')
+      const cleanPhone = "1" + phone.replace(/\D/g, "");
+
+      // Pre-written, highly professional WhatsApp message
+      const message = `Hi ${clientName}, Wasim Kadri, CPA here from FiscalX. We are currently actively preparing your tax return and secure file, and we require your "${requestedDocName}" to proceed. Please click this link to log into your secure dashboard and upload it: https://www.fiscalx.ca/dashboard/ Thank you!`;
+
+      // Open WhatsApp Click-to-Chat in a new tab
+      const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, "_blank");
+    }
 
     async function decryptAndDownload(fileKey, fileName, buttonElement) {
       const adminEmail = localStorage.getItem('admin_email');
@@ -479,16 +596,11 @@
       crmScreen.classList.add('hidden'); loginScreen.classList.remove('hidden');
     }
 
-    // Upgraded: We now inject the required "name" attribute dynamically to bypass console restriction!
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('admin-email-input').value.trim(); 
-      const password = document.getElementById('admin-password-input').value;
+      const email = document.getElementById('admin-email-input').value.trim(); const password = document.getElementById('admin-password-input').value;
       const submitBtn = loginForm.querySelector('button');
-      
-      submitBtn.disabled = true; 
-      submitBtn.innerText = "Authenticating...";
-      
+      submitBtn.disabled = true; submitBtn.innerText = "Authenticating...";
       try {
         const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
           method: 'POST', headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth' },
@@ -496,7 +608,6 @@
         });
         let result = await response.json();
         
-        // Intercept First-Time Login Challenge
         if (response.ok && result.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
           const newPassword = prompt("First-Time Sign-In: Please choose a secure permanent password:");
           if (!newPassword) {
@@ -516,7 +627,7 @@
               ChallengeResponses: {
                 USERNAME: email,
                 NEW_PASSWORD: newPassword,
-                "userAttributes.name": "Staff Member" // FIXED: Dynamically bypasses the greyed-out S3 console error!
+                "userAttributes.name": "Staff Member" 
               }
             })
           });

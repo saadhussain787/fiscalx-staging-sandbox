@@ -25,6 +25,7 @@ const AUTHORIZED_STAFF = [
     "arfa786.sa@gmail.com"
 ];
 
+// Helper function to query Cognito in real-time and check if user is Staff
 async function isStaff(email) {
     if (!email) return false;
     try {
@@ -284,7 +285,7 @@ export const handler = async (event) => {
                             <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Business Number:</td><td style="padding: 8px 0; font-family: monospace;">${corporateInfo.businessNumber || "N/A"}</td></tr>
                             <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Inc. Date:</td><td style="padding: 8px 0;">${corporateInfo.incDate || "N/A"}</td></tr>
                             <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Fiscal Year-End:</td><td style="padding: 8px 0;">${corporateInfo.fiscalYearEnd || "N/A"}</td></tr>
-                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Software:</td><td style="padding: 8px 0; text-transform: capitalize;">${corporateInfo.software || "N/A"}</td></tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; text-transform: capitalize;">${corporateInfo.software || "N/A"}</td></tr>
                             <tr><td style="padding: 8px 0; font-weight: bold; color: #475569;">Industry:</td><td style="padding: 8px 0;">${corporateInfo.industry || "N/A"}</td></tr>
                         </table>
                     </div>
@@ -463,17 +464,73 @@ export const handler = async (event) => {
                 const userRecords = scanResult.Items || [];
 
                 if (userRecords.length > 0) {
-                    // Sort newest first to get their latest active campaign status
                     userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     const latestStatus = userRecords[0].campaignStatus || "Pending";
                     return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", campaignStatus: latestStatus }) };
                 } else {
-                    // No records yet means they haven't submitted the onboarding form
                     return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", campaignStatus: "Unsubmitted" }) };
                 }
             } catch (dbError) {
                 console.error("Failed to fetch client status:", dbError);
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: dbError.message }) };
+            }
+        }
+
+        // NEW: ACTION I FOR SENDING DOCUMENT REQUEST EMAIL REMINDERS
+        if (data.action === "sendDocumentReminder") {
+            const adminEmail = data.adminEmail;
+            const clientEmail = data.clientEmail;
+            const clientName = data.clientName || "Client";
+            const requestedDocName = data.requestedDocName;
+
+            const isAuthorized = await isStaff(adminEmail);
+            if (!isAuthorized) {
+                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
+            }
+
+            if (!clientEmail || !requestedDocName) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing clientEmail or requestedDocName." }) };
+            }
+
+            try {
+                const reminderHtml = `
+                    <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                        <h2 style="color: #4f46e5; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
+                        <p style="font-size: 14px; color: #64748b; margin-top: 0;">Secure Document Reminder</p>
+                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                        <p style="font-size: 15px; line-height: 1.6;">Hello ${clientName},</p>
+                        <p style="font-size: 15px; line-height: 1.6;">Wasim Kadri, CPA is currently actively preparing your tax file. To proceed with your return, we securely require the following document:</p>
+                        
+                        <div style="margin: 25px 0; padding: 20px; background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; text-align: center;">
+                            <span style="font-size: 16px; font-weight: bold; color: #b45309;">⚠️ Required Document: ${requestedDocName}</span>
+                        </div>
+                        
+                        <p style="font-size: 15px; line-height: 1.6;">Please click the secure button below to log into your portal, complete your tax organizer, or upload this file directly to your private vault.</p>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="https://www.fiscalx.ca/dashboard/" target="_blank" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; font-size: 14px; border-radius: 8px;">Log In & Upload Document</a>
+                        </div>
+                        
+                        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                            This is an automated transmission on behalf of Wasim Kadri, CPA (FiscalX). Please do not reply directly to this email.
+                        </p>
+                    </div>
+                `;
+
+                const sesCommand = new SendEmailCommand({
+                    Source: SENDER_EMAIL,
+                    Destination: { ToAddresses: [clientEmail] },
+                    Message: {
+                        Subject: { Charset: "UTF-8", Data: `[Action Required] Document Reminder for Your FiscalX Tax File` },
+                        Body: { Html: { Charset: "UTF-8", Data: reminderHtml } }
+                    }
+                });
+                await ses.send(sesCommand);
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Reminder sent successfully." }) };
+            } catch (err) {
+                console.error("Failed to send document reminder:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
 
