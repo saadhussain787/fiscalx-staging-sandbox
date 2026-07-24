@@ -3,7 +3,6 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-// NEW: Import Cognito SDK to dynamically check user groups in real-time
 import { CognitoIdentityProviderClient, AdminListGroupsForUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 
 const s3 = new S3Client({ region: "ca-central-1" });
@@ -14,11 +13,18 @@ const cognito = new CognitoIdentityProviderClient({ region: "ca-central-1" });
 
 const BUCKET_NAME = "fiscalx-document-vault-673098723249";
 const TABLE_NAME = "fiscalx-client-onboarding";
-const USER_POOL_ID = "ca-central-1_omKzLVfdI"; // From your live Cognito URL!
+const USER_POOL_ID = "ca-central-1_omKzLVfdI"; 
 const SENDER_EMAIL = "info@fiscalx.ca"; 
 const OFFICE_EMAIL = "info@fiscalx.ca"; 
 
-// NEW: Helper function to query Cognito in real-time and check if user is Staff
+const AUTHORIZED_STAFF = [
+    "wasim@fiscalx.ca",
+    "saad@fiscalx.ca",
+    "admin@fiscalx.ca",
+    "cooldude014317@gmail.com",
+    "arfa786.sa@gmail.com"
+];
+
 async function isStaff(email) {
     if (!email) return false;
     try {
@@ -354,7 +360,6 @@ export const handler = async (event) => {
         if (data.action === "getCrmData") {
             const adminEmail = data.adminEmail;
 
-            // FIXED: Dynamically check groups using Cognito SDK! No hardcoded lists!
             const isAuthorized = await isStaff(adminEmail);
             if (!isAuthorized) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
@@ -383,7 +388,6 @@ export const handler = async (event) => {
             const clientTimestamp = data.timestamp;
             const newStatus = data.newStatus;
 
-            // FIXED: Dynamically check groups using Cognito SDK! No hardcoded lists!
             const isAuthorized = await isStaff(adminEmail);
             if (!isAuthorized) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
@@ -421,7 +425,6 @@ export const handler = async (event) => {
             const adminEmail = data.adminEmail;
             const fileKey = data.fileKey;
 
-            // FIXED: Dynamically check groups using Cognito SDK! No hardcoded lists!
             const isAuthorized = await isStaff(adminEmail);
             if (!isAuthorized) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Decryption Request." }) };
@@ -439,6 +442,38 @@ export const handler = async (event) => {
             } catch (s3Error) {
                 console.error("S3 Decryption Error:", s3Error);
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Failed to unlock document vault." }) };
+            }
+        }
+
+        // NEW: ACTION H FOR FETCHING A SINGLE CLIENT'S STATUS
+        if (data.action === "getClientStatus") {
+            const userEmail = data.userEmail;
+
+            if (!userEmail) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing user email." }) };
+            }
+
+            try {
+                const scanParams = {
+                    TableName: TABLE_NAME,
+                    FilterExpression: "userEmail = :email",
+                    ExpressionAttributeValues: { ":email": userEmail }
+                };
+                const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
+                const userRecords = scanResult.Items || [];
+
+                if (userRecords.length > 0) {
+                    // Sort newest first to get their latest active campaign status
+                    userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    const latestStatus = userRecords[0].campaignStatus || "Pending";
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", campaignStatus: latestStatus }) };
+                } else {
+                    // No records yet means they haven't submitted the onboarding form
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", campaignStatus: "Unsubmitted" }) };
+                }
+            } catch (dbError) {
+                console.error("Failed to fetch client status:", dbError);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: dbError.message }) };
             }
         }
 
