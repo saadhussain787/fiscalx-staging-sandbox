@@ -118,6 +118,55 @@
           </div>
         </div>
 
+        <!-- UPGRADED: NATIVE CALENDAR & CLOCK RESCHEDULER BOX -->
+        <div id="modal-appointment-box" class="hidden bg-purple-500/10 border border-purple-500/30 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] uppercase font-extrabold text-purple-400 tracking-wider">📅 Requested Consultation</span>
+            <span id="modal-booking-format" class="text-[10px] font-bold text-white bg-purple-500/30 px-2.5 py-0.5 rounded-md">MS Teams</span>
+          </div>
+          <p id="modal-booking-slot" class="text-sm font-bold text-slate-100"></p>
+
+          <div class="flex gap-2 pt-2 border-t border-purple-500/20">
+            <button type="button" onclick="toggleRescheduleForm(true)" class="text-xs font-bold text-purple-300 bg-purple-500/20 hover:bg-purple-500/30 px-3 py-1.5 rounded-lg transition-all border border-purple-500/30">
+              📅 Fast Reschedule
+            </button>
+            <button type="button" onclick="adminCancelAppointment()" class="text-xs font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transition-all border border-red-500/20">
+              ❌ Cancel Appointment
+            </button>
+          </div>
+
+          <!-- INLINE INTERACTIVE CALENDAR & CLOCK SELECTOR -->
+          <div id="reschedule-form-container" class="hidden pt-3 mt-3 border-t border-purple-500/20 space-y-3">
+            <p class="text-[10px] font-extrabold uppercase text-purple-300 tracking-wider">Select New Date & Clock Time</p>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">New Date</label>
+                <input type="date" id="admin-reschedule-date" class="w-full px-3 py-2 rounded-lg bg-black/40 border border-purple-500/30 text-white text-xs font-bold outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer" />
+              </div>
+              <div>
+                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">New Clock Time (EST)</label>
+                <select id="admin-reschedule-time" class="w-full px-3 py-2 rounded-lg bg-black/40 border border-purple-500/30 text-white text-xs font-bold outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer">
+                  <option value="09:00 AM">09:00 AM EST</option>
+                  <option value="10:30 AM" selected>10:30 AM EST</option>
+                  <option value="11:30 AM">11:30 AM EST</option>
+                  <option value="01:00 PM">01:00 PM EST</option>
+                  <option value="02:30 PM">02:30 PM EST</option>
+                  <option value="03:30 PM">03:30 PM EST</option>
+                  <option value="05:00 PM">05:00 PM EST</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex gap-2 pt-1">
+              <button type="button" onclick="submitAdminReschedule(this)" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-950 bg-purple-400 hover:bg-purple-300 transition-all shadow-md">
+                Save New Time & Email Client
+              </button>
+              <button type="button" onclick="toggleRescheduleForm(false)" class="px-3 py-2 rounded-lg text-xs font-bold text-slate-400 bg-white/5 hover:bg-white/10 transition-all">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="pt-4 border-t border-white/10">
           <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Workflow Status</p>
           <div class="flex items-center gap-3">
@@ -249,7 +298,6 @@
       } catch (error) { document.getElementById('kanban-status').innerText = "Network Error connecting to Database."; }
     }
 
-    // FIXED: Strictly uses paymentConfirmed boolean from the newest record!
     function deduplicateClients(clients) {
       clients.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       const uniqueClients = {};
@@ -318,14 +366,21 @@
           ? `<span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded animate-pulse border border-amber-500/20">New Activity</span>`
           : `<span class="text-[10px] font-bold uppercase tracking-wider text-teal-400 bg-teal-400/10 px-2.5 py-1 rounded">${client.taxType || 'Unknown'}</span>`;
         
+        const appointmentBadge = (client.bookingDate && client.bookingTime && client.bookingDate !== "CANCELLED")
+          ? `<div class="mt-2 text-[10px] font-bold text-purple-300 bg-purple-500/20 border border-purple-500/30 px-2.5 py-1 rounded-lg flex items-center justify-between">
+               <span>📅 ${client.meetingType || 'Call'}: ${client.bookingDate} @ ${client.bookingTime}</span>
+             </div>`
+          : '';
+
         const borderClass = client.hasNewActivity ? 'border-amber-500/40 shadow-lg shadow-amber-500/5 animate-pulse' : 'border-white/5 hover:border-teal-500/50';
 
         const cardHtml = `
           <div onclick="openModal('${safeEmail}', '${safeTimestamp}')" class="bg-[#131A2B] border ${borderClass} p-4 rounded-xl shadow-lg transition-colors cursor-pointer relative group">
             <div class="flex justify-between items-start mb-2">${badgeHtml}<span class="text-[10px] text-slate-500">${niceDate}</span></div>
             <h4 class="font-bold text-sm text-slate-200 mb-1 truncate">${client.clientName || 'Unnamed Client'} ${paymentBadge}</h4>
-            <p class="text-xs text-slate-400 truncate mb-3">${client.userEmail}</p>
-            <div class="pt-3 border-t border-white/5 flex justify-between items-center">
+            <p class="text-xs text-slate-400 truncate mb-1">${client.userEmail}</p>
+            ${appointmentBadge}
+            <div class="pt-3 mt-3 border-t border-white/5 flex justify-between items-center">
               <span class="text-xs font-semibold text-slate-300">Files: ${client.uploadedFiles ? client.uploadedFiles.length : 0}</span>
               <span class="text-xs text-teal-400 font-bold opacity-0 group-hover:opacity-100 transition-opacity">Manage &rarr;</span>
             </div>
@@ -342,7 +397,7 @@
       if (!client) return;
       
       activeClientEmail = email; activeClientTimestamp = timestamp; 
-      // Multi-Source Phone Extractor (Checks Booking Engine, Tax Organizer, and Notes text)
+      
       let rawPhone = client.phone || (client.personalInfo ? client.personalInfo.telephone : "") || "";
       if (!rawPhone && (client.notes || client.message)) {
         const textToSearch = (client.notes || "") + " " + (client.message || "");
@@ -356,6 +411,20 @@
       
       const taxType = client.taxType || 'T1 Personal';
       document.getElementById('modal-tax-type').innerText = taxType;
+
+      const modalAppointmentBox = document.getElementById('modal-appointment-box');
+      toggleRescheduleForm(false);
+
+      if (modalAppointmentBox) {
+        if (client.bookingDate && client.bookingTime && client.bookingDate !== "CANCELLED") {
+          document.getElementById('modal-booking-format').innerText = client.meetingType || "Consultation";
+          document.getElementById('modal-booking-slot').innerText = `📅 ${client.bookingDate} at ${client.bookingTime}`;
+          document.getElementById('admin-reschedule-date').value = client.bookingDate;
+          modalAppointmentBox.classList.remove('hidden');
+        } else {
+          modalAppointmentBox.classList.add('hidden');
+        }
+      }
       
       const dropdown = document.getElementById('modal-status-dropdown');
       dropdown.value = client.campaignStatus || 'Pending';
@@ -412,7 +481,6 @@
       });
     }
 
-    // ADDED: Red Delete Button for existing deliverables!
     function renderFinalQueue() {
       const qDiv = document.getElementById('final-queue-list'); 
       if (!qDiv) return;
@@ -439,7 +507,6 @@
       });
     }
 
-    // ADDED: Function to remove an already-uploaded final return
     window.removeExistingFinalFile = function(idx) {
       if (confirm("Remove this deliverable file? Click 'Save Billing' to confirm.")) {
         existingFinalFiles.splice(idx, 1);
@@ -534,6 +601,85 @@
         const result = await response.json();
         if (response.ok && result.status === 'SUCCESS') { await showCRM(adminEmail); } else { alert("Error updating status."); }
       } catch (err) { alert("Network error updating status."); } finally { spinner.classList.add('hidden'); dropdown.disabled = false; }
+    }
+
+    // Toggle Fast Reschedule Inline Picker with Past-Date Lock
+    function toggleRescheduleForm(show) {
+      const container = document.getElementById('reschedule-form-container');
+      if (container) {
+        if (show) {
+          const dateInput = document.getElementById('admin-reschedule-date');
+          if (dateInput) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            dateInput.setAttribute('min', todayStr);
+          }
+          container.classList.remove('hidden');
+        } else {
+          container.classList.add('hidden');
+        }
+      }
+    }
+
+    // Submit Reschedule with Weekend & Past-Date Validation
+    async function submitAdminReschedule(btnElement) {
+      const newDate = document.getElementById('admin-reschedule-date').value;
+      const newTime = document.getElementById('admin-reschedule-time').value;
+      
+      if (!newDate || !newTime) { 
+        alert("Please select both a Date and Time Slot!"); 
+        return; 
+      }
+
+      // Weekend Prevention Check (0 = Sunday, 6 = Saturday)
+      const selectedDateObj = new Date(newDate);
+      const dayOfWeek = new Date(selectedDateObj.getTime() + Math.abs(selectedDateObj.getTimezoneOffset() * 60000)).getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        alert("Our office is closed on weekends. Please select a date between Monday and Friday.");
+        document.getElementById('admin-reschedule-date').value = "";
+        return;
+      }
+
+      const adminEmail = localStorage.getItem('admin_email');
+      if (!adminEmail || !activeClientEmail || !activeClientTimestamp) return;
+
+      btnElement.disabled = true; 
+      btnElement.innerText = "Updating Cloud Schedule...";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: "rescheduleBooking", adminEmail: adminEmail, clientEmail: activeClientEmail, timestamp: activeClientTimestamp, newDate: newDate, newTime: newTime })
+        });
+        const result = await response.json();
+        if (response.ok && result.status === 'SUCCESS') {
+          alert(`🎉 Rescheduled to ${newDate} at ${newTime} EST! Client notified via automated email.`);
+          closeModal();
+          await showCRM(adminEmail);
+        } else { alert("Failed to reschedule: " + (result.message || "Server error")); }
+      } catch (err) { alert("Network error trying to reschedule appointment."); } 
+      finally { btnElement.disabled = false; btnElement.innerText = "Save New Time & Email Client"; }
+    }
+
+    // 1-Click Appointment Cancellation
+    async function adminCancelAppointment() {
+      if (!confirm("Are you sure you want to cancel this appointment? An automated notice will be emailed to the client.")) return;
+      const adminEmail = localStorage.getItem('admin_email');
+      if (!adminEmail || !activeClientEmail || !activeClientTimestamp) return;
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: "cancelBooking", adminEmail: adminEmail, clientEmail: activeClientEmail, timestamp: activeClientTimestamp })
+        });
+        const result = await response.json();
+        if (response.ok && result.status === 'SUCCESS') {
+          alert("Appointment cancelled and client notified via email!");
+          closeModal();
+          await showCRM(adminEmail);
+        } else { alert("Failed to cancel: " + (result.message || "Server error")); }
+      } catch (err) { alert("Network error trying to cancel appointment."); }
     }
 
     function showLogin() { localStorage.removeItem('admin_id_token'); localStorage.removeItem('admin_email'); crmScreen.classList.add('hidden'); loginScreen.classList.remove('hidden'); }
