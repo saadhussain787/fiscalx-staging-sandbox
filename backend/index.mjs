@@ -641,6 +641,101 @@ export const handler = async (event) => {
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Failed to unlock document vault." }) };
             }
         }
+        
+// ==============================================================
+        // ACTION L: CREATE SMART BOOKING APPOINTMENT
+        // ==============================================================
+        if (data.action === "createBooking") {
+            const { meetingType, bookingDate, bookingTime, fullName, email, phone, service = "General Consultation" } = data;
+
+            if (!email || !bookingDate || !bookingTime) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing required booking details." }) };
+            }
+
+            const timestamp = new Date().toISOString();
+
+            try {
+                // 1. Save appointment to DynamoDB (Appears on Wasim's Kanban Board!)
+                const ddbParams = {
+                    TableName: TABLE_NAME,
+                    Item: {
+                        userEmail: email,
+                        timestamp: timestamp,
+                        clientName: fullName,
+                        taxType: service,
+                        campaignStatus: "Pending",
+                        meetingType: meetingType,
+                        bookingDate: bookingDate,
+                        bookingTime: bookingTime,
+                        phone: phone,
+                        notes: `[APPOINTMENT REQUEST] ${meetingType} on ${bookingDate} at ${bookingTime}`,
+                        paymentConfirmed: false,
+                        finalFiles: [],
+                        uploadedFiles: []
+                    }
+                };
+                await ddbDocClient.send(new PutCommand(ddbParams));
+
+                // 2. Email Notification to Wasim / Office
+                const officeEmailHtml = `
+                    <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                        <h2 style="color: #4f46e5; margin-bottom: 4px;">FiscalX Smart Booking Engine</h2>
+                        <p style="font-size: 14px; color: #64748b; margin-top: 0;">New Consultation Requested</p>
+                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                        <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            <tr><td style="padding: 12px; font-weight: bold; width: 140px; border-bottom: 1px solid #e2e8f0;">Client Name:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${fullName}</td></tr>
+                            <tr><td style="padding: 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Email:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${email}</td></tr>
+                            <tr><td style="padding: 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Phone:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${phone}</td></tr>
+                            <tr><td style="padding: 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Meeting Type:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #4f46e5;">${meetingType}</td></tr>
+                            <tr><td style="padding: 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Requested Time:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${bookingDate} at ${bookingTime}</td></tr>
+                            <tr><td style="padding: 12px; font-weight: bold;">Service:</td><td style="padding: 12px;">${service}</td></tr>
+                        </table>
+                    </div>
+                `;
+
+                const sesOfficeCommand = new SendEmailCommand({
+                    Source: SENDER_EMAIL,
+                    Destination: { ToAddresses: [OFFICE_EMAIL] },
+                    Message: {
+                        Subject: { Charset: "UTF-8", Data: `[Calendar Request] ${fullName} - ${meetingType} (${bookingDate})` },
+                        Body: { Html: { Charset: "UTF-8", Data: officeEmailHtml } }
+                    }
+                });
+                await ses.send(sesOfficeCommand);
+
+                // 3. Confirmation Email Receipt to Client
+                const clientEmailHtml = `
+                    <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                        <h2 style="color: #4f46e5; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
+                        <p style="font-size: 14px; color: #64748b; margin-top: 0;">Appointment Confirmation Request</p>
+                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                        <p style="font-size: 15px;">Hello ${fullName},</p>
+                        <p style="font-size: 15px;">Your consultation request with Wasim Kadri, CPA has been successfully received.</p>
+                        <div style="margin: 20px 0; padding: 15px; background-color: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 8px;">
+                            <p style="margin: 0; font-size: 14px; font-weight: bold; color: #3730a3;">📅 Format: ${meetingType}</p>
+                            <p style="margin: 5px 0 0 0; font-size: 14px; color: #3730a3;"><strong>Requested Slot:</strong> ${bookingDate} at ${bookingTime}</p>
+                        </div>
+                        <p style="font-size: 13px; color: #64748b;">Our team will review your requested slot and send you a follow-up confirmation shortly.</p>
+                    </div>
+                `;
+
+                const sesClientCommand = new SendEmailCommand({
+                    Source: SENDER_EMAIL,
+                    Destination: { ToAddresses: [email] },
+                    Message: {
+                        Subject: { Charset: "UTF-8", Data: `Appointment Request Received - FiscalX` },
+                        Body: { Html: { Charset: "UTF-8", Data: clientEmailHtml } }
+                    }
+                });
+                await ses.send(sesClientCommand);
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Booking saved and confirmation email transmitted." }) };
+
+            } catch (err) {
+                console.error("Booking Lambda Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
 
         // ==============================================================
         // ACTION D: PROCESS THE STANDARD CONTACT INTAKE FORM
