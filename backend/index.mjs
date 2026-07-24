@@ -25,7 +25,6 @@ const AUTHORIZED_STAFF = [
     "arfa786.sa@gmail.com"
 ];
 
-// Helper function to query Cognito in real-time and check if user is Staff
 async function isStaff(email) {
     if (!email) return false;
     try {
@@ -188,7 +187,9 @@ export const handler = async (event) => {
                     amountOwed: "0.00", amountCollected: "0.00", campaignStatus: activeStatus, howHeard: howHeard, notes: notes,
                     uploadedFiles: uploadedFiles, personalInfo: personalInfo, corporateInfo: corporateInfo, statusInCanada: statusInCanada,
                     familyMembers: familyMembers, ontarioResidency: ontarioResidency, milestones: milestones, selfEmployed: selfEmployed,
-                    rentalIncome: rentalIncome, childCareBenefit: childCareBenefit
+                    rentalIncome: rentalIncome, childCareBenefit: childCareBenefit,
+                    paymentConfirmed: false, // Default lock applied
+                    finalFiles: [] // Array for deliverables
                 }
             };
             await ddbDocClient.send(new PutCommand(ddbParams));
@@ -381,7 +382,7 @@ export const handler = async (event) => {
         }
 
         // ==============================================================
-        // ACTION F: UPDATE CLIENT KANBAN STATUS (FIXED SCHEMA)
+        // ACTION F: UPDATE CLIENT KANBAN STATUS
         // ==============================================================
         if (data.action === "updateClientStatus") {
             const adminEmail = data.adminEmail;
@@ -446,7 +447,9 @@ export const handler = async (event) => {
             }
         }
 
-        // NEW: ACTION H FOR FETCHING A SINGLE CLIENT'S STATUS
+        // ==============================================================
+        // ACTION H: FETCH A SINGLE CLIENT'S STATUS FOR THEIR DASHBOARD
+        // ==============================================================
         if (data.action === "getClientStatus") {
             const userEmail = data.userEmail;
 
@@ -465,10 +468,24 @@ export const handler = async (event) => {
 
                 if (userRecords.length > 0) {
                     userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    // Return the campaign status, AND the payment lock boolean, AND the final files!
                     const latestStatus = userRecords[0].campaignStatus || "Pending";
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", campaignStatus: latestStatus }) };
+                    const isPaid = userRecords[0].paymentConfirmed || false;
+                    const finalReturns = userRecords[0].finalFiles || [];
+                    
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ 
+                        status: "SUCCESS", 
+                        campaignStatus: latestStatus,
+                        paymentConfirmed: isPaid,
+                        finalFiles: finalReturns
+                    }) };
                 } else {
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", campaignStatus: "Unsubmitted" }) };
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ 
+                        status: "SUCCESS", 
+                        campaignStatus: "Unsubmitted",
+                        paymentConfirmed: false,
+                        finalFiles: []
+                    }) };
                 }
             } catch (dbError) {
                 console.error("Failed to fetch client status:", dbError);
@@ -476,7 +493,9 @@ export const handler = async (event) => {
             }
         }
 
-        // NEW: ACTION I FOR SENDING DOCUMENT REQUEST EMAIL REMINDERS
+        // ==============================================================
+        // ACTION I: SEND DOCUMENT REQUEST EMAIL REMINDERS
+        // ==============================================================
         if (data.action === "sendDocumentReminder") {
             const adminEmail = data.adminEmail;
             const clientEmail = data.clientEmail;
@@ -505,7 +524,7 @@ export const handler = async (event) => {
                             <span style="font-size: 16px; font-weight: bold; color: #b45309;">⚠️ Required Document: ${requestedDocName}</span>
                         </div>
                         
-                        <p style="font-size: 15px; line-height: 1.6;">Please click the secure button below to log into your portal, complete your tax organizer, or upload this file directly to your private vault.</p>
+                        <p style="font-size: 15px; line-height: 1.6;">Please click the secure button below to log into your portal. Once logged in, scroll to the bottom of your screen to the <strong>"Secure Document Upload Center"</strong> to transmit your document directly into our encrypted S3 vault.</p>
                         
                         <div style="text-align: center; margin: 30px 0;">
                             <a href="https://www.fiscalx.ca/dashboard/" target="_blank" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; font-size: 14px; border-radius: 8px;">Log In & Upload Document</a>
@@ -531,6 +550,95 @@ export const handler = async (event) => {
             } catch (err) {
                 console.error("Failed to send document reminder:", err);
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION J: UPDATE BILLING STATUS & FINAL RETURNS (CASHFLOW SECURE)
+        // ==============================================================
+        if (data.action === "updateBillingStatus") {
+            const { adminEmail, clientEmail, timestamp, finalFiles = [], paymentConfirmed = false } = data;
+
+            const isAuthorized = await isStaff(adminEmail);
+            if (!isAuthorized) {
+                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
+            }
+            if (!clientEmail || !timestamp) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing client identity keys." }) };
+            }
+
+            try {
+                // Update DynamoDB to lock/unlock the files
+                const updateParams = {
+                    TableName: TABLE_NAME,
+                    Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) },
+                    UpdateExpression: "set finalFiles = :f, paymentConfirmed = :p",
+                    ExpressionAttributeValues: { ":f": finalFiles, ":p": paymentConfirmed },
+                    ReturnValues: "UPDATED_NEW"
+                };
+                await ddbDocClient.send(new UpdateCommand(updateParams));
+
+                // Bonus Automation: If payment is flipped to TRUE, email the client instantly!
+                if (paymentConfirmed === true) {
+                    const unlockHtml = `
+                        <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                            <h2 style="color: #10b981; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
+                            <p style="font-size: 14px; color: #64748b; margin-top: 0;">Payment Confirmed - Documents Unlocked</p>
+                            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                            <p style="font-size: 15px; line-height: 1.6;">Hello,</p>
+                            <p style="font-size: 15px; line-height: 1.6;">Thank you for your payment. Wasim Kadri, CPA has successfully finalized your tax return.</p>
+                            <div style="margin: 25px 0; padding: 20px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; text-align: center;">
+                                <span style="font-size: 16px; font-weight: bold; color: #065f46;">✅ Your secure tax documents are now unlocked and ready for download.</span>
+                            </div>
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="https://www.fiscalx.ca/dashboard/" target="_blank" style="background-color: #10b981; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; font-size: 14px; border-radius: 8px;">Log In & Download Returns</a>
+                            </div>
+                            <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                                This is an automated transmission on behalf of Wasim Kadri, CPA (FiscalX).
+                            </p>
+                        </div>
+                    `;
+                    const sesCommand = new SendEmailCommand({
+                        Source: SENDER_EMAIL,
+                        Destination: { ToAddresses: [clientEmail] },
+                        Message: {
+                            Subject: { Charset: "UTF-8", Data: `[FiscalX] Payment Confirmed - Your Tax Returns are Unlocked` },
+                            Body: { Html: { Charset: "UTF-8", Data: unlockHtml } }
+                        }
+                    });
+                    await ses.send(sesCommand);
+                }
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Billing status updated successfully." }) };
+            } catch (updateError) {
+                console.error("DynamoDB Billing Update Error:", updateError);
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Database update failed: " + updateError.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION K: CLIENT-SAFE DOWNLOAD URL GENERATOR
+        // ==============================================================
+        if (data.action === "getClientDownloadUrl") {
+            const userEmail = data.userEmail;
+            const fileKey = data.fileKey;
+
+            if (!userEmail || !fileKey) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing required fields." }) };
+            }
+
+            // CRITICAL SECURITY: Ensure the client is only trying to download a file from THEIR OWN folder!
+            if (!fileKey.includes(`clients/${userEmail}/`)) {
+                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "You are not authorized to download this file." }) };
+            }
+
+            try {
+                const downloadCommand = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileKey });
+                const secureUrl = await getSignedUrl(s3, downloadCommand, { expiresIn: 60 });
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", secureUrl: secureUrl }) };
+            } catch (s3Error) {
+                console.error("Client S3 Decryption Error:", s3Error);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Failed to unlock document vault." }) };
             }
         }
 
