@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/s3-client";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
@@ -45,7 +45,7 @@ async function isStaff(email) {
     }
 }
 
-// Helper Function: Fetches a fresh 60-min Access Token from Microsoft Graph API
+// Global Helper Function: Fetches a fresh 60-min Access Token from Microsoft Graph API
 async function getMsAccessToken() {
     try {
         const configRes = await ddbDocClient.send(new ScanCommand({
@@ -222,8 +222,8 @@ export const handler = async (event) => {
                     uploadedFiles: uploadedFiles, personalInfo: personalInfo, corporateInfo: corporateInfo, statusInCanada: statusInCanada,
                     familyMembers: familyMembers, ontarioResidency: ontarioResidency, milestones: milestones, selfEmployed: selfEmployed,
                     rentalIncome: rentalIncome, childCareBenefit: childCareBenefit,
-                    paymentConfirmed: false, // Default lock applied
-                    finalFiles: [] // Array for deliverables
+                    paymentConfirmed: false,
+                    finalFiles: []
                 }
             };
             await ddbDocClient.send(new PutCommand(ddbParams));
@@ -502,7 +502,6 @@ export const handler = async (event) => {
 
                 if (userRecords.length > 0) {
                     userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                    // Return the campaign status, AND the payment lock boolean, AND the final files!
                     const latestStatus = userRecords[0].campaignStatus || "Pending";
                     const isPaid = userRecords[0].paymentConfirmed || false;
                     const finalReturns = userRecords[0].finalFiles || [];
@@ -587,7 +586,7 @@ export const handler = async (event) => {
             }
         }
 
-// ==============================================================
+        // ==============================================================
         // ACTION J: UPDATE BILLING STATUS & FINAL RETURNS (CASHFLOW SECURE)
         // ==============================================================
         if (data.action === "updateBillingStatus") {
@@ -602,7 +601,6 @@ export const handler = async (event) => {
             }
 
             try {
-                // Find ALL historical records for this client email
                 const scanParams = {
                     TableName: TABLE_NAME,
                     FilterExpression: "userEmail = :email",
@@ -611,7 +609,6 @@ export const handler = async (event) => {
                 const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
                 const items = scanResult.Items || [];
 
-                // Update paymentConfirmed and finalFiles across ALL records for this email
                 for (const item of items) {
                     const updateParams = {
                         TableName: TABLE_NAME,
@@ -622,7 +619,6 @@ export const handler = async (event) => {
                     await ddbDocClient.send(new UpdateCommand(updateParams));
                 }
 
-                // If payment is flipped to TRUE, send confirmation email
                 if (paymentConfirmed === true) {
                     const unlockHtml = `
                         <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
@@ -668,7 +664,6 @@ export const handler = async (event) => {
                 return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing required fields." }) };
             }
 
-            // CRITICAL SECURITY: Ensure the client is only trying to download a file from THEIR OWN folder!
             if (!fileKey.includes(`clients/${userEmail}/`)) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "You are not authorized to download this file." }) };
             }
@@ -682,38 +677,7 @@ export const handler = async (event) => {
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Failed to unlock document vault." }) };
             }
         }
-        
-// Helper Function: Fetches a fresh 60-min Access Token from Microsoft Graph API
-async function getMsAccessToken() {
-    try {
-        const configRes = await ddbDocClient.send(new ScanCommand({
-            TableName: TABLE_NAME,
-            FilterExpression: "userEmail = :e AND #ts = :t",
-            ExpressionAttributeNames: { "#ts": "timestamp" },
-            ExpressionAttributeValues: { ":e": "SYSTEM_CONFIG", ":t": "MICROSOFT_OUTLOOK_AUTH" }
-        }));
-        const configItem = (configRes.Items || [])[0];
-        if (!configItem || !configItem.msRefreshToken) return null;
-
-        const tokenRes = await fetch(`https://login.microsoftonline.com/common/oauth2/v2.0/token`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                client_id: MS_CLIENT_ID,
-                client_secret: MS_CLIENT_SECRET,
-                refresh_token: configItem.msRefreshToken,
-                grant_type: 'refresh_token'
-            })
-        });
-        const tokenData = await tokenRes.json();
-        return tokenData.access_token || null;
-    } catch (err) {
-        console.error("Microsoft Token Refresh Error:", err);
-        return null;
-    }
-}
-
-        // ==============================================================
+// ==============================================================
         // ACTION O: EXCHANGE MICROSOFT OAUTH CODE FOR REFRESH TOKEN
         // ==============================================================
         if (data.action === "exchangeMsCode") {
@@ -724,7 +688,6 @@ async function getMsAccessToken() {
             if (!msCode) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing Microsoft Authorization Code." }) };
 
             try {
-                // 1. Trade the code for an Access Token & Refresh Token from Microsoft
                 const tokenResponse = await fetch(`https://login.microsoftonline.com/common/oauth2/v2.0/token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -743,7 +706,6 @@ async function getMsAccessToken() {
                     throw new Error(tokenData.error_description || tokenData.error);
                 }
 
-                // 2. Save the Refresh Token in DynamoDB (so Lambda can use it forever)
                 const refreshToken = tokenData.refresh_token;
                 
                 await ddbDocClient.send(new PutCommand({
@@ -764,7 +726,7 @@ async function getMsAccessToken() {
             }
         }
 
-// ==============================================================
+      // ==============================================================
         // ACTION P: GET REAL-TIME CALENDAR AVAILABILITY FROM MICROSOFT
         // ==============================================================
         if (data.action === "getAvailableSlots") {
@@ -772,55 +734,32 @@ async function getMsAccessToken() {
             if (!bookingDate) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing bookingDate." }) };
 
             try {
-                // 1. Fetch stored Refresh Token from DynamoDB
-                const configRes = await ddbDocClient.send(new ScanCommand({
-                    TableName: TABLE_NAME,
-                    FilterExpression: "userEmail = :e AND #ts = :t",
-                    ExpressionAttributeNames: { "#ts": "timestamp" },
-                    ExpressionAttributeValues: { ":e": "SYSTEM_CONFIG", ":t": "MICROSOFT_OUTLOOK_AUTH" }
-                }));
+                const accessToken = await getMsAccessToken();
 
-                const configItem = (configRes.Items || [])[0];
-                if (!configItem || !configItem.msRefreshToken) {
-                    console.log("No MS Refresh Token found in DynamoDB. Returning fallback slots.");
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: [
-                        { time: "12:00 PM EST", isAvailable: true }, { time: "12:30 PM EST", isAvailable: true },
-                        { time: "01:00 PM EST", isAvailable: true }, { time: "01:30 PM EST", isAvailable: true },
-                        { time: "02:00 PM EST", isAvailable: true }, { time: "02:30 PM EST", isAvailable: true },
-                        { time: "03:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true },
-                        { time: "04:00 PM EST", isAvailable: true }, { time: "04:30 PM EST", isAvailable: true },
-                        { time: "05:00 PM EST", isAvailable: true }, { time: "05:30 PM EST", isAvailable: true },
-                        { time: "06:00 PM EST", isAvailable: true }
-                    ] }) };
+                const fallbackSlots = [
+                    { time: "12:00 PM EST", isAvailable: true }, { time: "12:30 PM EST", isAvailable: true },
+                    { time: "01:00 PM EST", isAvailable: true }, { time: "01:30 PM EST", isAvailable: true },
+                    { time: "02:00 PM EST", isAvailable: true }, { time: "02:30 PM EST", isAvailable: true },
+                    { time: "03:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true },
+                    { time: "04:00 PM EST", isAvailable: true }, { time: "04:30 PM EST", isAvailable: true },
+                    { time: "05:00 PM EST", isAvailable: true }, { time: "05:30 PM EST", isAvailable: true },
+                    { time: "06:00 PM EST", isAvailable: true }
+                ];
+
+                if (!accessToken) {
+                    console.log("No MS Access Token available. Returning open fallback slots.");
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: fallbackSlots }) };
                 }
 
-                // 2. Fetch fresh Access Token from Microsoft
-                const tokenRes = await fetch(`https://login.microsoftonline.com/common/oauth2/v2.0/token`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        client_id: MS_CLIENT_ID,
-                        client_secret: MS_CLIENT_SECRET,
-                        refresh_token: configItem.msRefreshToken,
-                        grant_type: 'refresh_token'
-                    })
-                });
-                const tokenData = await tokenRes.json();
-                if (!tokenData.access_token) {
-                    console.error("Microsoft Refresh Token Error:", tokenData);
-                    throw new Error("Failed to refresh Microsoft Token.");
-                }
-
-                // 3. Query Wasim's Outlook Schedule via Microsoft Graph API
                 const startDateTime = `${bookingDate}T00:00:00`;
                 const endDateTime = `${bookingDate}T23:59:59`;
 
                 const scheduleRes = await fetch(`https://graph.microsoft.com/v1.0/users/${OFFICE_EMAIL}/calendar/getSchedule`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${tokenData.access_token}`,
+                        'Authorization': `Bearer ${accessToken}`,
                         'Content-Type': 'application/json',
-                        'Prefer': 'outlook.timezone="Eastern Standard Time"' // CRITICAL: Forces Graph API to return local Toronto time!
+                        'Prefer': 'outlook.timezone="Eastern Standard Time"'
                     },
                     body: JSON.stringify({
                         schedules: [OFFICE_EMAIL],
@@ -831,11 +770,14 @@ async function getMsAccessToken() {
                 });
 
                 const scheduleData = await scheduleRes.json();
-                console.log("Microsoft Graph raw response:", JSON.stringify(scheduleData));
+                const rawItems = scheduleData?.value?.[0]?.scheduleItems || [];
 
-                const busyItems = scheduleData?.value?.[0]?.scheduleItems || [];
+                // CRITICAL FIX: Only filter for events that are actually BUSY, OOF, or TENTATIVE
+                const busyItems = rawItems.filter(item => {
+                    const status = (item.status || "").toLowerCase();
+                    return status === "busy" || status === "oof" || status === "tentative";
+                });
 
-                // Master 30-minute slots between 12:00 PM and 6:30 PM EST
                 const masterSlots = [
                     "12:00 PM EST", "12:30 PM EST", 
                     "01:00 PM EST", "01:30 PM EST", 
@@ -846,7 +788,6 @@ async function getMsAccessToken() {
                     "06:00 PM EST"
                 ];
 
-                // 4. Local Time Overlap Comparison
                 const processedSlots = masterSlots.map(timeStr => {
                     let isBusy = false;
                     const parts = timeStr.split(":");
@@ -867,6 +808,7 @@ async function getMsAccessToken() {
                             const startDecimal = parseInt(startParts[0]) + (parseInt(startParts[1]) / 60);
                             const endDecimal = parseInt(endParts[0]) + (parseInt(endParts[1]) / 60);
 
+                            // Check if slot falls inside a busy window
                             if (slotDecimal >= startDecimal && slotDecimal < endDecimal) {
                                 isBusy = true;
                             }
@@ -880,15 +822,234 @@ async function getMsAccessToken() {
 
             } catch (err) {
                 console.error("Microsoft Graph Schedule Error:", err);
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: [
-                    { time: "12:00 PM EST", isAvailable: true }, { time: "12:30 PM EST", isAvailable: true },
-                    { time: "01:00 PM EST", isAvailable: true }, { time: "01:30 PM EST", isAvailable: true },
-                    { time: "02:00 PM EST", isAvailable: true }, { time: "02:30 PM EST", isAvailable: true },
-                    { time: "03:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true },
-                    { time: "04:00 PM EST", isAvailable: true }, { time: "04:30 PM EST", isAvailable: true },
-                    { time: "05:00 PM EST", isAvailable: true }, { time: "05:30 PM EST", isAvailable: true },
-                    { time: "06:00 PM EST", isAvailable: true }
-                ] }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: fallbackSlots }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION L: SUBMIT NEW BOOKING (OUTLOOK SYNC + SES CONFIRMATION)
+        // ==============================================================
+        if (data.action === "submitBooking") {
+            const { userEmail, userName = "Valued Client", bookingDate, bookingTime, meetingType = "MS Teams Consultation", notes = "Initial Consultation" } = data;
+
+            if (!userEmail || !bookingDate || !bookingTime) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing required booking details." }) };
+            }
+
+            try {
+                let msEventCreated = false;
+                const accessToken = await getMsAccessToken();
+
+                if (accessToken) {
+                    try {
+                        const timeParts = bookingTime.replace(" EST", "").trim().split(" ");
+                        let [hours, minutes] = timeParts[0].split(":").map(Number);
+                        const ampm = timeParts[1];
+
+                        if (ampm === "PM" && hours !== 12) hours += 12;
+                        if (ampm === "AM" && hours === 12) hours = 0;
+
+                        const startHourStr = hours.toString().padStart(2, '0');
+                        const startMinStr = minutes.toString().padStart(2, '0');
+
+                        let endHours = hours;
+                        let endMinutes = minutes + 30;
+                        if (endMinutes >= 60) {
+                            endHours += 1;
+                            endMinutes -= 60;
+                        }
+                        const endHourStr = endHours.toString().padStart(2, '0');
+                        const endMinStr = endMinutes.toString().padStart(2, '0');
+
+                        const startDateTime = `${bookingDate}T${startHourStr}:${startMinStr}:00`;
+                        const endDateTime = `${bookingDate}T${endHourStr}:${endMinStr}:00`;
+
+                        const eventPayload = {
+                            subject: `FiscalX Consultation: ${userName}`,
+                            body: {
+                                contentType: "HTML",
+                                content: `<p><strong>Client Name:</strong> ${userName}</p><p><strong>Client Email:</strong> ${userEmail}</p><p><strong>Format:</strong> ${meetingType}</p><p><strong>Notes:</strong> ${notes}</p>`
+                            },
+                            start: { dateTime: startDateTime, timeZone: "Eastern Standard Time" },
+                            end: { dateTime: endDateTime, timeZone: "Eastern Standard Time" },
+                            location: { displayName: meetingType },
+                            attendees: [
+                                { emailAddress: { address: userEmail, name: userName }, type: "required" }
+                            ]
+                        };
+
+                        const graphRes = await fetch(`https://graph.microsoft.com/v1.0/users/${OFFICE_EMAIL}/events`, {
+                            method: "POST",
+                            headers: {
+                                "Authorization": `Bearer ${accessToken}`,
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify(eventPayload)
+                        });
+
+                        if (graphRes.ok) {
+                            msEventCreated = true;
+                            console.log("Successfully created event on Wasim's Outlook Calendar.");
+                        } else {
+                            const errData = await graphRes.json();
+                            console.error("Microsoft Graph Event Creation Error:", JSON.stringify(errData));
+                        }
+                    } catch (msErr) {
+                        console.error("Failed to post event to Microsoft Graph:", msErr);
+                    }
+                }
+
+                const timestamp = new Date().toISOString();
+                await ddbDocClient.send(new PutCommand({
+                    TableName: TABLE_NAME,
+                    Item: {
+                        userEmail: userEmail,
+                        timestamp: timestamp,
+                        clientName: userName,
+                        bookingDate: bookingDate,
+                        bookingTime: bookingTime,
+                        meetingType: meetingType,
+                        campaignStatus: "Pending",
+                        paymentConfirmed: false,
+                        finalFiles: [],
+                        uploadedFiles: []
+                    }
+                }));
+
+                const emailHtml = `
+                    <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                        <h2 style="color: #059669; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
+                        <p style="font-size: 14px; color: #64748b; margin-top: 0;">Consultation Confirmed</p>
+                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                        <p style="font-size: 15px;">Hello ${userName},</p>
+                        <p style="font-size: 15px;">Your consultation with Wasim Kadri, CPA has been successfully reserved.</p>
+                        <div style="margin: 25px 0; padding: 20px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px;">
+                            <p style="font-size: 14px; color: #065f46; margin: 0 0 8px 0;"><strong>📅 Date:</strong> ${bookingDate}</p>
+                            <p style="font-size: 14px; color: #065f46; margin: 0 0 8px 0;"><strong>⏰ Time:</strong> ${bookingTime}</p>
+                            <p style="font-size: 14px; color: #065f46; margin: 0;"><strong>💻 Format:</strong> ${meetingType}</p>
+                        </div>
+                        <p style="font-size: 14px; color: #475569;">If you need to upload tax documents prior to our meeting, please log into your <a href="https://www.fiscalx.ca/dashboard/" style="color: #059669; font-weight: bold;">Client Portal</a>.</p>
+                    </div>
+                `;
+
+                const sesCommand = new SendEmailCommand({
+                    Source: SENDER_EMAIL,
+                    Destination: { ToAddresses: [userEmail], BccAddresses: [OFFICE_EMAIL] },
+                    Message: {
+                        Subject: { Charset: "UTF-8", Data: `[FiscalX] Consultation Confirmed for ${bookingDate} @ ${bookingTime}` },
+                        Body: { Html: { Charset: "UTF-8", Data: emailHtml } }
+                    }
+                });
+                await ses.send(sesCommand);
+
+                return {
+                    statusCode: 200, headers: headers,
+                    body: JSON.stringify({ status: "SUCCESS", message: "Booking confirmed, Outlook calendar synced, and confirmation email delivered.", outlookSynced: msEventCreated })
+                };
+
+            } catch (err) {
+                console.error("Booking Creation Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION M: RESCHEDULE BOOKING (STAFF CRM ACTION)
+        // ==============================================================
+        if (data.action === "rescheduleBooking") {
+            const { adminEmail, clientEmail, timestamp, newDate, newTime } = data;
+
+            const isAuthorized = await isStaff(adminEmail);
+            if (!isAuthorized) {
+                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
+            }
+
+            if (!clientEmail || !timestamp || !newDate || !newTime) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing required reschedule parameters." }) };
+            }
+
+            try {
+                await ddbDocClient.send(new UpdateCommand({
+                    TableName: TABLE_NAME,
+                    Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) },
+                    UpdateExpression: "set bookingDate = :d, bookingTime = :t",
+                    ExpressionAttributeValues: { ":d": String(newDate), ":t": String(newTime) }
+                }));
+
+                const rescheduleHtml = `
+                    <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                        <h2 style="color: #4f46e5; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
+                        <p style="font-size: 14px; color: #64748b; margin-top: 0;">Appointment Rescheduled</p>
+                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                        <p style="font-size: 15px;">Hello,</p>
+                        <p style="font-size: 15px;">Your consultation with Wasim Kadri, CPA has been rescheduled to a new time slot:</p>
+                        <div style="margin: 25px 0; padding: 20px; background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px;">
+                            <p style="font-size: 15px; color: #5b21b6; margin: 0 0 8px 0;"><strong>📅 New Date:</strong> ${newDate}</p>
+                            <p style="font-size: 15px; color: #5b21b6; margin: 0;"><strong>⏰ New Time:</strong> ${newTime}</p>
+                        </div>
+                        <p style="font-size: 14px; color: #475569;">If this time does not work for you, please reply to this email or visit your <a href="https://www.fiscalx.ca/dashboard/" style="color: #4f46e5; font-weight: bold;">Client Portal</a>.</p>
+                    </div>
+                `;
+
+                await ses.send(new SendEmailCommand({
+                    Source: SENDER_EMAIL,
+                    Destination: { ToAddresses: [clientEmail], BccAddresses: [OFFICE_EMAIL] },
+                    Message: {
+                        Subject: { Charset: "UTF-8", Data: `[FiscalX] Consultation Rescheduled to ${newDate} @ ${newTime}` },
+                        Body: { Html: { Charset: "UTF-8", Data: rescheduleHtml } }
+                    }
+                }));
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Booking rescheduled and client notified." }) };
+            } catch (err) {
+                console.error("Reschedule Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION N: CANCEL BOOKING (STAFF CRM ACTION)
+        // ==============================================================
+        if (data.action === "cancelBooking") {
+            const { adminEmail, clientEmail, timestamp } = data;
+
+            const isAuthorized = await isStaff(adminEmail);
+            if (!isAuthorized) {
+                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
+            }
+
+            try {
+                await ddbDocClient.send(new UpdateCommand({
+                    TableName: TABLE_NAME,
+                    Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) },
+                    UpdateExpression: "set bookingDate = :c",
+                    ExpressionAttributeValues: { ":c": "CANCELLED" }
+                }));
+
+                const cancelHtml = `
+                    <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                        <h2 style="color: #ef4444; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
+                        <p style="font-size: 14px; color: #64748b; margin-top: 0;">Appointment Cancellation</p>
+                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                        <p style="font-size: 15px;">Hello,</p>
+                        <p style="font-size: 15px;">Your scheduled consultation with FiscalX Professional Corporation has been cancelled.</p>
+                        <p style="font-size: 14px; color: #475569;">If you believe this is an error or would like to rebook, please contact us at <a href="mailto:info@fiscalx.ca" style="color: #ef4444; font-weight: bold;">info@fiscalx.ca</a>.</p>
+                    </div>
+                `;
+
+                await ses.send(new SendEmailCommand({
+                    Source: SENDER_EMAIL,
+                    Destination: { ToAddresses: [clientEmail], BccAddresses: [OFFICE_EMAIL] },
+                    Message: {
+                        Subject: { Charset: "UTF-8", Data: `[FiscalX] Consultation Cancellation Notice` },
+                        Body: { Html: { Charset: "UTF-8", Data: cancelHtml } }
+                    }
+                }));
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Booking cancelled and client notified." }) };
+            } catch (err) {
+                console.error("Cancel Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
 
