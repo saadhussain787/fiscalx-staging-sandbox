@@ -1,6 +1,10 @@
 module.exports = function(eleventyConfig) {
-  // Tell Eleventy to copy your SVG logo and icons from the new frontend folder to the output folder
+  // Tell Eleventy to copy images, icons, and videos from the frontend folder to the output folder
   eleventyConfig.addPassthroughCopy("frontend/*.svg");
+  eleventyConfig.addPassthroughCopy("frontend/*.mp4");
+  eleventyConfig.addPassthroughCopy("frontend/*.webp");
+  eleventyConfig.addPassthroughCopy("frontend/*.jpg");
+  eleventyConfig.addPassthroughCopy("frontend/*.png");
 
   return {
     dir: {

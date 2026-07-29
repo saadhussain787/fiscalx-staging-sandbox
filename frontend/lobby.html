@@ -8,12 +8,8 @@
     /* TV Optimization & Aurora Animation */
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #0f172a; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #ffffff; }
     
-    .aurora-bg {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden; background: #0f172a;
-    }
-    .aurora-blob {
-      position: absolute; filter: blur(90px); opacity: 0.6; animation: float 20s infinite ease-in-out alternate;
-    }
+    .aurora-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden; background: #0f172a; }
+    .aurora-blob { position: absolute; filter: blur(90px); opacity: 0.6; animation: float 20s infinite ease-in-out alternate; }
     .blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #10b981; animation-delay: 0s; }
     .blob-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: #3b82f6; animation-delay: -5s; }
     .blob-3 { top: 40%; left: 30%; width: 40vw; height: 40vw; background: #064e3b; animation-delay: -10s; }
@@ -32,8 +28,8 @@
     }
 
     /* Carousel Fading Logic */
-    .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: 10; display: flex; align-items: center; justify-content: center; flex-direction: column; box-sizing: border-box; padding: 40px; }
-    .slide.active { opacity: 1; z-index: 20; }
+    .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: 10; display: flex; align-items: center; justify-content: center; flex-direction: column; box-sizing: border-box; padding: 40px; pointer-events: none; }
+    .slide.active { opacity: 1; z-index: 20; pointer-events: auto; }
 
     /* General UI Classes */
     .header { position: absolute; top: 0; left: 0; width: 100%; padding: 40px; display: flex; justify-content: space-between; align-items: center; z-index: 50; box-sizing: border-box; }
@@ -41,8 +37,8 @@
     .logo-x { color: #34d399; }
     .clock { font-size: 1.875rem; font-weight: 700; color: #e2e8f0; text-shadow: 0 4px 6px rgba(0,0,0,0.3); letter-spacing: 0.05em; }
 
-    .title-huge { font-size: 3.75rem; font-weight: 800; margin-bottom: 24px; text-shadow: 0 4px 10px rgba(0,0,0,0.4); }
-    .subtitle { font-size: 1.5rem; color: #6ee7b7; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 40px; }
+    .title-huge { font-size: 3.75rem; font-weight: 800; margin-bottom: 24px; text-shadow: 0 4px 10px rgba(0,0,0,0.4); text-align: center; }
+    .subtitle { font-size: 1.5rem; color: #6ee7b7; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 40px; text-align: center; }
     .rotating-txt { font-size: 2.25rem; font-weight: 700; color: #f1f5f9; transition: opacity 0.5s ease-in-out; }
 
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; width: 100%; text-align: left; }
@@ -52,19 +48,30 @@
 
     .qr-box { background: #ffffff; padding: 24px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2); margin-bottom: 32px; display: inline-block; }
     .qr-img { width: 256px; height: 256px; display: block; }
-    .scan-msg { font-size: 1.25rem; font-weight: 700; color: #34d399; letter-spacing: 0.05em; margin: 0; text-transform: uppercase; }
+    .scan-msg { font-size: 1.25rem; font-weight: 700; color: #34d399; letter-spacing: 0.05em; margin: 0; text-transform: uppercase; text-align: center; }
 
-    .review-text { font-size: 2.25rem; font-weight: 700; line-height: 1.6; margin-bottom: 40px; font-style: italic; text-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-    .review-stars { font-size: 3rem; margin-bottom: 32px; display: flex; justify-content: center; gap: 8px; }
+    .review-text { font-size: 2.25rem; font-weight: 700; line-height: 1.6; margin-bottom: 40px; font-style: italic; text-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: opacity 0.5s ease-in-out; }
+    .review-stars { font-size: 3rem; margin-bottom: 32px; display: flex; justify-content: flex-start; gap: 8px; }
 
-    /* Split Layout for Slide 5 */
-    .split-layout { display: flex; flex-direction: row; align-items: center; gap: 40px; width: 100%; text-align: left; }
-    .col-half { width: 50%; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-    .phone-frame { position: relative; width: 280px; height: 500px; background: #000000; border-radius: 40px; border: 10px solid #1e293b; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow: hidden; }
+    /* Split Layout for TV */
+    .split-layout { display: flex; flex-direction: row; align-items: center; gap: 60px; width: 100%; justify-content: center; }
+    .col-half { flex: 1; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; }
+    .col-left-align { align-items: flex-start; text-align: left; }
+    .phone-frame { position: relative; width: 320px; height: 560px; background: #000000; border-radius: 40px; border: 10px solid #1e293b; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow: hidden; }
+    
+    /* Native Video Player for TV Auto-play (No loop attribute so it can end!) */
+    .native-video { width: 100%; height: 100%; object-fit: cover; }
 
-    .social-title-box { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-    .social-title { font-size: 2.25rem; font-weight: 800; margin: 0; }
-    .social-desc { font-size: 1.25rem; color: #cbd5e1; margin-bottom: 32px; line-height: 1.6; }
+    .social-title-box { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 16px; }
+    .social-title { font-size: 2.5rem; font-weight: 800; margin: 0; }
+    .social-desc { font-size: 1.5rem; color: #cbd5e1; margin-bottom: 32px; line-height: 1.6; max-width: 400px; }
+
+    /* Table Styles for Hours & Contacts */
+    .tv-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .tv-table th, .tv-table td { padding: 20px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 1.5rem; }
+    .tv-table th { color: #34d399; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+    .tv-table td { font-weight: 600; color: #f8fafc; }
+    .highlight-cell { color: #60a5fa; font-weight: 800; }
   </style>
 </head>
 <body>
@@ -78,12 +85,8 @@
 
   <!-- Top Bar (Logo & Clock) -->
   <div class="header">
-    <div class="logo">
-      FISCAL<span class="logo-x">X</span>
-    </div>
-    <div id="live-clock" class="clock">
-      12:00 PM
-    </div>
+    <div class="logo">FISCAL<span class="logo-x">X</span></div>
+    <div id="live-clock" class="clock">12:00 PM</div>
   </div>
 
   <!-- SLIDE 1: Welcome & Services -->
@@ -97,34 +100,87 @@
     </div>
   </div>
 
-  <!-- SLIDE 2: Live CRA Tax Calendar -->
+  <!-- SLIDE 2: Office Hours -->
   <div id="slide-2" class="slide">
+    <div class="glass-panel" style="padding: 64px; max-width: 896px;">
+      <h1 class="title-huge">Hours of Operation</h1>
+      <p class="subtitle">255 Duncan Mill Rd, Suite 206</p>
+      <table class="tv-table">
+        <tr><th>Day</th><th>Hours</th></tr>
+        <tr><td>Monday – Friday</td><td class="highlight-cell">11:00 AM – 6:00 PM</td></tr>
+        <tr><td>Saturday – Sunday</td><td style="color: #ef4444;">Closed</td></tr>
+        <tr><td>Statutory Holidays</td><td style="color: #ef4444;">Closed</td></tr>
+      </table>
+      <div style="text-align: center; margin-top: 40px; font-size: 1.5rem; font-weight: 700; color: #94a3b8;">
+        Office Line: <span style="color: #34d399;">(647) 450-9235</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Live CRA Tax Calendar -->
+  <div id="slide-3" class="slide">
     <div class="glass-panel" style="padding: 64px; max-width: 1024px;">
-      <h1 class="title-huge" style="text-align: center; margin-bottom: 8px;">CRA Tax Deadlines</h1>
-      <p style="font-size: 1.25rem; color: #6ee7b7; text-align: center; margin-bottom: 40px;">Stay compliant. Avoid penalties.</p>
+      <h1 class="title-huge">CRA Tax Deadlines</h1>
+      <p class="subtitle">Stay compliant. Avoid penalties.</p>
       <div class="grid-2">
-        <div class="card-deadline">
-          <h3 class="date-badge">April 30</h3>
-          <p class="deadline-txt">T1 Personal Tax Deadline</p>
+        <div class="card-deadline"><h3 class="date-badge">April 30</h3><p class="deadline-txt">T1 Personal Tax Deadline</p></div>
+        <div class="card-deadline"><h3 class="date-badge">June 15</h3><p class="deadline-txt">Self-Employed (T2125) Deadline</p></div>
+        <div class="card-deadline"><h3 class="date-badge">Last Day of Feb</h3><p class="deadline-txt">T4 & T5 Slips Deadline</p></div>
+        <div class="card-deadline"><h3 class="date-badge">6 Months Post Year-End</h3><p class="deadline-txt">T2 Corporate Tax Filing</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Rotating Tax Tips (Mega Array) -->
+  <div id="slide-4" class="slide">
+    <div class="glass-panel" style="padding: 64px; max-width: 1024px; text-align: center;">
+      <h1 class="title-huge" style="color: #60a5fa;">💡 FiscalX Daily Tax Tip</h1>
+      <div style="height: 200px; display: flex; align-items: center; justify-content: center; margin-top: 20px;">
+        <h2 id="rotating-tip" class="rotating-txt" style="line-height: 1.4; font-size: 2rem;">"Did you know? Setting up a Personal Real Estate Corporation (PREC) can defer taxes and accelerate portfolio growth."</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: CRA & Gov Help Numbers -->
+  <div id="slide-5" class="slide">
+    <div class="glass-panel" style="padding: 64px; max-width: 960px;">
+      <h1 class="title-huge">Government Contacts</h1>
+      <p class="subtitle">Take a photo for your records 📸</p>
+      <table class="tv-table">
+        <tr><th>Agency Department</th><th>Phone Number</th></tr>
+        <tr><td>CRA Personal Taxes</td><td class="highlight-cell">1-800-959-8281</td></tr>
+        <tr><td>CRA Corporate Taxes</td><td class="highlight-cell">1-800-959-5525</td></tr>
+        <tr><td>Service Canada (EI/CPP)</td><td class="highlight-cell">1-800-206-7218</td></tr>
+        <tr><td>CRA Debt Collections</td><td class="highlight-cell">1-888-863-8657</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: TikTok Tax Hub (Smart Auto-playing Video) -->
+  <div id="slide-6" class="slide">
+    <div class="glass-panel" style="padding: 64px; max-width: 1024px;">
+      <div class="split-layout">
+        <div class="col-half">
+          <div class="phone-frame">
+            <!-- Notice there is NO 'loop' attribute. We want it to trigger the 'ended' event! -->
+            <video id="tiktok-video" class="native-video" muted playsinline>
+              <source src="/tiktok.mp4" type="video/mp4">
+              Your TV does not support HTML5 video.
+            </video>
+          </div>
         </div>
-        <div class="card-deadline">
-          <h3 class="date-badge">June 15</h3>
-          <p class="deadline-txt">Self-Employed (T2125) Deadline</p>
-        </div>
-        <div class="card-deadline">
-          <h3 class="date-badge">Last Day of Feb</h3>
-          <p class="deadline-txt">T4 & T5 Slips Deadline</p>
-        </div>
-        <div class="card-deadline">
-          <h3 class="date-badge">6 Months Post Year-End</h3>
-          <p class="deadline-txt">T2 Corporate Tax Filing</p>
+        <div class="col-half">
+          <div class="social-title-box"><span style="font-size: 3rem;">📱</span><h1 class="social-title">Daily Wealth Tips</h1></div>
+          <p class="social-desc">Scan to follow Wasim on TikTok. Learn Canadian tax loopholes and corporate write-offs in 60 seconds!</p>
+          <div class="qr-box"><img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://www.tiktok.com/@wasim.kadri.cpa" alt="TikTok QR" class="qr-img"></div>
+          <p class="scan-msg">FOLLOW @WASIM.KADRI.CPA</p>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- SLIDE 3: The QR Code Check-in -->
-  <div id="slide-3" class="slide">
+  <!-- SLIDE 7: The QR Code Check-in -->
+  <div id="slide-7" class="slide">
     <div class="glass-panel" style="padding: 64px; max-width: 896px; text-align: center;">
       <h1 class="title-huge">Client Check-In Portal</h1>
       <p style="font-size: 1.5rem; color: #cbd5e1; margin-bottom: 40px; margin-top: 0;">Scan to access your secure document vault</p>
@@ -135,47 +191,31 @@
     </div>
   </div>
 
-  <!-- SLIDE 4: 5-Star Reviews -->
-  <div id="slide-4" class="slide">
-    <div class="glass-panel" style="padding: 64px; max-width: 896px; text-align: center;">
-      <div class="review-stars">
-        <span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>
-      </div>
-      <h1 class="review-text">
-        "Wasim is incredibly knowledgeable and saved our business thousands of dollars in corporate taxes. The digital portal makes everything effortless."
-      </h1>
-      <p style="font-size: 1.5rem; color: #34d399; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">- Google Reviews</p>
-    </div>
-  </div>
-
-  <!-- SLIDE 5: TikTok Tax Hub -->
-  <div id="slide-5" class="slide">
-    <div class="glass-panel" style="padding: 40px; max-width: 1024px;">
+  <!-- SLIDE 8: Google Reviews Split View -->
+  <div id="slide-8" class="slide">
+    <div class="glass-panel" style="padding: 64px; max-width: 1100px;">
       <div class="split-layout">
-        <!-- Left Column: iPhone Video Frame -->
+        
+        <!-- Rotating Text Side -->
+        <div class="col-half col-left-align" style="border-right: 1px solid rgba(255,255,255,0.1); padding-right: 40px;">
+          <div class="review-stars"><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span></div>
+          <div style="height: 220px; display: flex; align-items: center; justify-content: flex-start;">
+            <h1 id="rotating-review" class="review-text" style="font-size: 2rem; margin-bottom: 0;">"Wasim is incredibly knowledgeable and saved our business thousands of dollars in corporate taxes."</h1>
+          </div>
+          <p style="font-size: 1.25rem; color: #34d399; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">- Verified Google Reviews</p>
+        </div>
+
+        <!-- Google Direct Link QR Code Side -->
         <div class="col-half">
-          <div class="phone-frame">
-            <iframe src="https://www.tiktok.com/embed/v2/7471412155238173958" 
-                    style="width: 100%; height: 100%; border: 0;" 
-                    allow="autoplay; encrypted-media; accelerometer; gyroscope; picture-in-picture" 
-                    allowfullscreen>
-            </iframe>
+          <h1 class="title-huge" style="font-size: 2.5rem; margin-bottom: 10px;">Love Our Service?</h1>
+          <p class="subtitle" style="font-size: 1.25rem; margin-bottom: 30px; text-transform: none;">Scan to drop us a 5-star review!</p>
+          <div class="qr-box">
+            <!-- Injecting your specific Google My Business link! -->
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://g.page/r/CTpc9sNV19OsEBM/review" alt="Google Review QR" class="qr-img">
           </div>
+          <p class="scan-msg">SCAN TO REVIEW 📸</p>
         </div>
-        <!-- Right Column: Follow Hand-off -->
-        <div class="col-half" style="align-items: flex-start; text-align: left;">
-          <div class="social-title-box">
-            <span style="font-size: 2.25rem;">📱</span>
-            <h1 class="social-title">Daily Wealth Tips</h1>
-          </div>
-          <p class="social-desc">
-            Scan to follow Wasim on TikTok. Learn core Canadian tax loopholes, corporate write-offs, and wealth strategies in 60 seconds!
-          </p>
-          <div class="qr-box" style="margin-bottom: 24px; align-self: center;">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://www.tiktok.com/@wasim.kadri.cpa" alt="Follow Wasim on TikTok" class="qr-img" style="width: 192px; height: 192px;">
-          </div>
-          <p class="scan-msg" style="align-self: center; font-size: 0.875rem;">FOLLOW @WASIM.KADRI.CPA 📸</p>
-        </div>
+
       </div>
     </div>
   </div>
@@ -184,38 +224,99 @@
     // 1. LIVE CLOCK LOGIC
     function updateClock() {
       const now = new Date();
-      let hours = now.getHours();
-      let minutes = now.getMinutes();
+      let hours = now.getHours(); let minutes = now.getMinutes();
       const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      hours = hours ? hours : 12; 
+      hours = hours % 12; hours = hours ? hours : 12; 
       minutes = minutes < 10 ? '0' + minutes : minutes;
       document.getElementById('live-clock').innerText = hours + ':' + minutes + ' ' + ampm;
     }
-    setInterval(updateClock, 1000);
-    updateClock();
+    setInterval(updateClock, 1000); updateClock();
 
-    // 2. SLIDE CAROUSEL LOGIC
-    let currentSlide = 1;
-    const totalSlides = 5;
-    setInterval(() => {
-      document.getElementById(`slide-${currentSlide}`).classList.remove('active');
-      currentSlide = currentSlide >= totalSlides ? 1 : currentSlide + 1;
-      document.getElementById(`slide-${currentSlide}`).classList.add('active');
-    }, 12000);
-
-    // 3. ROTATING SERVICES LOGIC
+    // 2. ROTATING SERVICES
     const services = ["Corporate Tax Planning", "Personal Tax Filing", "Virtual CFO Services", "CRA Audit Representation", "Bookkeeping & Payroll"];
-    let serviceIndex = 0;
-    const serviceEl = document.getElementById('rotating-service');
+    let serviceIndex = 0; const serviceEl = document.getElementById('rotating-service');
     setInterval(() => {
       serviceEl.style.opacity = 0;
-      setTimeout(() => {
-        serviceIndex = (serviceIndex + 1) % services.length;
-        serviceEl.innerText = services[serviceIndex];
-        serviceEl.style.opacity = 1;
-      }, 500);
-    }, 3000);
+      setTimeout(() => { serviceIndex = (serviceIndex + 1) % services.length; serviceEl.innerText = services[serviceIndex]; serviceEl.style.opacity = 1; }, 500);
+    }, 4000);
+
+    // 3. MASSIVE TAX TIPS ARRAY (Rotates dynamically)
+    const taxTips = [
+      '"Did you know? Setting up a Personal Real Estate Corporation (PREC) can defer taxes and accelerate portfolio growth."',
+      '"Tip: You can deduct a portion of your home internet and utilities if you work from home for your employer (T2200)."',
+      '"Reminder: Paying yourself dividends instead of a salary can save your corporation money on CPP premiums."',
+      '"Uber Drivers: Keep a strict logbook! You can deduct gas, repairs, and cell phone bills against your gig income."',
+      '"Fact: First-time home buyers in Canada can claim a non-refundable tax credit of up to $1,500."',
+      '"Business Owners: Taking clients out for meals and entertainment? You can deduct 50% of the cost."',
+      '"Did you know? Unused tuition credits can be carried forward indefinitely or transferred to a parent/spouse."',
+      '"Tip: Contributing to a TFSA not only builds tax-free wealth, but reduces your taxable income dollar-for-dollar today."',
+      '"Medical Expenses: You can bundle eligible medical expenses for any 12-month period ending in the current tax year."',
+      '"Corporate Tip: The Small Business Deduction (SBD) lowers federal corporate tax rates drastically on your first $500K of active business income."'
+    ];
+    let tipIndex = 0; const tipEl = document.getElementById('rotating-tip');
+    setInterval(() => {
+      tipEl.style.opacity = 0;
+      setTimeout(() => { tipIndex = (tipIndex + 1) % taxTips.length; tipEl.innerText = taxTips[tipIndex]; tipEl.style.opacity = 1; }, 500);
+    }, 6000);
+
+    // 4. ROTATING REVIEWS
+    const reviews = [
+      '"Wasim is incredibly knowledgeable and saved our business thousands of dollars in corporate taxes."',
+      '"The digital portal makes uploading my documents completely effortless. A modern accounting firm!"',
+      '"Fast, professional, and genuinely cares about maximizing my return. Highly recommended."',
+      '"FiscalX helped me structure my real estate investments properly. The peace of mind is priceless."'
+    ];
+    let reviewIndex = 0; const reviewEl = document.getElementById('rotating-review');
+    setInterval(() => {
+      reviewEl.style.opacity = 0;
+      setTimeout(() => { reviewIndex = (reviewIndex + 1) % reviews.length; reviewEl.innerText = reviews[reviewIndex]; reviewEl.style.opacity = 1; }, 500);
+    }, 7000);
+
+    // =========================================================
+    // 5. THE SMART VIDEO CAROUSEL ENGINE
+    // =========================================================
+    let currentSlide = 1;
+    const totalSlides = 8;
+    let slideTimer;
+
+    function startCarousel() {
+      // 1. Hide all slides
+      document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+      
+      // 2. Show the current slide
+      const activeSlide = document.getElementById(`slide-${currentSlide}`);
+      activeSlide.classList.add('active');
+
+      // 3. The Smart Timer Check
+      if (currentSlide === 6) {
+        // If it's the TikTok Slide, DO NOT use a fixed timer. Play the video and wait!
+        const vid = document.getElementById('tiktok-video');
+        vid.currentTime = 0; // Rewind to start
+        
+        vid.play().catch(e => {
+          // Fallback just in case the TV blocks autoplay
+          slideTimer = setTimeout(nextSlide, 15000);
+        });
+
+        // When the video naturally ends, go to the next slide!
+        vid.onended = () => {
+          nextSlide();
+        };
+
+      } else {
+        // Normal slides get exactly 15 seconds
+        slideTimer = setTimeout(nextSlide, 15000);
+      }
+    }
+
+    function nextSlide() {
+      clearTimeout(slideTimer); // Clear any running timers to prevent double-skipping
+      currentSlide = currentSlide >= totalSlides ? 1 : currentSlide + 1;
+      startCarousel();
+    }
+
+    // Kick off the carousel when the TV loads the page
+    startCarousel();
   </script>
 </body>
 </html>
