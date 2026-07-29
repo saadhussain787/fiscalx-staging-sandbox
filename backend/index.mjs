@@ -1168,46 +1168,51 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
-        // ACTION Q: PERMANENTLY DELETE CLIENT CARD FROM DYNAMODB
+// ==============================================================
+        // ACTION Q: PERMANENTLY DELETE ALL CLIENT RECORDS FROM DYNAMODB
         // ==============================================================
         if (data.action === "deleteClient") {
-            const { adminEmail, clientEmail, timestamp } = data;
+            const { adminEmail, clientEmail } = data;
 
             const isAuthorized = await isStaff(adminEmail);
             if (!isAuthorized) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
             }
 
+            if (!clientEmail) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing client email key." }) };
+            }
+
             try {
-                // Delete Outlook Event if msEventId exists
+                // 1. Scan for ALL historical records for this client email
                 const scanRes = await ddbDocClient.send(new ScanCommand({
                     TableName: TABLE_NAME,
-                    FilterExpression: "userEmail = :e AND #ts = :t",
-                    ExpressionAttributeNames: { "#ts": "timestamp" },
-                    ExpressionAttributeValues: { ":e": String(clientEmail), ":t": String(timestamp) }
+                    FilterExpression: "userEmail = :e",
+                    ExpressionAttributeValues: { ":e": String(clientEmail) }
                 }));
-                const item = (scanRes.Items || [])[0];
+                const items = scanRes.Items || [];
 
-                if (item && item.msEventId) {
-                    const accessToken = await getMsAccessToken();
-                    if (accessToken) {
+                const accessToken = await getMsAccessToken();
+
+                // 2. Loop through every record, delete Outlook events & DynamoDB rows
+                for (const item of items) {
+                    if (item.msEventId && accessToken) {
                         try {
                             await fetch(`https://graph.microsoft.com/v1.0/me/events/${item.msEventId}`, {
                                 method: "DELETE",
                                 headers: { "Authorization": `Bearer ${accessToken}` }
                             });
+                            console.log("Deleted Outlook event:", item.msEventId);
                         } catch (e) { console.error("Outlook Event Delete Error:", e); }
                     }
+
+                    await ddbDocClient.send(new DeleteCommand({
+                        TableName: TABLE_NAME,
+                        Key: { "userEmail": item.userEmail, "timestamp": item.timestamp }
+                    }));
                 }
 
-                // Delete item from DynamoDB
-                await ddbDocClient.send(new DeleteCommand({
-                    TableName: TABLE_NAME,
-                    Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) }
-                }));
-
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Record permanently deleted." }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: `All records for ${clientEmail} permanently deleted.` }) };
 
             } catch (err) {
                 console.error("Delete Record Error:", err);
