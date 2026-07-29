@@ -3,10 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FiscalX Professional Corporation</title>
     
-    <!-- Production tailwind styles will compile here in Phase 2 -->
+    <!-- LEVEL 1: Dynamic SEO Titles & Meta Descriptions -->
+    <title>{{ title | default: "FiscalX Professional Corporation | Wasim Kadri, CPA" }}</title>
+    <meta name="description" content="{{ description | default: 'Expert corporate tax planning, personal tax filing, and accounting services by Wasim Kadri, CPA in North York, ON.' }}">
+    <meta name="keywords" content="Wasim Kadri CPA, FiscalX, Corporate Tax Accountant North York, Personal Tax Filing Toronto, Small Business Bookkeeping, T2 Corporate Tax, T1 Personal Tax, Comptable Toronto, Tax Advisor, CPA near me">
+    <meta name="author" content="Wasim Kadri, CPA">
+    
+    <!-- LEVEL 2: Canonical URL (Prevents duplicate content penalties) -->
+    <link rel="canonical" href="https://www.fiscalx.ca{{ page.url | default: '/' }}" />
+    
+    <!-- LEVEL 1: Open Graph (OG) Tags for beautiful iMessage/LinkedIn/Facebook Link Previews -->
+    <meta property="og:title" content="{{ title | default: 'FiscalX Professional Corporation | Wasim Kadri, CPA' }}" />
+    <meta property="og:description" content="{{ description | default: 'Expert corporate tax planning, personal tax filing, and accounting services by Wasim Kadri, CPA.' }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.fiscalx.ca{{ page.url | default: '/' }}" />
+    <meta property="og:image" content="https://www.fiscalx.ca/logo.svg" />
+    
+    <!-- Multi-Language Global Routing -->
+    <link rel="alternate" hreflang="en-ca" href="https://www.fiscalx.ca{{ page.url | default: '/' }}" />
+    <link rel="alternate" hreflang="x-default" href="https://www.fiscalx.ca{{ page.url | default: '/' }}" />
+    
+    <!-- Production tailwind styles -->
     <link rel="stylesheet" href="/style.css" />
+
+    <!-- Google Structured Data (JSON-LD) for Maximum SEO Rank -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": ["AccountingService", "LocalBusiness"],
+      "name": "FiscalX Professional Corporation",
+      "alternateName": "Wasim Kadri, CPA",
+      "image": "https://www.fiscalx.ca/logo.svg",
+      "url": "https://www.fiscalx.ca",
+      "telephone": "+16474509235",
+      "email": "info@fiscalx.ca",
+      "founder": {
+        "@type": "Person",
+        "name": "Wasim Kadri",
+        "jobTitle": "Chartered Professional Accountant (CPA)"
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "255 Duncan Mill Rd, Suite 206",
+        "addressLocality": "North York",
+        "addressRegion": "ON",
+        "postalCode": "M3B 3H9",
+        "addressCountry": "CA"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 43.7573,
+        "longitude": -79.3512
+      },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "11:00",
+        "closes": "18:00"
+      },
+      "sameAs": [
+        "https://www.tiktok.com/@wasim.kadri.cpa",
+        "https://g.page/r/CTpc9sNV19OsEBM/review"
+      ],
+      "priceRange": "$$"
+    }
+    </script>
 
     <!-- Custom Marquee Styling -->
     <style>
@@ -93,7 +155,7 @@
   </header>
 
   <!-- Page Specific Content Injected Here -->
-  <main class="flex-grow pb-24 sm:pb-0"> <!-- Added padding bottom so floating buttons don't block content -->
+  <main class="flex-grow pb-24 sm:pb-0"> 
       {{ content }}
   </main>
 
