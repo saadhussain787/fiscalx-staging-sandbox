@@ -390,8 +390,8 @@ export const handler = async (event) => {
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Your onboarding organizer and files have been securely compiled and delivered." }) };
         }
 
-        // ==============================================================
-        // ACTION E: FETCH CRM DATA FOR ADMIN PORTAL
+// ==============================================================
+        // ACTION E: FETCH CRM DATA FOR ADMIN PORTAL (FILTERS SYSTEM_CONFIG)
         // ==============================================================
         if (data.action === "getCrmData") {
             const adminEmail = data.adminEmail;
@@ -403,7 +403,9 @@ export const handler = async (event) => {
 
             const scanParams = { TableName: TABLE_NAME };
             const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
-            const clients = scanResult.Items || [];
+            
+            // FILTER OUT INTERNAL SYSTEM CONFIG CARDS
+            const clients = (scanResult.Items || []).filter(c => c.userEmail !== "SYSTEM_CONFIG");
 
             const total = clients.length;
             const inProgress = clients.filter(c => c.campaignStatus === 'Pending' || c.campaignStatus === 'In Progress').length;
@@ -677,6 +679,7 @@ export const handler = async (event) => {
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Failed to unlock document vault." }) };
             }
         }
+
         // ==============================================================
         // ACTION O: EXCHANGE MICROSOFT OAUTH CODE FOR REFRESH TOKEN
         // ==============================================================
@@ -754,7 +757,6 @@ export const handler = async (event) => {
                 const startDateTime = `${bookingDate}T00:00:00`;
                 const endDateTime = `${bookingDate}T23:59:59`;
 
-                // TARGET /v1.0/me/ FOR AUTHENTICATED OAUTH USER
                 const scheduleRes = await fetch(`https://graph.microsoft.com/v1.0/me/calendar/getSchedule`, {
                     method: 'POST',
                     headers: {
@@ -833,7 +835,7 @@ export const handler = async (event) => {
         }
 
         // ==============================================================
-        // ACTION L: SUBMIT NEW BOOKING (HANDLES createBooking & submitBooking)
+        // ACTION L: SUBMIT NEW BOOKING (CAPTURES msEventId FOR OUTLOOK SYNC)
         // ==============================================================
         if (data.action === "createBooking" || data.action === "submitBooking") {
             const userEmail = data.email || data.userEmail;
@@ -848,7 +850,7 @@ export const handler = async (event) => {
             }
 
             try {
-                let msEventCreated = false;
+                let msEventId = null;
                 const accessToken = await getMsAccessToken();
 
                 if (accessToken) {
@@ -889,7 +891,6 @@ export const handler = async (event) => {
                             ]
                         };
 
-                        // TARGET /v1.0/me/events FOR OAUTH TOKEN DELEGATION
                         const graphRes = await fetch(`https://graph.microsoft.com/v1.0/me/events`, {
                             method: "POST",
                             headers: {
@@ -900,8 +901,9 @@ export const handler = async (event) => {
                         });
 
                         if (graphRes.ok) {
-                            msEventCreated = true;
-                            console.log("Successfully created event on Wasim's Outlook Calendar.");
+                            const graphData = await graphRes.json();
+                            msEventId = graphData.id || null;
+                            console.log("Successfully created event on Wasim's Outlook Calendar. EventID:", msEventId);
                         } else {
                             const errData = await graphRes.json();
                             console.error("Microsoft Graph Event Creation Error:", JSON.stringify(errData));
@@ -922,6 +924,7 @@ export const handler = async (event) => {
                         bookingTime: bookingTime,
                         meetingType: meetingType,
                         phone: phone,
+                        msEventId: msEventId,
                         campaignStatus: "Pending",
                         paymentConfirmed: false,
                         finalFiles: [],
@@ -957,7 +960,7 @@ export const handler = async (event) => {
 
                 return {
                     statusCode: 200, headers: headers,
-                    body: JSON.stringify({ status: "SUCCESS", message: "Booking confirmed, Outlook calendar synced, and confirmation email delivered.", outlookSynced: msEventCreated })
+                    body: JSON.stringify({ status: "SUCCESS", message: "Booking confirmed, Outlook calendar synced, and confirmation email delivered.", msEventId: msEventId })
                 };
 
             } catch (err) {
@@ -967,7 +970,7 @@ export const handler = async (event) => {
         }
 
         // ==============================================================
-        // ACTION M: RESCHEDULE BOOKING (STAFF CRM ACTION + OUTLOOK SYNC)
+        // ACTION M: RESCHEDULE BOOKING (MOVES EXISTING OUTLOOK EVENT)
         // ==============================================================
         if (data.action === "rescheduleBooking") {
             const { adminEmail, clientEmail, timestamp, newDate, newTime } = data;
@@ -982,50 +985,82 @@ export const handler = async (event) => {
             }
 
             try {
-                // 1. Post Rescheduled Event to Wasim's Outlook
+                // Fetch active record to get msEventId
+                const scanRes = await ddbDocClient.send(new ScanCommand({
+                    TableName: TABLE_NAME,
+                    FilterExpression: "userEmail = :e AND #ts = :t",
+                    ExpressionAttributeNames: { "#ts": "timestamp" },
+                    ExpressionAttributeValues: { ":e": String(clientEmail), ":t": String(timestamp) }
+                }));
+                const existingItem = (scanRes.Items || [])[0];
+                const msEventId = existingItem?.msEventId;
+
                 const accessToken = await getMsAccessToken();
+
                 if (accessToken) {
-                    try {
-                        const timeParts = newTime.replace(" EST", "").trim().split(" ");
-                        let [hours, minutes] = timeParts[0].split(":").map(Number);
-                        const ampm = timeParts[1];
+                    const timeParts = newTime.replace(" EST", "").trim().split(" ");
+                    let [hours, minutes] = timeParts[0].split(":").map(Number);
+                    const ampm = timeParts[1];
 
-                        if (ampm === "PM" && hours !== 12) hours += 12;
-                        if (ampm === "AM" && hours === 12) hours = 0;
+                    if (ampm === "PM" && hours !== 12) hours += 12;
+                    if (ampm === "AM" && hours === 12) hours = 0;
 
-                        const startHourStr = hours.toString().padStart(2, '0');
-                        const startMinStr = minutes.toString().padStart(2, '0');
+                    const startHourStr = hours.toString().padStart(2, '0');
+                    const startMinStr = minutes.toString().padStart(2, '0');
 
-                        let endHours = hours;
-                        let endMinutes = minutes + 30;
-                        if (endMinutes >= 60) {
-                            endHours += 1;
-                            endMinutes -= 60;
-                        }
-                        const endHourStr = endHours.toString().padStart(2, '0');
-                        const endMinStr = endMinutes.toString().padStart(2, '0');
+                    let endHours = hours;
+                    let endMinutes = minutes + 30;
+                    if (endMinutes >= 60) {
+                        endHours += 1;
+                        endMinutes -= 60;
+                    }
+                    const endHourStr = endHours.toString().padStart(2, '0');
+                    const endMinStr = endMinutes.toString().padStart(2, '0');
 
-                        const startDateTime = `${newDate}T${startHourStr}:${startMinStr}:00`;
-                        const endDateTime = `${newDate}T${endHourStr}:${endMinStr}:00`;
+                    const startDateTime = `${newDate}T${startHourStr}:${startMinStr}:00`;
+                    const endDateTime = `${newDate}T${endHourStr}:${endMinStr}:00`;
 
-                        await fetch(`https://graph.microsoft.com/v1.0/me/events`, {
+                    if (msEventId) {
+                        // PATCH existing event to MOVE it on Outlook (Frees old slot!)
+                        await fetch(`https://graph.microsoft.com/v1.0/me/events/${msEventId}`, {
+                            method: "PATCH",
+                            headers: {
+                                "Authorization": `Bearer ${accessToken}`,
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                start: { dateTime: startDateTime, timeZone: "Eastern Standard Time" },
+                                end: { dateTime: endDateTime, timeZone: "Eastern Standard Time" }
+                            })
+                        });
+                    } else {
+                        // If no eventId exists, create a fresh one
+                        const graphRes = await fetch(`https://graph.microsoft.com/v1.0/me/events`, {
                             method: "POST",
                             headers: {
                                 "Authorization": `Bearer ${accessToken}`,
                                 "Content-Type": "application/json"
                             },
                             body: JSON.stringify({
-                                subject: `[RESCHEDULED] FiscalX Consultation: ${clientEmail}`,
-                                body: { contentType: "HTML", content: `<p>Rescheduled appointment for ${clientEmail}</p>` },
+                                subject: `FiscalX Consultation: ${clientEmail}`,
                                 start: { dateTime: startDateTime, timeZone: "Eastern Standard Time" },
                                 end: { dateTime: endDateTime, timeZone: "Eastern Standard Time" },
                                 attendees: [{ emailAddress: { address: clientEmail }, type: "required" }]
                             })
                         });
-                    } catch (rescheduleMsErr) { me; console.error("Reschedule Outlook Sync Error:", rescheduleMsErr); }
+                        if (graphRes.ok) {
+                            const newEv = await graphRes.json();
+                            await ddbDocClient.send(new UpdateCommand({
+                                TableName: TABLE_NAME,
+                                Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) },
+                                UpdateExpression: "set msEventId = :id",
+                                ExpressionAttributeValues: { ":id": newEv.id }
+                            }));
+                        }
+                    }
                 }
 
-                // 2. Update DynamoDB
+                // Update DynamoDB record
                 await ddbDocClient.send(new UpdateCommand({
                     TableName: TABLE_NAME,
                     Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) },
@@ -1033,7 +1068,6 @@ export const handler = async (event) => {
                     ExpressionAttributeValues: { ":d": String(newDate), ":t": String(newTime) }
                 }));
 
-                // 3. Send Client Email Notification
                 const rescheduleHtml = `
                     <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
                         <h2 style="color: #4f46e5; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
@@ -1058,15 +1092,15 @@ export const handler = async (event) => {
                     }
                 }));
 
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Booking rescheduled and client notified." }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Booking rescheduled, Outlook updated, and client notified." }) };
             } catch (err) {
                 console.error("Reschedule Error:", err);
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
-        
+
         // ==============================================================
-        // ACTION N: CANCEL BOOKING (STAFF CRM ACTION)
+        // ACTION N: CANCEL BOOKING (DELETES OUTLOOK EVENT & FREES SLOT)
         // ==============================================================
         if (data.action === "cancelBooking") {
             const { adminEmail, clientEmail, timestamp } = data;
@@ -1077,6 +1111,29 @@ export const handler = async (event) => {
             }
 
             try {
+                // Delete Event from Outlook if msEventId exists
+                const scanRes = await ddbDocClient.send(new ScanCommand({
+                    TableName: TABLE_NAME,
+                    FilterExpression: "userEmail = :e AND #ts = :t",
+                    ExpressionAttributeNames: { "#ts": "timestamp" },
+                    ExpressionAttributeValues: { ":e": String(clientEmail), ":t": String(timestamp) }
+                }));
+                const existingItem = (scanRes.Items || [])[0];
+                const msEventId = existingItem?.msEventId;
+
+                if (msEventId) {
+                    const accessToken = await getMsAccessToken();
+                    if (accessToken) {
+                        try {
+                            await fetch(`https://graph.microsoft.com/v1.0/me/events/${msEventId}`, {
+                                method: "DELETE",
+                                headers: { "Authorization": `Bearer ${accessToken}` }
+                            });
+                            console.log("Successfully deleted event from Outlook:", msEventId);
+                        } catch (delErr) { console.error("Outlook Event Delete Error:", delErr); }
+                    }
+                }
+
                 await ddbDocClient.send(new UpdateCommand({
                     TableName: TABLE_NAME,
                     Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) },
@@ -1104,9 +1161,56 @@ export const handler = async (event) => {
                     }
                 }));
 
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Booking cancelled and client notified." }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Booking cancelled, Outlook event removed, and client notified." }) };
             } catch (err) {
                 console.error("Cancel Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION Q: PERMANENTLY DELETE CLIENT CARD FROM DYNAMODB
+        // ==============================================================
+        if (data.action === "deleteClient") {
+            const { adminEmail, clientEmail, timestamp } = data;
+
+            const isAuthorized = await isStaff(adminEmail);
+            if (!isAuthorized) {
+                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
+            }
+
+            try {
+                // Delete Outlook Event if msEventId exists
+                const scanRes = await ddbDocClient.send(new ScanCommand({
+                    TableName: TABLE_NAME,
+                    FilterExpression: "userEmail = :e AND #ts = :t",
+                    ExpressionAttributeNames: { "#ts": "timestamp" },
+                    ExpressionAttributeValues: { ":e": String(clientEmail), ":t": String(timestamp) }
+                }));
+                const item = (scanRes.Items || [])[0];
+
+                if (item && item.msEventId) {
+                    const accessToken = await getMsAccessToken();
+                    if (accessToken) {
+                        try {
+                            await fetch(`https://graph.microsoft.com/v1.0/me/events/${item.msEventId}`, {
+                                method: "DELETE",
+                                headers: { "Authorization": `Bearer ${accessToken}` }
+                            });
+                        } catch (e) { console.error("Outlook Event Delete Error:", e); }
+                    }
+                }
+
+                // Delete item from DynamoDB
+                await ddbDocClient.send(new DeleteCommand({
+                    TableName: TABLE_NAME,
+                    Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) }
+                }));
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Record permanently deleted." }) };
+
+            } catch (err) {
+                console.error("Delete Record Error:", err);
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
