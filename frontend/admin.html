@@ -46,6 +46,9 @@
           <p class="text-sm text-slate-400 mt-1">Logged in as: <span id="active-admin-email" class="text-teal-300 font-medium"></span></p>
         </div>
         <div class="mt-4 md:mt-0 flex gap-3">
+          <button id="btn-ms-connect" onclick="connectMicrosoft()" class="hidden px-4 py-2 rounded-lg bg-[#0078D4] border border-[#005A9E] text-white text-sm font-bold hover:bg-[#005A9E] transition shadow-md shadow-blue-500/20">
+            🔗 Connect Outlook
+          </button>
           <button id="admin-logout-btn" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition">
             Sign Out
           </button>
@@ -118,7 +121,7 @@
           </div>
         </div>
 
-        <!-- UPGRADED: NATIVE CALENDAR & CLOCK RESCHEDULER BOX -->
+        <!-- NATIVE CALENDAR & CLOCK RESCHEDULER BOX -->
         <div id="modal-appointment-box" class="hidden bg-purple-500/10 border border-purple-500/30 rounded-2xl p-4 space-y-3">
           <div class="flex items-center justify-between">
             <span class="text-[10px] uppercase font-extrabold text-purple-400 tracking-wider">📅 Requested Consultation</span>
@@ -244,6 +247,9 @@
     const COGNITO_CLIENT_ID = "79d4qhnedttr14qh6gakkh5hk0";
     const COGNITO_REGION = "ca-central-1";
     const API_URL = "https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact"; 
+    
+    // Microsoft Client ID for OAuth
+    const MS_CLIENT_ID = "359dc7f8-359d-47ab-abcf-c0129559aacb";
 
     const loginScreen = document.getElementById('admin-login-screen');
     const crmScreen = document.getElementById('admin-crm-screen');
@@ -280,9 +286,44 @@
       if (token && email && groups.includes('Staff')) { showCRM(email); } else if (token) { showLogin(); }
     });
 
+    // Microsoft OAuth Redirection Logic
+    function connectMicrosoft() {
+      const redirectUri = encodeURIComponent("https://www.fiscalx.ca/admin/");
+      const scope = encodeURIComponent("offline_access Calendars.ReadWrite Mail.Send User.Read");
+      const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MS_CLIENT_ID}&response_type=code&redirect_uri=${redirectUri}&scope=${scope}&response_mode=query`;
+      window.location.href = authUrl;
+    }
+
     async function showCRM(email) {
       loginScreen.classList.add('hidden'); crmScreen.classList.remove('hidden'); displayEmail.innerText = email;
-      document.getElementById('kanban-status').innerText = "Syncing with secure AWS vault...";
+      
+      const msBtn = document.getElementById('btn-ms-connect');
+      if (msBtn) msBtn.classList.remove('hidden');
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const msCode = urlParams.get('code');
+      if (msCode) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        document.getElementById('kanban-status').innerText = "Exchanging Microsoft Token securely...";
+        try {
+          const msRes = await fetch(API_URL, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: "exchangeMsCode", adminEmail: email, code: msCode })
+          });
+          const msData = await msRes.json();
+          if (msData.status === 'SUCCESS') {
+            alert("✅ Outlook Calendar Successfully Connected to AWS!");
+            document.getElementById('kanban-status').innerText = "Outlook Synced.";
+          } else {
+            alert("Failed to connect Outlook: " + msData.message);
+          }
+        } catch(e) {
+          alert("Network error connecting Outlook to AWS.");
+        }
+      } else {
+        document.getElementById('kanban-status').innerText = "Syncing with secure AWS vault...";
+      }
+
       try {
         const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "getCrmData", adminEmail: email }) });
         const result = await response.json();
@@ -292,7 +333,7 @@
           const inProgress = deduplicatedClients.filter(c => c.campaignStatus === 'Pending' || c.campaignStatus === 'In Progress').length;
           const completed = deduplicatedClients.filter(c => c.campaignStatus === 'Completed').length;
           document.getElementById('stat-total').innerText = total; document.getElementById('stat-progress').innerText = inProgress; document.getElementById('stat-completed').innerText = completed;
-          document.getElementById('kanban-status').innerText = ""; 
+          if (!msCode) document.getElementById('kanban-status').innerText = ""; 
           window.allClients = deduplicatedClients; renderKanbanBoard(deduplicatedClients);
         } else { document.getElementById('kanban-status').innerText = "Error fetching data."; }
       } catch (error) { document.getElementById('kanban-status').innerText = "Network Error connecting to Database."; }
@@ -603,7 +644,6 @@
       } catch (err) { alert("Network error updating status."); } finally { spinner.classList.add('hidden'); dropdown.disabled = false; }
     }
 
-    // Toggle Fast Reschedule Inline Picker with Past-Date Lock
     function toggleRescheduleForm(show) {
       const container = document.getElementById('reschedule-form-container');
       if (container) {
@@ -612,6 +652,15 @@
           if (dateInput) {
             const todayStr = new Date().toISOString().split('T')[0];
             dateInput.setAttribute('min', todayStr);
+            dateInput.onchange = (e) => {
+              if (!e.target.value) return;
+              const selectedDateObj = new Date(e.target.value);
+              const dayOfWeek = new Date(selectedDateObj.getTime() + Math.abs(selectedDateObj.getTimezoneOffset() * 60000)).getDay();
+              if (dayOfWeek === 0 || dayOfWeek === 6) {
+                alert("Our office is closed on weekends. Please select a date between Monday and Friday.");
+                e.target.value = ""; 
+              }
+            };
           }
           container.classList.remove('hidden');
         } else {
@@ -620,7 +669,6 @@
       }
     }
 
-    // Submit Reschedule with Weekend & Past-Date Validation
     async function submitAdminReschedule(btnElement) {
       const newDate = document.getElementById('admin-reschedule-date').value;
       const newTime = document.getElementById('admin-reschedule-time').value;
@@ -630,7 +678,6 @@
         return; 
       }
 
-      // Weekend Prevention Check (0 = Sunday, 6 = Saturday)
       const selectedDateObj = new Date(newDate);
       const dayOfWeek = new Date(selectedDateObj.getTime() + Math.abs(selectedDateObj.getTimezoneOffset() * 60000)).getDay();
       if (dayOfWeek === 0 || dayOfWeek === 6) {
@@ -661,7 +708,6 @@
       finally { btnElement.disabled = false; btnElement.innerText = "Save New Time & Email Client"; }
     }
 
-    // 1-Click Appointment Cancellation
     async function adminCancelAppointment() {
       if (!confirm("Are you sure you want to cancel this appointment? An automated notice will be emailed to the client.")) return;
       const adminEmail = localStorage.getItem('admin_email');
