@@ -294,7 +294,7 @@
       window.location.href = authUrl;
     }
 
-    async function showCRM(email) {
+async function showCRM(email) {
       loginScreen.classList.add('hidden'); crmScreen.classList.remove('hidden'); displayEmail.innerText = email;
       
       const msBtn = document.getElementById('btn-ms-connect');
