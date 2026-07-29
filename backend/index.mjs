@@ -16,6 +16,10 @@ const TABLE_NAME = "fiscalx-client-onboarding";
 const USER_POOL_ID = "ca-central-1_omKzLVfdI"; 
 const SENDER_EMAIL = "info@fiscalx.ca"; 
 const OFFICE_EMAIL = "info@fiscalx.ca"; 
+const MS_CLIENT_ID = "359dc7f8-359d-47ab-abcf-c0129559aacb";
+const MS_TENANT_ID = "8793dd74-ad92-4663-a197-95c9e0955c5e";
+const MS_CLIENT_SECRET = "Jbe8Q~z4CWAUoIPDaLzGLCHW7_oYZH4XQyM2Xayv"; 
+const MS_REDIRECT_URI = "https://www.fiscalx.ca/admin/";
 
 const AUTHORIZED_STAFF = [
     "wasim@fiscalx.ca",
@@ -741,6 +745,213 @@ export const handler = async (event) => {
             } catch (err) {
                 console.error("Booking Lambda Error:", err);
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION M: CANCEL BOOKING APPOINTMENT (FROM ADMIN CRM)
+        // ==============================================================
+        if (data.action === "cancelBooking") {
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+            
+            await ddbDocClient.send(new UpdateCommand({
+                TableName: TABLE_NAME,
+                Key: { "userEmail": String(data.clientEmail), "timestamp": String(data.timestamp) },
+                UpdateExpression: "set bookingDate = :c, bookingTime = :c, notes = :n",
+                ExpressionAttributeValues: { ":c": "CANCELLED", ":n": "[APPOINTMENT CANCELLED BY OFFICE]" }
+            }));
+
+            const cancelEmailHtml = `
+                <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                    <h2 style="color: #ef4444; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
+                    <p style="font-size: 14px; color: #64748b; margin-top: 0;">Appointment Status Update</p>
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                    <p style="font-size: 15px;">Hello,</p>
+                    <p style="font-size: 15px;">Your requested consultation with Wasim Kadri, CPA has been cancelled by our administrative office.</p>
+                    <p style="font-size: 14px; color: #64748b;">If you wish to choose a new time slot, please visit our <a href="https://www.fiscalx.ca/contact-us/" style="color: #4f46e5; font-weight: bold;">Online Booking Calendar</a>.</p>
+                </div>
+            `;
+            await ses.send(new SendEmailCommand({
+                Source: SENDER_EMAIL, Destination: { ToAddresses: [data.clientEmail] },
+                Message: { Subject: { Charset: "UTF-8", Data: `Appointment Notice - FiscalX` }, Body: { Html: { Charset: "UTF-8", Data: cancelEmailHtml } } }
+            }));
+
+            return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Appointment cancelled and client notified." }) };
+        }
+
+        // ==============================================================
+        // ACTION N: RESCHEDULE BOOKING APPOINTMENT (FROM ADMIN CRM)
+        // ==============================================================
+        if (data.action === "rescheduleBooking") {
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+            
+            await ddbDocClient.send(new UpdateCommand({
+                TableName: TABLE_NAME,
+                Key: { "userEmail": String(data.clientEmail), "timestamp": String(data.timestamp) },
+                UpdateExpression: "set bookingDate = :d, bookingTime = :t, notes = :n",
+                ExpressionAttributeValues: { ":d": String(data.newDate), ":t": String(data.newTime), ":n": `[RESCHEDULED BY OFFICE] ${data.newDate} at ${data.newTime}` }
+            }));
+
+            const rescheduleHtml = `
+                <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                    <h2 style="color: #4f46e5; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
+                    <p style="font-size: 14px; color: #64748b; margin-top: 0;">Appointment Rescheduled</p>
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                    <p style="font-size: 15px;">Hello,</p>
+                    <p style="font-size: 15px;">Your consultation with Wasim Kadri, CPA has been rescheduled to <strong>${data.newDate} at ${data.newTime} EST</strong>.</p>
+                </div>
+            `;
+            await ses.send(new SendEmailCommand({
+                Source: SENDER_EMAIL, Destination: { ToAddresses: [data.clientEmail] },
+                Message: { Subject: { Charset: "UTF-8", Data: `Appointment Rescheduled - FiscalX` }, Body: { Html: { Charset: "UTF-8", Data: rescheduleHtml } } }
+            }));
+
+            return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Appointment rescheduled and client notified." }) };
+        }
+
+        // ==============================================================
+        // ACTION O: EXCHANGE MICROSOFT OAUTH CODE FOR REFRESH TOKEN
+        // ==============================================================
+        if (data.action === "exchangeMsCode") {
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+
+            const msCode = data.code;
+            if (!msCode) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing Microsoft Authorization Code." }) };
+
+            try {
+                // 1. Trade the code for an Access Token & Refresh Token from Microsoft
+                const tokenResponse = await fetch(`https://login.microsoftonline.com/common/oauth2/v2.0/token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        client_id: MS_CLIENT_ID,
+                        client_secret: MS_CLIENT_SECRET,
+                        code: msCode,
+                        redirect_uri: MS_REDIRECT_URI,
+                        grant_type: 'authorization_code'
+                    })
+                });
+
+                const tokenData = await tokenResponse.json();
+                
+                if (tokenData.error) {
+                    throw new Error(tokenData.error_description || tokenData.error);
+                }
+
+                // 2. Save the Refresh Token in DynamoDB (so Lambda can use it forever)
+                const refreshToken = tokenData.refresh_token;
+                
+                await ddbDocClient.send(new PutCommand({
+                    TableName: TABLE_NAME,
+                    Item: {
+                        userEmail: "SYSTEM_CONFIG",
+                        timestamp: "MICROSOFT_OUTLOOK_AUTH",
+                        msRefreshToken: refreshToken,
+                        updatedAt: new Date().toISOString()
+                    }
+                }));
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Outlook connected and token secured." }) };
+
+            } catch (err) {
+                console.error("Microsoft Token Exchange Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION P: GET REAL-TIME CALENDAR AVAILABILITY FROM MICROSOFT
+        // ==============================================================
+        if (data.action === "getAvailableSlots") {
+            const bookingDate = data.bookingDate; // YYYY-MM-DD
+            if (!bookingDate) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing bookingDate." }) };
+
+            try {
+                // 1. Fetch the stored Microsoft Refresh Token from DynamoDB
+                const configRes = await ddbDocClient.send(new ScanCommand({
+                    TableName: TABLE_NAME,
+                    FilterExpression: "userEmail = :e AND #ts = :t",
+                    ExpressionAttributeNames: { "#ts": "timestamp" },
+                    ExpressionAttributeValues: { ":e": "SYSTEM_CONFIG", ":t": "MICROSOFT_OUTLOOK_AUTH" }
+                }));
+
+                const configItem = (configRes.Items || [])[0];
+                if (!configItem || !configItem.msRefreshToken) {
+                    // Fallback to standard slots if Outlook token isn't stored
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: [
+                        { time: "09:00 AM EST", isAvailable: true }, { time: "10:30 AM EST", isAvailable: true },
+                        { time: "01:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true }
+                    ] }) };
+                }
+
+                // 2. Fetch a fresh 60-min Access Token from Microsoft
+                const tokenRes = await fetch(`https://login.microsoftonline.com/common/oauth2/v2.0/token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        client_id: MS_CLIENT_ID,
+                        client_secret: MS_CLIENT_SECRET,
+                        refresh_token: configItem.msRefreshToken,
+                        grant_type: 'refresh_token'
+                    })
+                });
+                const tokenData = await tokenRes.json();
+                if (!tokenData.access_token) throw new Error("Failed to refresh Microsoft Token.");
+
+                // 3. Query Wasim's Outlook Schedule via Microsoft Graph API
+                const startDateTime = `${bookingDate}T00:00:00`;
+                const endDateTime = `${bookingDate}T23:59:59`;
+
+                const scheduleRes = await fetch(`https://graph.microsoft.com/v1.0/users/${OFFICE_EMAIL}/calendar/getSchedule`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${tokenData.access_token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        schedules: [OFFICE_EMAIL],
+                        startTime: { dateTime: startDateTime, timeZone: "Eastern Standard Time" },
+                        endTime: { dateTime: endDateTime, timeZone: "Eastern Standard Time" },
+                        availabilityViewInterval: 60
+                    })
+                });
+
+                const scheduleData = await scheduleRes.json();
+                const busyItems = scheduleData?.value?.[0]?.scheduleItems || [];
+
+                // 4. Standard business hours slots (9 AM to 5 PM)
+                const masterSlots = ["09:00 AM EST", "10:00 AM EST", "11:00 AM EST", "01:00 PM EST", "02:00 PM EST", "03:00 PM EST", "04:00 PM EST"];
+
+                // 5. Compare each slot against Wasim's real Outlook busy times
+                const processedSlots = masterSlots.map(timeStr => {
+                    let isBusy = false;
+                    const slotHour = parseInt(timeStr.split(":")[0]);
+                    const isPm = timeStr.includes("PM");
+                    const slot24Hour = (isPm && slotHour !== 12) ? slotHour + 12 : (!isPm && slotHour === 12 ? 0 : slotHour);
+
+                    busyItems.forEach(busy => {
+                        const busyStartHour = new Date(busy.start.dateTime).getHours();
+                        const busyEndHour = new Date(busy.end.dateTime).getHours();
+                        if (slot24Hour >= busyStartHour && slot24Hour < busyEndHour) {
+                            isBusy = true;
+                        }
+                    });
+
+                    return { time: timeStr, isAvailable: !isBusy };
+                });
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: processedSlots }) };
+
+            } catch (err) {
+                console.error("Microsoft Graph Schedule Error:", err);
+                // Safe Fallback so webpage never breaks
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: [
+                    { time: "09:00 AM EST", isAvailable: true }, { time: "10:30 AM EST", isAvailable: true },
+                    { time: "01:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true }
+                ] }) };
             }
         }
 

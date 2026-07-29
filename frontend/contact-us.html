@@ -112,7 +112,7 @@ layout: layout.html
             </div>
           </div>
 
-          <!-- 2. GENERAL INTAKE FORM (ALWAYS VISIBLE BELOW SCHEDULER) -->
+          <!-- 2. GENERAL INTAKE FORM -->
           <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6">
             <div>
               <h3 class="text-xl font-extrabold text-slate-900 mb-1">Prefer to Send a Message?</h3>
@@ -231,7 +231,7 @@ layout: layout.html
     });
   }
 
-  // 3. CALENDLY-STYLE SCHEDULER LOGIC
+  // 3. CALENDLY-STYLE SCHEDULER LOGIC WITH LIVE MICROSOFT GRAPH FETCH
   let activeMeetingType = "Microsoft Teams";
   let activeBookingDate = "";
   let activeBookingTime = "";
@@ -259,9 +259,11 @@ layout: layout.html
   const confirmBtn = document.getElementById('confirm-booking-btn');
 
   if (datePicker) {
-    datePicker.addEventListener('change', (e) => {
+    datePicker.addEventListener('change', async (e) => {
       const selectedDateObj = new Date(e.target.value);
       const dayOfWeek = new Date(selectedDateObj.getTime() + Math.abs(selectedDateObj.getTimezoneOffset() * 60000)).getDay();
+      
+      // Weekend Guard
       if (dayOfWeek === 0 || dayOfWeek === 6) {
         alert("Our office is closed on weekends. Please select a date between Monday and Friday.");
         datePicker.value = ""; 
@@ -272,41 +274,57 @@ layout: layout.html
 
       activeBookingDate = e.target.value;
       bookingConfirmation.classList.add('hidden'); 
-      timeSlotsGrid.innerHTML = "";
-      
-      const mockSlotsFromAWS = [
-        { time: "09:00 AM", isAvailable: false },
-        { time: "10:30 AM", isAvailable: true },
-        { time: "01:00 PM", isAvailable: false },
-        { time: "03:30 PM", isAvailable: true }
-      ];
-      
-      mockSlotsFromAWS.forEach(slot => {
-        const btn = document.createElement('button');
-        btn.type = "button";
-        btn.innerText = slot.time;
-        
-        if (!slot.isAvailable) {
-          btn.className = "time-btn border border-slate-200 text-slate-400 bg-slate-100 cursor-not-allowed font-semibold py-2.5 px-3 rounded-xl text-xs line-through";
-          btn.disabled = true;
-        } else {
-          btn.className = "time-btn border border-slate-200 text-slate-700 bg-white hover:border-brand-500 font-bold py-2.5 px-3 rounded-xl text-xs transition-all shadow-sm";
-          btn.onclick = () => {
-            document.querySelectorAll('.time-btn:not(:disabled)').forEach(b => {
-              b.classList.remove('bg-brand-500', 'text-white', 'border-brand-500');
-              b.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
-            });
-            btn.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
-            btn.classList.add('bg-brand-500', 'text-white', 'border-brand-500');
-            
-            activeBookingTime = slot.time;
-            selectedTimeDisplay.innerText = `${activeMeetingType} on ${activeBookingDate} at ${activeBookingTime}`;
-            bookingConfirmation.classList.remove('hidden');
-          };
-        }
-        timeSlotsGrid.appendChild(btn);
-      });
+      timeSlotsGrid.innerHTML = "<p class='text-xs text-slate-400 col-span-2 sm:col-span-4 italic animate-pulse py-2'>Checking Wasim's Live Outlook Calendar...</p>";
       timeSlotContainer.classList.remove('hidden');
+
+      try {
+        // LIVE FETCH FROM MICROSOFT GRAPH API VIA AWS LAMBDA
+        const response = await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: "getAvailableSlots", bookingDate: activeBookingDate })
+        });
+
+        const result = await response.json();
+        timeSlotsGrid.innerHTML = "";
+
+        const liveSlotsFromMicrosoft = result.slots || [];
+
+        if (liveSlotsFromMicrosoft.length === 0) {
+          timeSlotsGrid.innerHTML = "<p class='text-xs text-amber-600 col-span-2 sm:col-span-4 py-2 font-semibold'>No available slots found for this date.</p>";
+          return;
+        }
+
+        liveSlotsFromMicrosoft.forEach(slot => {
+          const btn = document.createElement('button');
+          btn.type = "button";
+          btn.innerText = slot.time;
+          
+          if (!slot.isAvailable) {
+            btn.className = "time-btn border border-slate-200 text-slate-400 bg-slate-100 cursor-not-allowed font-semibold py-2.5 px-3 rounded-xl text-xs line-through";
+            btn.disabled = true;
+          } else {
+            btn.className = "time-btn border border-slate-200 text-slate-700 bg-white hover:border-brand-500 font-bold py-2.5 px-3 rounded-xl text-xs transition-all shadow-sm";
+            btn.onclick = () => {
+              document.querySelectorAll('.time-btn:not(:disabled)').forEach(b => {
+                b.classList.remove('bg-brand-500', 'text-white', 'border-brand-500');
+                b.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+              });
+              btn.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
+              btn.classList.add('bg-brand-500', 'text-white', 'border-brand-500');
+              
+              activeBookingTime = slot.time;
+              selectedTimeDisplay.innerText = `${activeMeetingType} on ${activeBookingDate} at ${activeBookingTime}`;
+              bookingConfirmation.classList.remove('hidden');
+            };
+          }
+          timeSlotsGrid.appendChild(btn);
+        });
+
+      } catch (err) {
+        console.error("Calendar Fetch Error:", err);
+        timeSlotsGrid.innerHTML = "<p class='text-xs text-red-500 col-span-2 sm:col-span-4 py-2'>Error connecting to Microsoft Calendar servers.</p>";
+      }
     });
   }
 
