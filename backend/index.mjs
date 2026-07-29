@@ -733,26 +733,29 @@ export const handler = async (event) => {
             const bookingDate = data.bookingDate; // YYYY-MM-DD
             if (!bookingDate) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing bookingDate." }) };
 
+            const fallbackSlots = [
+                { time: "12:00 PM EST", isAvailable: true }, { time: "12:30 PM EST", isAvailable: true },
+                { time: "01:00 PM EST", isAvailable: true }, { time: "01:30 PM EST", isAvailable: true },
+                { time: "02:00 PM EST", isAvailable: true }, { time: "02:30 PM EST", isAvailable: true },
+                { time: "03:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true },
+                { time: "04:00 PM EST", isAvailable: true }, { time: "04:30 PM EST", isAvailable: true },
+                { time: "05:00 PM EST", isAvailable: true }, { time: "05:30 PM EST", isAvailable: true },
+                { time: "06:00 PM EST", isAvailable: true }
+            ];
+
             try {
                 const accessToken = await getMsAccessToken();
 
                 if (!accessToken) {
-                    console.log("No MS Refresh Token / Access Token available. Returning fallback open slots.");
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: [
-                        { time: "12:00 PM EST", isAvailable: true }, { time: "12:30 PM EST", isAvailable: true },
-                        { time: "01:00 PM EST", isAvailable: true }, { time: "01:30 PM EST", isAvailable: true },
-                        { time: "02:00 PM EST", isAvailable: true }, { time: "02:30 PM EST", isAvailable: true },
-                        { time: "03:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true },
-                        { time: "04:00 PM EST", isAvailable: true }, { time: "04:30 PM EST", isAvailable: true },
-                        { time: "05:00 PM EST", isAvailable: true }, { time: "05:30 PM EST", isAvailable: true },
-                        { time: "06:00 PM EST", isAvailable: true }
-                    ] }) };
+                    console.log("No MS Access Token available. Returning open fallback slots.");
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: fallbackSlots }) };
                 }
 
                 const startDateTime = `${bookingDate}T00:00:00`;
                 const endDateTime = `${bookingDate}T23:59:59`;
 
-                const scheduleRes = await fetch(`https://graph.microsoft.com/v1.0/users/${OFFICE_EMAIL}/calendar/getSchedule`, {
+                // TARGET /v1.0/me/ FOR AUTHENTICATED OAUTH USER
+                const scheduleRes = await fetch(`https://graph.microsoft.com/v1.0/me/calendar/getSchedule`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
@@ -768,7 +771,12 @@ export const handler = async (event) => {
                 });
 
                 const scheduleData = await scheduleRes.json();
-                const busyItems = scheduleData?.value?.[0]?.scheduleItems || [];
+                const rawItems = scheduleData?.value?.[0]?.scheduleItems || [];
+
+                const busyItems = rawItems.filter(item => {
+                    const status = (item.status || "").toLowerCase();
+                    return status === "busy" || status === "oof" || status === "tentative";
+                });
 
                 const masterSlots = [
                     "12:00 PM EST", "12:30 PM EST", 
@@ -794,14 +802,21 @@ export const handler = async (event) => {
 
                     busyItems.forEach(busy => {
                         if (busy.start && busy.start.dateTime && busy.end && busy.end.dateTime) {
-                            const startParts = busy.start.dateTime.split("T")[1].split(":");
-                            const endParts = busy.end.dateTime.split("T")[1].split(":");
+                            try {
+                                const startTimeStr = busy.start.dateTime.includes("T") ? busy.start.dateTime.split("T")[1] : busy.start.dateTime;
+                                const endTimeStr = busy.end.dateTime.includes("T") ? busy.end.dateTime.split("T")[1] : busy.end.dateTime;
 
-                            const startDecimal = parseInt(startParts[0]) + (parseInt(startParts[1]) / 60);
-                            const endDecimal = parseInt(endParts[0]) + (parseInt(endParts[1]) / 60);
+                                const startParts = startTimeStr.split(":");
+                                const endParts = endTimeStr.split(":");
 
-                            if (slotDecimal >= startDecimal && slotDecimal < endDecimal) {
-                                isBusy = true;
+                                const startDecimal = parseInt(startParts[0]) + (parseInt(startParts[1]) / 60);
+                                const endDecimal = parseInt(endParts[0]) + (parseInt(endParts[1]) / 60);
+
+                                if (slotDecimal >= startDecimal && slotDecimal < endDecimal) {
+                                    isBusy = true;
+                                }
+                            } catch (parseErr) {
+                                console.error("Error parsing busy item time:", parseErr);
                             }
                         }
                     });
@@ -813,23 +828,20 @@ export const handler = async (event) => {
 
             } catch (err) {
                 console.error("Microsoft Graph Schedule Error:", err);
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: [
-                    { time: "12:00 PM EST", isAvailable: true }, { time: "12:30 PM EST", isAvailable: true },
-                    { time: "01:00 PM EST", isAvailable: true }, { time: "01:30 PM EST", isAvailable: true },
-                    { time: "02:00 PM EST", isAvailable: true }, { time: "02:30 PM EST", isAvailable: true },
-                    { time: "03:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true },
-                    { time: "04:00 PM EST", isAvailable: true }, { time: "04:30 PM EST", isAvailable: true },
-                    { time: "05:00 PM EST", isAvailable: true }, { time: "05:30 PM EST", isAvailable: true },
-                    { time: "06:00 PM EST", isAvailable: true }
-                ] }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: fallbackSlots }) };
             }
         }
 
         // ==============================================================
-        // ACTION L: SUBMIT NEW BOOKING (OUTLOOK SYNC + SES CONFIRMATION)
+        // ACTION L: SUBMIT NEW BOOKING (HANDLES createBooking & submitBooking)
         // ==============================================================
-        if (data.action === "submitBooking") {
-            const { userEmail, userName = "Valued Client", bookingDate, bookingTime, meetingType = "MS Teams Consultation", notes = "Initial Consultation" } = data;
+        if (data.action === "createBooking" || data.action === "submitBooking") {
+            const userEmail = data.email || data.userEmail;
+            const userName = data.fullName || data.userName || "Valued Client";
+            const bookingDate = data.bookingDate;
+            const bookingTime = data.bookingTime;
+            const meetingType = data.meetingType || "MS Teams Consultation";
+            const phone = data.phone || "Not Provided";
 
             if (!userEmail || !bookingDate || !bookingTime) {
                 return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing required booking details." }) };
@@ -867,7 +879,7 @@ export const handler = async (event) => {
                             subject: `FiscalX Consultation: ${userName}`,
                             body: {
                                 contentType: "HTML",
-                                content: `<p><strong>Client Name:</strong> ${userName}</p><p><strong>Client Email:</strong> ${userEmail}</p><p><strong>Format:</strong> ${meetingType}</p><p><strong>Notes:</strong> ${notes}</p>`
+                                content: `<p><strong>Client Name:</strong> ${userName}</p><p><strong>Client Email:</strong> ${userEmail}</p><p><strong>Phone:</strong> ${phone}</p><p><strong>Format:</strong> ${meetingType}</p>`
                             },
                             start: { dateTime: startDateTime, timeZone: "Eastern Standard Time" },
                             end: { dateTime: endDateTime, timeZone: "Eastern Standard Time" },
@@ -877,7 +889,8 @@ export const handler = async (event) => {
                             ]
                         };
 
-                        const graphRes = await fetch(`https://graph.microsoft.com/v1.0/users/${OFFICE_EMAIL}/events`, {
+                        // TARGET /v1.0/me/events FOR OAUTH TOKEN DELEGATION
+                        const graphRes = await fetch(`https://graph.microsoft.com/v1.0/me/events`, {
                             method: "POST",
                             headers: {
                                 "Authorization": `Bearer ${accessToken}`,
@@ -908,6 +921,7 @@ export const handler = async (event) => {
                         bookingDate: bookingDate,
                         bookingTime: bookingTime,
                         meetingType: meetingType,
+                        phone: phone,
                         campaignStatus: "Pending",
                         paymentConfirmed: false,
                         finalFiles: [],
@@ -953,7 +967,7 @@ export const handler = async (event) => {
         }
 
         // ==============================================================
-        // ACTION M: RESCHEDULE BOOKING (STAFF CRM ACTION)
+        // ACTION M: RESCHEDULE BOOKING (STAFF CRM ACTION + OUTLOOK SYNC)
         // ==============================================================
         if (data.action === "rescheduleBooking") {
             const { adminEmail, clientEmail, timestamp, newDate, newTime } = data;
@@ -968,6 +982,50 @@ export const handler = async (event) => {
             }
 
             try {
+                // 1. Post Rescheduled Event to Wasim's Outlook
+                const accessToken = await getMsAccessToken();
+                if (accessToken) {
+                    try {
+                        const timeParts = newTime.replace(" EST", "").trim().split(" ");
+                        let [hours, minutes] = timeParts[0].split(":").map(Number);
+                        const ampm = timeParts[1];
+
+                        if (ampm === "PM" && hours !== 12) hours += 12;
+                        if (ampm === "AM" && hours === 12) hours = 0;
+
+                        const startHourStr = hours.toString().padStart(2, '0');
+                        const startMinStr = minutes.toString().padStart(2, '0');
+
+                        let endHours = hours;
+                        let endMinutes = minutes + 30;
+                        if (endMinutes >= 60) {
+                            endHours += 1;
+                            endMinutes -= 60;
+                        }
+                        const endHourStr = endHours.toString().padStart(2, '0');
+                        const endMinStr = endMinutes.toString().padStart(2, '0');
+
+                        const startDateTime = `${newDate}T${startHourStr}:${startMinStr}:00`;
+                        const endDateTime = `${newDate}T${endHourStr}:${endMinStr}:00`;
+
+                        await fetch(`https://graph.microsoft.com/v1.0/me/events`, {
+                            method: "POST",
+                            headers: {
+                                "Authorization": `Bearer ${accessToken}`,
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                subject: `[RESCHEDULED] FiscalX Consultation: ${clientEmail}`,
+                                body: { contentType: "HTML", content: `<p>Rescheduled appointment for ${clientEmail}</p>` },
+                                start: { dateTime: startDateTime, timeZone: "Eastern Standard Time" },
+                                end: { dateTime: endDateTime, timeZone: "Eastern Standard Time" },
+                                attendees: [{ emailAddress: { address: clientEmail }, type: "required" }]
+                            })
+                        });
+                    } catch (rescheduleMsErr) { me; console.error("Reschedule Outlook Sync Error:", rescheduleMsErr); }
+                }
+
+                // 2. Update DynamoDB
                 await ddbDocClient.send(new UpdateCommand({
                     TableName: TABLE_NAME,
                     Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) },
@@ -975,6 +1033,7 @@ export const handler = async (event) => {
                     ExpressionAttributeValues: { ":d": String(newDate), ":t": String(newTime) }
                 }));
 
+                // 3. Send Client Email Notification
                 const rescheduleHtml = `
                     <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
                         <h2 style="color: #4f46e5; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
@@ -1005,7 +1064,7 @@ export const handler = async (event) => {
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
-
+        
         // ==============================================================
         // ACTION N: CANCEL BOOKING (STAFF CRM ACTION)
         // ==============================================================
