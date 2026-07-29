@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/s3-client";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
@@ -677,7 +677,7 @@ export const handler = async (event) => {
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Failed to unlock document vault." }) };
             }
         }
-// ==============================================================
+        // ==============================================================
         // ACTION O: EXCHANGE MICROSOFT OAUTH CODE FOR REFRESH TOKEN
         // ==============================================================
         if (data.action === "exchangeMsCode") {
@@ -726,7 +726,7 @@ export const handler = async (event) => {
             }
         }
 
-      // ==============================================================
+        // ==============================================================
         // ACTION P: GET REAL-TIME CALENDAR AVAILABILITY FROM MICROSOFT
         // ==============================================================
         if (data.action === "getAvailableSlots") {
@@ -736,19 +736,17 @@ export const handler = async (event) => {
             try {
                 const accessToken = await getMsAccessToken();
 
-                const fallbackSlots = [
-                    { time: "12:00 PM EST", isAvailable: true }, { time: "12:30 PM EST", isAvailable: true },
-                    { time: "01:00 PM EST", isAvailable: true }, { time: "01:30 PM EST", isAvailable: true },
-                    { time: "02:00 PM EST", isAvailable: true }, { time: "02:30 PM EST", isAvailable: true },
-                    { time: "03:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true },
-                    { time: "04:00 PM EST", isAvailable: true }, { time: "04:30 PM EST", isAvailable: true },
-                    { time: "05:00 PM EST", isAvailable: true }, { time: "05:30 PM EST", isAvailable: true },
-                    { time: "06:00 PM EST", isAvailable: true }
-                ];
-
                 if (!accessToken) {
-                    console.log("No MS Access Token available. Returning open fallback slots.");
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: fallbackSlots }) };
+                    console.log("No MS Refresh Token / Access Token available. Returning fallback open slots.");
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: [
+                        { time: "12:00 PM EST", isAvailable: true }, { time: "12:30 PM EST", isAvailable: true },
+                        { time: "01:00 PM EST", isAvailable: true }, { time: "01:30 PM EST", isAvailable: true },
+                        { time: "02:00 PM EST", isAvailable: true }, { time: "02:30 PM EST", isAvailable: true },
+                        { time: "03:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true },
+                        { time: "04:00 PM EST", isAvailable: true }, { time: "04:30 PM EST", isAvailable: true },
+                        { time: "05:00 PM EST", isAvailable: true }, { time: "05:30 PM EST", isAvailable: true },
+                        { time: "06:00 PM EST", isAvailable: true }
+                    ] }) };
                 }
 
                 const startDateTime = `${bookingDate}T00:00:00`;
@@ -770,13 +768,7 @@ export const handler = async (event) => {
                 });
 
                 const scheduleData = await scheduleRes.json();
-                const rawItems = scheduleData?.value?.[0]?.scheduleItems || [];
-
-                // CRITICAL FIX: Only filter for events that are actually BUSY, OOF, or TENTATIVE
-                const busyItems = rawItems.filter(item => {
-                    const status = (item.status || "").toLowerCase();
-                    return status === "busy" || status === "oof" || status === "tentative";
-                });
+                const busyItems = scheduleData?.value?.[0]?.scheduleItems || [];
 
                 const masterSlots = [
                     "12:00 PM EST", "12:30 PM EST", 
@@ -808,7 +800,6 @@ export const handler = async (event) => {
                             const startDecimal = parseInt(startParts[0]) + (parseInt(startParts[1]) / 60);
                             const endDecimal = parseInt(endParts[0]) + (parseInt(endParts[1]) / 60);
 
-                            // Check if slot falls inside a busy window
                             if (slotDecimal >= startDecimal && slotDecimal < endDecimal) {
                                 isBusy = true;
                             }
@@ -822,7 +813,15 @@ export const handler = async (event) => {
 
             } catch (err) {
                 console.error("Microsoft Graph Schedule Error:", err);
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: fallbackSlots }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: [
+                    { time: "12:00 PM EST", isAvailable: true }, { time: "12:30 PM EST", isAvailable: true },
+                    { time: "01:00 PM EST", isAvailable: true }, { time: "01:30 PM EST", isAvailable: true },
+                    { time: "02:00 PM EST", isAvailable: true }, { time: "02:30 PM EST", isAvailable: true },
+                    { time: "03:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true },
+                    { time: "04:00 PM EST", isAvailable: true }, { time: "04:30 PM EST", isAvailable: true },
+                    { time: "05:00 PM EST", isAvailable: true }, { time: "05:30 PM EST", isAvailable: true },
+                    { time: "06:00 PM EST", isAvailable: true }
+                ] }) };
             }
         }
 
