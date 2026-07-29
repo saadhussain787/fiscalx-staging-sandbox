@@ -18,7 +18,7 @@ const SENDER_EMAIL = "info@fiscalx.ca";
 const OFFICE_EMAIL = "info@fiscalx.ca"; 
 const MS_CLIENT_ID = "359dc7f8-359d-47ab-abcf-c0129559aacb";
 const MS_TENANT_ID = "8793dd74-ad92-4663-a197-95c9e0955c5e";
-const MS_CLIENT_SECRET = "Jbe8Q~z4CWAUoIPDaLzGLCHW7_oYZH4XQyM2Xayv"; 
+const MS_CLIENT_SECRET = process.env.MS_CLIENT_SECRET; 
 const MS_REDIRECT_URI = "https://www.fiscalx.ca/admin/";
 
 const AUTHORIZED_STAFF = [
@@ -862,7 +862,7 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
+// ==============================================================
         // ACTION P: GET REAL-TIME CALENDAR AVAILABILITY FROM MICROSOFT
         // ==============================================================
         if (data.action === "getAvailableSlots") {
@@ -880,14 +880,18 @@ export const handler = async (event) => {
 
                 const configItem = (configRes.Items || [])[0];
                 if (!configItem || !configItem.msRefreshToken) {
-                    // Fallback to standard slots if Outlook token isn't stored
                     return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: [
-                        { time: "09:00 AM EST", isAvailable: true }, { time: "10:30 AM EST", isAvailable: true },
-                        { time: "01:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true }
+                        { time: "12:00 PM EST", isAvailable: true }, { time: "12:30 PM EST", isAvailable: true },
+                        { time: "01:00 PM EST", isAvailable: true }, { time: "01:30 PM EST", isAvailable: true },
+                        { time: "02:00 PM EST", isAvailable: true }, { time: "02:30 PM EST", isAvailable: true },
+                        { time: "03:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true },
+                        { time: "04:00 PM EST", isAvailable: true }, { time: "04:30 PM EST", isAvailable: true },
+                        { time: "05:00 PM EST", isAvailable: true }, { time: "05:30 PM EST", isAvailable: true },
+                        { time: "06:00 PM EST", isAvailable: true }
                     ] }) };
                 }
 
-                // 2. Fetch a fresh 60-min Access Token from Microsoft
+                // 2. Fetch fresh Access Token from Microsoft
                 const tokenRes = await fetch(`https://login.microsoftonline.com/common/oauth2/v2.0/token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -901,7 +905,7 @@ export const handler = async (event) => {
                 const tokenData = await tokenRes.json();
                 if (!tokenData.access_token) throw new Error("Failed to refresh Microsoft Token.");
 
-                // 3. Query Wasim's Outlook Schedule via Microsoft Graph API
+                // 3. Query Wasim's Outlook Schedule
                 const startDateTime = `${bookingDate}T00:00:00`;
                 const endDateTime = `${bookingDate}T23:59:59`;
 
@@ -915,28 +919,52 @@ export const handler = async (event) => {
                         schedules: [OFFICE_EMAIL],
                         startTime: { dateTime: startDateTime, timeZone: "Eastern Standard Time" },
                         endTime: { dateTime: endDateTime, timeZone: "Eastern Standard Time" },
-                        availabilityViewInterval: 60
+                        availabilityViewInterval: 30
                     })
                 });
 
                 const scheduleData = await scheduleRes.json();
                 const busyItems = scheduleData?.value?.[0]?.scheduleItems || [];
 
-                // 4. Standard business hours slots (9 AM to 5 PM)
-                const masterSlots = ["09:00 AM EST", "10:00 AM EST", "11:00 AM EST", "01:00 PM EST", "02:00 PM EST", "03:00 PM EST", "04:00 PM EST"];
+                // Master 30-minute slots between 12:00 PM and 6:30 PM EST
+                const masterSlots = [
+                    "12:00 PM EST", "12:30 PM EST", 
+                    "01:00 PM EST", "01:30 PM EST", 
+                    "02:00 PM EST", "02:30 PM EST", 
+                    "03:00 PM EST", "03:30 PM EST", 
+                    "04:00 PM EST", "04:30 PM EST", 
+                    "05:00 PM EST", "05:30 PM EST", 
+                    "06:00 PM EST"
+                ];
 
-                // 5. Compare each slot against Wasim's real Outlook busy times
+                // 4. Timezone-Immune Local Time Comparison
                 const processedSlots = masterSlots.map(timeStr => {
                     let isBusy = false;
-                    const slotHour = parseInt(timeStr.split(":")[0]);
+                    const parts = timeStr.split(":");
+                    let hour = parseInt(parts[0]);
+                    const minute = parseInt(parts[1].substring(0, 2));
                     const isPm = timeStr.includes("PM");
-                    const slot24Hour = (isPm && slotHour !== 12) ? slotHour + 12 : (!isPm && slotHour === 12 ? 0 : slotHour);
+
+                    if (isPm && hour !== 12) hour += 12;
+                    if (!isPm && hour === 12) hour = 0;
+
+                    // Convert website slot time to decimal hours (e.g. 12:30 PM = 12.5)
+                    const slotDecimal = hour + (minute / 60);
 
                     busyItems.forEach(busy => {
-                        const busyStartHour = new Date(busy.start.dateTime).getHours();
-                        const busyEndHour = new Date(busy.end.dateTime).getHours();
-                        if (slot24Hour >= busyStartHour && slot24Hour < busyEndHour) {
-                            isBusy = true;
+                        // Extract raw time strings directly without applying AWS UTC shifts!
+                        // Format from Microsoft: "2026-07-30T12:00:00.0000000"
+                        if (busy.start && busy.start.dateTime) {
+                            const startParts = busy.start.dateTime.split("T")[1].split(":");
+                            const endParts = busy.end.dateTime.split("T")[1].split(":");
+
+                            const startDecimal = parseInt(startParts[0]) + (parseInt(startParts[1]) / 60);
+                            const endDecimal = parseInt(endParts[0]) + (parseInt(endParts[1]) / 60);
+
+                            // Overlap check in local Toronto time
+                            if (slotDecimal >= startDecimal && slotDecimal < endDecimal) {
+                                isBusy = true;
+                            }
                         }
                     });
 
@@ -947,14 +975,18 @@ export const handler = async (event) => {
 
             } catch (err) {
                 console.error("Microsoft Graph Schedule Error:", err);
-                // Safe Fallback so webpage never breaks
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: [
-                    { time: "09:00 AM EST", isAvailable: true }, { time: "10:30 AM EST", isAvailable: true },
-                    { time: "01:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true }
+                    { time: "12:00 PM EST", isAvailable: true }, { time: "12:30 PM EST", isAvailable: true },
+                    { time: "01:00 PM EST", isAvailable: true }, { time: "01:30 PM EST", isAvailable: true },
+                    { time: "02:00 PM EST", isAvailable: true }, { time: "02:30 PM EST", isAvailable: true },
+                    { time: "03:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true },
+                    { time: "04:00 PM EST", isAvailable: true }, { time: "04:30 PM EST", isAvailable: true },
+                    { time: "05:00 PM EST", isAvailable: true }, { time: "05:30 PM EST", isAvailable: true },
+                    { time: "06:00 PM EST", isAvailable: true }
                 ] }) };
             }
         }
-
+        
         // ==============================================================
         // ACTION D: PROCESS THE STANDARD CONTACT INTAKE FORM
         // ==============================================================
