@@ -45,7 +45,6 @@ async function isStaff(email) {
     }
 }
 
-// Global Helper Function: Fetches a fresh 60-min Access Token from Microsoft Graph API
 async function getMsAccessToken() {
     try {
         const configRes = await ddbDocClient.send(new ScanCommand({
@@ -91,9 +90,6 @@ export const handler = async (event) => {
     try {
         const data = JSON.parse(event.body || "{}");
 
-        // ==============================================================
-        // ACTION A: GENERATE SECURE S3 PRESIGNED UPLOAD URL
-        // ==============================================================
         if (data.action === "getUploadUrl") {
             const fileName = data.fileName;
             const fileType = data.fileType;
@@ -109,14 +105,10 @@ export const handler = async (event) => {
             };
         }
 
-        // ==============================================================
-        // ACTION B: NOTIFY UPLOAD COMPLETE
-        // ==============================================================
         if (data.action === "notifyUploadComplete") {
             const fileKey = data.fileKey;
             const userEmail = data.userEmail;
             const fileName = fileKey.split("/").pop(); 
-
             const cleanFileName = fileName.substring(13); 
 
             try {
@@ -131,23 +123,17 @@ export const handler = async (event) => {
                 if (userRecords.length > 0) {
                     userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     const latestRecord = userRecords[0];
-
                     const existingFiles = latestRecord.uploadedFiles || [];
                     
                     if (!existingFiles.some(f => f.fileKey === fileKey)) {
                         existingFiles.push({ fileName: cleanFileName, fileKey: fileKey });
-
                         const updateParams = {
                             TableName: TABLE_NAME,
-                            Key: { 
-                                userEmail: latestRecord.userEmail,
-                                timestamp: latestRecord.timestamp
-                            },
+                            Key: { userEmail: latestRecord.userEmail, timestamp: latestRecord.timestamp },
                             UpdateExpression: "set uploadedFiles = :f",
                             ExpressionAttributeValues: { ":f": existingFiles }
                         };
                         await ddbDocClient.send(new UpdateCommand(updateParams));
-                        console.log(`Successfully attached file ${cleanFileName} to active card for ${userEmail}`);
                     }
                 }
             } catch (dbError) {
@@ -183,9 +169,6 @@ export const handler = async (event) => {
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
         }
 
-        // ==============================================================
-        // ACTION C: SUBMIT CANADIAN TAX ORGANIZER
-        // ==============================================================
         if (data.action === "submitTaxOrganizer") {
             const {
                 userEmail = "Unknown", taxType = "T1 Personal", craConsent = "Not Provided", howHeard = "Not Specified",
@@ -212,10 +195,7 @@ export const handler = async (event) => {
             await ddbDocClient.send(new PutCommand(ddbParams));
 
             const csvRows = [ ["Section", "Field", "Value"] ];
-            csvRows.push(
-                ["System", "Tax Type", taxType], ["System", "CRA Consent", craConsent], ["System", "Client Email", userEmail],
-                ["System", "Client Notes", notes], ["System", "How Heard", howHeard]
-            );
+            csvRows.push(["System", "Tax Type", taxType], ["System", "CRA Consent", craConsent], ["System", "Client Email", userEmail], ["System", "Client Notes", notes], ["System", "How Heard", howHeard]);
 
             if (isT2) {
                 csvRows.push(
@@ -225,9 +205,7 @@ export const handler = async (event) => {
                     ["T2 Remittance", "GST/HST Registered", corporateInfo.remittance?.gst || "no"], ["T2 Remittance", "Payroll Registered", corporateInfo.remittance?.payroll || "no"]
                 );
                 if (corporateInfo.directors && corporateInfo.directors.length > 0) {
-                    corporateInfo.directors.forEach((d, index) => {
-                        csvRows.push(["Director " + (index + 1), "Name", d.name], ["Director " + (index + 1), "SIN", d.sin], ["Director " + (index + 1), "Share %", d.share], ["Director " + (index + 1), "Role", d.role]);
-                    });
+                    corporateInfo.directors.forEach((d, index) => { csvRows.push(["Director " + (index + 1), "Name", d.name], ["Director " + (index + 1), "SIN", d.sin], ["Director " + (index + 1), "Share %", d.share], ["Director " + (index + 1), "Role", d.role]); });
                 }
             } else {
                 csvRows.push(
@@ -235,37 +213,23 @@ export const handler = async (event) => {
                     ["T1 Status", "Immigration Status", statusInCanada.status || "N/A"], ["T1 Status", "Entry Date", statusInCanada.entryDate || "N/A"]
                 );
                 if (familyMembers.length > 0) {
-                    familyMembers.forEach((mem, index) => {
-                        csvRows.push(["Dependent " + (index + 1), "Name", mem.name], ["Dependent " + (index + 1), "SIN", mem.sin], ["Dependent " + (index + 1), "DOB", mem.dob], ["Dependent " + (index + 1), "Relationship", mem.relationship], ["Dependent " + (index + 1), "Disability", mem.disability]);
-                    });
+                    familyMembers.forEach((mem, index) => { csvRows.push(["Dependent " + (index + 1), "Name", mem.name], ["Dependent " + (index + 1), "SIN", mem.sin], ["Dependent " + (index + 1), "DOB", mem.dob], ["Dependent " + (index + 1), "Relationship", mem.relationship], ["Dependent " + (index + 1), "Disability", mem.disability]); });
                 }
                 if (ontarioResidency.length > 0) {
-                    ontarioResidency.forEach((res, index) => {
-                        csvRows.push(["Residency " + (index + 1), "Months", res.months], ["Residency " + (index + 1), "Address", res.address], ["Residency " + (index + 1), "Landlord", res.landlord]);
-                    });
+                    ontarioResidency.forEach((res, index) => { csvRows.push(["Residency " + (index + 1), "Months", res.months], ["Residency " + (index + 1), "Address", res.address], ["Residency " + (index + 1), "Landlord", res.landlord]); });
                 }
-                csvRows.push(
-                    ["Milestones", "Elections Canada", milestones.electionsCanada || "no"], ["Milestones", "Direct Deposit Changed", milestones.directDeposit || "no"], ["Milestones", "Tuition Paid", milestones.tuition || "no"], ["Milestones", "RRSP Contribution", milestones.rrsp || "no"], ["Milestones", "Charitable Donations", milestones.charitable || "no"], ["Milestones", "Stock/Crypto", milestones.crypto || "no"], ["Milestones", "Daycare", milestones.daycare || "no"], ["Milestones", "Work From Home", milestones.workFromHome || "no"], ["Milestones", "Purchased Home", milestones.purchasedHome || "no"]
-                );
+                csvRows.push(["Milestones", "Elections Canada", milestones.electionsCanada || "no"], ["Milestones", "Direct Deposit Changed", milestones.directDeposit || "no"], ["Milestones", "Tuition Paid", milestones.tuition || "no"], ["Milestones", "RRSP Contribution", milestones.rrsp || "no"], ["Milestones", "Charitable Donations", milestones.charitable || "no"], ["Milestones", "Stock/Crypto", milestones.crypto || "no"], ["Milestones", "Daycare", milestones.daycare || "no"], ["Milestones", "Work From Home", milestones.workFromHome || "no"], ["Milestones", "Purchased Home", milestones.purchasedHome || "no"]);
                 csvRows.push(["UBER (T2125)", "Active", selfEmployed.active || "no"]);
                 if (selfEmployed.active === "yes") {
-                    csvRows.push(
-                        ["UBER (T2125)", "HST No", selfEmployed.hstNo || "N/A"], ["UBER (T2125)", "Access Code", selfEmployed.accessCode || "N/A"], ["UBER (T2125)", "Period From", selfEmployed.periodFrom || "N/A"], ["UBER (T2125)", "Period To", selfEmployed.periodTo || "N/A"], ["UBER (T2125)", "Total KMs Driven", selfEmployed.totalKms || "0"], ["UBER (T2125)", "Business KMs", selfEmployed.businessKms || "0"],
-                        ["UBER (T2125)", "Fuel", selfEmployed.expenses?.fuel || "0"], ["UBER (T2125)", "Repairs", selfEmployed.expenses?.repairs || "0"], ["UBER (T2125)", "Insurance", selfEmployed.expenses?.insurance || "0"], ["UBER (T2125)", "License", selfEmployed.expenses?.license || "0"], ["UBER (T2125)", "Interest", selfEmployed.expenses?.interest || "0"], ["UBER (T2125)", "Carwash", selfEmployed.expenses?.carwash || "0"],
-                        ["UBER (T2125)", "Parking", selfEmployed.expenses?.parking || "0"], ["UBER (T2125)", "Tolls", selfEmployed.expenses?.tolls || "0"], ["UBER (T2125)", "Tickets", selfEmployed.expenses?.tickets || "0"], ["UBER (T2125)", "Phone Line $", selfEmployed.expenses?.phone || "0"], ["UBER (T2125)", "Supplies", selfEmployed.expenses?.supplies || "0"], ["UBER (T2125)", "Meals", selfEmployed.expenses?.meals || "0"]
-                    );
+                    csvRows.push(["UBER (T2125)", "HST No", selfEmployed.hstNo || "N/A"], ["UBER (T2125)", "Access Code", selfEmployed.accessCode || "N/A"], ["UBER (T2125)", "Period From", selfEmployed.periodFrom || "N/A"], ["UBER (T2125)", "Period To", selfEmployed.periodTo || "N/A"], ["UBER (T2125)", "Total KMs Driven", selfEmployed.totalKms || "0"], ["UBER (T2125)", "Business KMs", selfEmployed.businessKms || "0"], ["UBER (T2125)", "Fuel", selfEmployed.expenses?.fuel || "0"], ["UBER (T2125)", "Repairs", selfEmployed.expenses?.repairs || "0"], ["UBER (T2125)", "Insurance", selfEmployed.expenses?.insurance || "0"], ["UBER (T2125)", "License", selfEmployed.expenses?.license || "0"], ["UBER (T2125)", "Interest", selfEmployed.expenses?.interest || "0"], ["UBER (T2125)", "Carwash", selfEmployed.expenses?.carwash || "0"], ["UBER (T2125)", "Parking", selfEmployed.expenses?.parking || "0"], ["UBER (T2125)", "Tolls", selfEmployed.expenses?.tolls || "0"], ["UBER (T2125)", "Tickets", selfEmployed.expenses?.tickets || "0"], ["UBER (T2125)", "Phone Line $", selfEmployed.expenses?.phone || "0"], ["UBER (T2125)", "Supplies", selfEmployed.expenses?.supplies || "0"], ["UBER (T2125)", "Meals", selfEmployed.expenses?.meals || "0"]);
                 }
                 csvRows.push(["Rental (T776)", "Active", rentalIncome.active || "no"]);
                 if (rentalIncome.active === "yes") {
                     csvRows.push(["Rental (T776)", "Address", rentalIncome.address || "N/A"], ["Rental (T776)", "Gross Income", rentalIncome.grossIncome || "0"], ["Rental (T776)", "Percentage Rented", rentalIncome.percentageRented || "100"]);
                     if (rentalIncome.coOwners && rentalIncome.coOwners.length > 0) {
-                        rentalIncome.coOwners.forEach((owner, index) => {
-                            csvRows.push(["Rental Co-Owner " + (index + 1), "Name", owner.name], ["Rental Co-Owner " + (index + 1), "SIN", owner.sin], ["Rental Co-Owner " + (index + 1), "Share %", owner.share], ["Rental Co-Owner " + (index + 1), "Address", owner.address]);
-                        });
+                        rentalIncome.coOwners.forEach((owner, index) => { csvRows.push(["Rental Co-Owner " + (index + 1), "Name", owner.name], ["Rental Co-Owner " + (index + 1), "SIN", owner.sin], ["Rental Co-Owner " + (index + 1), "Share %", owner.share], ["Rental Co-Owner " + (index + 1), "Address", owner.address]); });
                     }
-                    csvRows.push(
-                        ["Rental (T776)", "Insurance", rentalIncome.expenses?.insurance || "0"], ["Rental (T776)", "Mortgage Interest", rentalIncome.expenses?.interest || "0"], ["Rental (T776)", "Bank Charges", rentalIncome.expenses?.bankCharges || "0"], ["Rental (T776)", "Office", rentalIncome.expenses?.office || "0"], ["Rental (T776)", "Professional Fees", rentalIncome.expenses?.professional || "0"], ["Rental (T776)", "Management", rentalIncome.expenses?.management || "0"], ["Rental (T776)", "Repairs", rentalIncome.expenses?.repairs || "0"], ["Rental (T776)", "Property Tax", rentalIncome.expenses?.propertyTax || "0"], ["Rental (T776)", "Utilities", rentalIncome.expenses?.utilities || "0"]
-                    );
+                    csvRows.push(["Rental (T776)", "Insurance", rentalIncome.expenses?.insurance || "0"], ["Rental (T776)", "Mortgage Interest", rentalIncome.expenses?.interest || "0"], ["Rental (T776)", "Bank Charges", rentalIncome.expenses?.bankCharges || "0"], ["Rental (T776)", "Office", rentalIncome.expenses?.office || "0"], ["Rental (T776)", "Professional Fees", rentalIncome.expenses?.professional || "0"], ["Rental (T776)", "Management", rentalIncome.expenses?.management || "0"], ["Rental (T776)", "Repairs", rentalIncome.expenses?.repairs || "0"], ["Rental (T776)", "Property Tax", rentalIncome.expenses?.propertyTax || "0"], ["Rental (T776)", "Utilities", rentalIncome.expenses?.utilities || "0"]);
                 }
                 csvRows.push(["CCB", "Active", childCareBenefit.active || "no"]);
                 if (childCareBenefit.active === "yes") {
@@ -294,7 +258,6 @@ export const handler = async (event) => {
             if (isT2) {
                 let directorRows = (corporateInfo.directors || []).map(d => `<tr><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${d.name}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${d.sin}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${d.share}%</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${d.role}</td></tr>`).join("");
                 if (!directorRows) directorRows = `<tr><td colspan='4' style='padding:6px; text-align:center;'>None Declared</td></tr>`;
-
                 specificHtmlBody = `
                     <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
                         <h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">1. Corporate Baseline Information</h3>
@@ -324,7 +287,6 @@ export const handler = async (event) => {
                 let residencyRows = ontarioResidency.map(r => `<tr><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${r.months} Mos</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${r.address}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${r.landlord}</td></tr>`).join("");
                 const selfEmployedHtml = selfEmployed.active === "yes" ? `<div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;"><h3 style="color: #059669; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">UBER/Lyft (T2125)</h3><p style="font-size: 12px;"><strong>Total KMs:</strong> ${selfEmployed.totalKms || "0"} | <strong>Business KMs:</strong> ${selfEmployed.businessKms || "0"}</p></div>` : "";
                 const rentalHtml = rentalIncome.active === "yes" ? `<div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;"><h3 style="color: #0284c7; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">Rental Income (T776)</h3><p style="font-size: 12px;"><strong>Address:</strong> ${rentalIncome.address || "N/A"} | <strong>Gross Income:</strong> $${rentalIncome.grossIncome || "0.00"}</p></div>` : "";
-                
                 specificHtmlBody = `
                     <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
                         <h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">1. Personal Profile</h3>
@@ -373,9 +335,6 @@ export const handler = async (event) => {
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Your onboarding organizer and files have been securely compiled and delivered." }) };
         }
 
-// ==============================================================
-        // ACTION E: FETCH CRM DATA FOR ADMIN PORTAL (FILTERS SYSTEM_CONFIG)
-        // ==============================================================
         if (data.action === "getCrmData") {
             const adminEmail = data.adminEmail;
 
@@ -386,8 +345,6 @@ export const handler = async (event) => {
 
             const scanParams = { TableName: TABLE_NAME };
             const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
-            
-            // FILTER OUT INTERNAL SYSTEM CONFIG CARDS
             const clients = (scanResult.Items || []).filter(c => c.userEmail !== "SYSTEM_CONFIG");
 
             const total = clients.length;
@@ -400,9 +357,6 @@ export const handler = async (event) => {
             };
         }
 
-        // ==============================================================
-        // ACTION F: UPDATE CLIENT KANBAN STATUS
-        // ==============================================================
         if (data.action === "updateClientStatus") {
             const adminEmail = data.adminEmail;
             const clientEmail = data.clientEmail;
@@ -421,10 +375,7 @@ export const handler = async (event) => {
             try {
                 const updateParams = {
                     TableName: TABLE_NAME,
-                    Key: { 
-                        "userEmail": String(clientEmail),
-                        "timestamp": String(clientTimestamp) 
-                    },
+                    Key: { "userEmail": String(clientEmail), "timestamp": String(clientTimestamp) },
                     UpdateExpression: "set campaignStatus = :s",
                     ExpressionAttributeValues: { ":s": String(newStatus) },
                     ReturnValues: "UPDATED_NEW"
@@ -432,16 +383,12 @@ export const handler = async (event) => {
 
                 await ddbDocClient.send(new UpdateCommand(updateParams));
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Status updated successfully." }) };
-            
             } catch (updateError) {
                 console.error("DynamoDB Update Error:", updateError);
                 return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Database update failed: " + updateError.message }) };
             }
         }
 
-        // ==============================================================
-        // ACTION G: GENERATE SECURE DOWNLOAD URL FOR ADMINS
-        // ==============================================================
         if (data.action === "getDownloadUrl") {
             const adminEmail = data.adminEmail;
             const fileKey = data.fileKey;
@@ -458,7 +405,6 @@ export const handler = async (event) => {
             try {
                 const downloadCommand = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileKey });
                 const secureUrl = await getSignedUrl(s3, downloadCommand, { expiresIn: 60 });
-
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", secureUrl: secureUrl }) };
             } catch (s3Error) {
                 console.error("S3 Decryption Error:", s3Error);
@@ -466,9 +412,6 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
-        // ACTION H: FETCH A SINGLE CLIENT'S STATUS FOR THEIR DASHBOARD
-        // ==============================================================
         if (data.action === "getClientStatus") {
             const userEmail = data.userEmail;
 
@@ -491,19 +434,9 @@ export const handler = async (event) => {
                     const isPaid = userRecords[0].paymentConfirmed || false;
                     const finalReturns = userRecords[0].finalFiles || [];
                     
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ 
-                        status: "SUCCESS", 
-                        campaignStatus: latestStatus,
-                        paymentConfirmed: isPaid,
-                        finalFiles: finalReturns
-                    }) };
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", campaignStatus: latestStatus, paymentConfirmed: isPaid, finalFiles: finalReturns }) };
                 } else {
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ 
-                        status: "SUCCESS", 
-                        campaignStatus: "Unsubmitted",
-                        paymentConfirmed: false,
-                        finalFiles: []
-                    }) };
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", campaignStatus: "Unsubmitted", paymentConfirmed: false, finalFiles: [] }) };
                 }
             } catch (dbError) {
                 console.error("Failed to fetch client status:", dbError);
@@ -511,9 +444,6 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
-        // ACTION I: SEND DOCUMENT REQUEST EMAIL REMINDERS
-        // ==============================================================
         if (data.action === "sendDocumentReminder") {
             const adminEmail = data.adminEmail;
             const clientEmail = data.clientEmail;
@@ -537,32 +467,24 @@ export const handler = async (event) => {
                         <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
                         <p style="font-size: 15px; line-height: 1.6;">Hello ${clientName},</p>
                         <p style="font-size: 15px; line-height: 1.6;">Wasim Kadri, CPA is currently actively preparing your tax file. To proceed with your return, we securely require the following document:</p>
-                        
                         <div style="margin: 25px 0; padding: 20px; background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; text-align: center;">
                             <span style="font-size: 16px; font-weight: bold; color: #b45309;">⚠️ Required Document: ${requestedDocName}</span>
                         </div>
-                        
                         <p style="font-size: 15px; line-height: 1.6;">Please click the secure button below to log into your portal. Once logged in, scroll to the bottom of your screen to the <strong>"Secure Document Upload Center"</strong> to transmit your document directly into our encrypted S3 vault.</p>
-                        
                         <div style="text-align: center; margin: 30px 0;">
                             <a href="https://www.fiscalx.ca/dashboard/" target="_blank" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; font-size: 14px; border-radius: 8px;">Log In & Upload Document</a>
                         </div>
-                        
-                        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
-                            This is an automated transmission on behalf of Wasim Kadri, CPA (FiscalX). Please do not reply directly to this email.
-                        </p>
                     </div>
                 `;
 
-                const sesCommand = new SendEmailCommand({
+                await ses.send(new SendEmailCommand({
                     Source: SENDER_EMAIL,
                     Destination: { ToAddresses: [clientEmail] },
                     Message: {
                         Subject: { Charset: "UTF-8", Data: `[Action Required] Document Reminder for Your FiscalX Tax File` },
                         Body: { Html: { Charset: "UTF-8", Data: reminderHtml } }
                     }
-                });
-                await ses.send(sesCommand);
+                }));
 
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Reminder sent successfully." }) };
             } catch (err) {
@@ -571,9 +493,6 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
-        // ACTION J: UPDATE BILLING STATUS & FINAL RETURNS (CASHFLOW SECURE)
-        // ==============================================================
         if (data.action === "updateBillingStatus") {
             const { adminEmail, clientEmail, timestamp, finalFiles = [], paymentConfirmed = false } = data;
 
@@ -595,13 +514,12 @@ export const handler = async (event) => {
                 const items = scanResult.Items || [];
 
                 for (const item of items) {
-                    const updateParams = {
+                    await ddbDocClient.send(new UpdateCommand({
                         TableName: TABLE_NAME,
                         Key: { "userEmail": item.userEmail, "timestamp": item.timestamp },
                         UpdateExpression: "set finalFiles = :f, paymentConfirmed = :p",
                         ExpressionAttributeValues: { ":f": finalFiles, ":p": paymentConfirmed }
-                    };
-                    await ddbDocClient.send(new UpdateCommand(updateParams));
+                    }));
                 }
 
                 if (paymentConfirmed === true) {
@@ -620,15 +538,14 @@ export const handler = async (event) => {
                             </div>
                         </div>
                     `;
-                    const sesCommand = new SendEmailCommand({
+                    await ses.send(new SendEmailCommand({
                         Source: SENDER_EMAIL,
                         Destination: { ToAddresses: [clientEmail] },
                         Message: {
                             Subject: { Charset: "UTF-8", Data: `[FiscalX] Payment Confirmed - Your Tax Returns are Unlocked` },
                             Body: { Html: { Charset: "UTF-8", Data: unlockHtml } }
                         }
-                    });
-                    await ses.send(sesCommand);
+                    }));
                 }
 
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Billing status updated successfully across all records." }) };
@@ -638,9 +555,6 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
-        // ACTION K: CLIENT-SAFE DOWNLOAD URL GENERATOR
-        // ==============================================================
         if (data.action === "getClientDownloadUrl") {
             const userEmail = data.userEmail;
             const fileKey = data.fileKey;
@@ -663,9 +577,6 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
-        // ACTION O: EXCHANGE MICROSOFT OAUTH CODE FOR REFRESH TOKEN
-        // ==============================================================
         if (data.action === "exchangeMsCode") {
             const isAuthorized = await isStaff(data.adminEmail);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
@@ -712,9 +623,6 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
-        // ACTION P: GET REAL-TIME CALENDAR AVAILABILITY FROM MICROSOFT
-        // ==============================================================
         if (data.action === "getAvailableSlots") {
             const bookingDate = data.bookingDate; // YYYY-MM-DD
             if (!bookingDate) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing bookingDate." }) };
@@ -764,13 +672,9 @@ export const handler = async (event) => {
                 });
 
                 const masterSlots = [
-                    "12:00 PM EST", "12:30 PM EST", 
-                    "01:00 PM EST", "01:30 PM EST", 
-                    "02:00 PM EST", "02:30 PM EST", 
-                    "03:00 PM EST", "03:30 PM EST", 
-                    "04:00 PM EST", "04:30 PM EST", 
-                    "05:00 PM EST", "05:30 PM EST", 
-                    "06:00 PM EST"
+                    "12:00 PM EST", "12:30 PM EST", "01:00 PM EST", "01:30 PM EST", 
+                    "02:00 PM EST", "02:30 PM EST", "03:00 PM EST", "03:30 PM EST", 
+                    "04:00 PM EST", "04:30 PM EST", "05:00 PM EST", "05:30 PM EST", "06:00 PM EST"
                 ];
 
                 const processedSlots = masterSlots.map(timeStr => {
@@ -817,9 +721,6 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
-        // ACTION L: SUBMIT NEW BOOKING (CAPTURES msEventId FOR OUTLOOK SYNC)
-        // ==============================================================
         if (data.action === "createBooking" || data.action === "submitBooking") {
             const userEmail = data.email || data.userEmail;
             const userName = data.fullName || data.userName || "Valued Client";
@@ -931,15 +832,14 @@ export const handler = async (event) => {
                     </div>
                 `;
 
-                const sesCommand = new SendEmailCommand({
+                await ses.send(new SendEmailCommand({
                     Source: SENDER_EMAIL,
                     Destination: { ToAddresses: [userEmail], BccAddresses: [OFFICE_EMAIL] },
                     Message: {
                         Subject: { Charset: "UTF-8", Data: `[FiscalX] Consultation Confirmed for ${bookingDate} @ ${bookingTime}` },
                         Body: { Html: { Charset: "UTF-8", Data: emailHtml } }
                     }
-                });
-                await ses.send(sesCommand);
+                }));
 
                 return {
                     statusCode: 200, headers: headers,
@@ -952,9 +852,6 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
-        // ACTION M: RESCHEDULE BOOKING (MOVES EXISTING OUTLOOK EVENT)
-        // ==============================================================
         if (data.action === "rescheduleBooking") {
             const { adminEmail, clientEmail, timestamp, newDate, newTime } = data;
 
@@ -968,7 +865,6 @@ export const handler = async (event) => {
             }
 
             try {
-                // Fetch active record to get msEventId
                 const scanRes = await ddbDocClient.send(new ScanCommand({
                     TableName: TABLE_NAME,
                     FilterExpression: "userEmail = :e AND #ts = :t",
@@ -1004,7 +900,6 @@ export const handler = async (event) => {
                     const endDateTime = `${newDate}T${endHourStr}:${endMinStr}:00`;
 
                     if (msEventId) {
-                        // PATCH existing event to MOVE it on Outlook (Frees old slot!)
                         await fetch(`https://graph.microsoft.com/v1.0/me/events/${msEventId}`, {
                             method: "PATCH",
                             headers: {
@@ -1017,7 +912,6 @@ export const handler = async (event) => {
                             })
                         });
                     } else {
-                        // If no eventId exists, create a fresh one
                         const graphRes = await fetch(`https://graph.microsoft.com/v1.0/me/events`, {
                             method: "POST",
                             headers: {
@@ -1043,7 +937,6 @@ export const handler = async (event) => {
                     }
                 }
 
-                // Update DynamoDB record
                 await ddbDocClient.send(new UpdateCommand({
                     TableName: TABLE_NAME,
                     Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) },
@@ -1082,9 +975,6 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
-        // ACTION N: CANCEL BOOKING (DELETES OUTLOOK EVENT & FREES SLOT)
-        // ==============================================================
         if (data.action === "cancelBooking") {
             const { adminEmail, clientEmail, timestamp } = data;
 
@@ -1094,7 +984,6 @@ export const handler = async (event) => {
             }
 
             try {
-                // Delete Event from Outlook if msEventId exists
                 const scanRes = await ddbDocClient.send(new ScanCommand({
                     TableName: TABLE_NAME,
                     FilterExpression: "userEmail = :e AND #ts = :t",
@@ -1151,9 +1040,6 @@ export const handler = async (event) => {
             }
         }
 
-// ==============================================================
-        // ACTION Q: PERMANENTLY DELETE ALL CLIENT RECORDS FROM DYNAMODB
-        // ==============================================================
         if (data.action === "deleteClient") {
             const { adminEmail, clientEmail } = data;
 
@@ -1167,18 +1053,26 @@ export const handler = async (event) => {
             }
 
             try {
-                // 1. Scan for ALL historical records for this client email
-                const scanRes = await ddbDocClient.send(new ScanCommand({
-                    TableName: TABLE_NAME,
-                    FilterExpression: "userEmail = :e",
-                    ExpressionAttributeValues: { ":e": String(clientEmail) }
-                }));
-                const items = scanRes.Items || [];
-
+                const targetEmailClean = String(clientEmail).trim().toLowerCase();
                 const accessToken = await getMsAccessToken();
 
-                // 2. Loop through every record, delete Outlook events & DynamoDB rows
-                for (const item of items) {
+                if (data.timestamp) {
+                    try {
+                        await ddbDocClient.send(new DeleteCommand({
+                            TableName: TABLE_NAME,
+                            Key: { "userEmail": String(clientEmail), "timestamp": String(data.timestamp) }
+                        }));
+                    } catch (directErr) { console.log("Direct key delete attempt completed."); }
+                }
+
+                const scanRes = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME }));
+                const allItems = scanRes.Items || [];
+
+                const matchingItems = allItems.filter(item => 
+                    String(item.userEmail || "").trim().toLowerCase() === targetEmailClean
+                );
+
+                for (const item of matchingItems) {
                     if (item.msEventId && accessToken) {
                         try {
                             await fetch(`https://graph.microsoft.com/v1.0/me/events/${item.msEventId}`, {
@@ -1203,9 +1097,6 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
-        // ACTION D: PROCESS THE STANDARD CONTACT INTAKE FORM
-        // ==============================================================
         const fullName = data.fullName; const email = data.email; const service = data.service; const message = data.message;
         const intakeHtml = `
             <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
