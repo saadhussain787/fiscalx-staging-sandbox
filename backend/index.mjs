@@ -197,28 +197,11 @@ export const handler = async (event) => {
             const combinedName = isT2 ? corporateInfo.corpName : `${personalInfo.firstName || ""} ${personalInfo.middleName || ""} ${personalInfo.lastName || ""}`.trim();
             const timestamp = new Date().toISOString();
 
-            let activeStatus = "Pending";
-            try {
-                const scanParams = {
-                    TableName: TABLE_NAME,
-                    FilterExpression: "userEmail = :email",
-                    ExpressionAttributeValues: { ":email": userEmail }
-                };
-                const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
-                const userRecords = scanResult.Items || [];
-                if (userRecords.length > 0) {
-                    userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                    activeStatus = userRecords[0].campaignStatus || "Pending";
-                }
-            } catch (dbError) {
-                console.error("Failed to inherit active status:", dbError);
-            }
-
             const ddbParams = {
                 TableName: TABLE_NAME,
                 Item: {
                     userEmail: userEmail, timestamp: timestamp, taxType: taxType, craConsent: craConsent, clientName: combinedName,
-                    amountOwed: "0.00", amountCollected: "0.00", campaignStatus: activeStatus, howHeard: howHeard, notes: notes,
+                    amountOwed: "0.00", amountCollected: "0.00", campaignStatus: "Pending", howHeard: howHeard, notes: notes,
                     uploadedFiles: uploadedFiles, personalInfo: personalInfo, corporateInfo: corporateInfo, statusInCanada: statusInCanada,
                     familyMembers: familyMembers, ontarioResidency: ontarioResidency, milestones: milestones, selfEmployed: selfEmployed,
                     rentalIncome: rentalIncome, childCareBenefit: childCareBenefit,
