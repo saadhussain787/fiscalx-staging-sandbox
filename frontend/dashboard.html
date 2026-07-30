@@ -1076,52 +1076,71 @@ layout: layout.html
     dashBtnOffice.addEventListener('click', () => updateDashMeetingType("In-Office", dashBtnOffice, dashBtnTeams));
   }
 
+ // LIVE MICROSOFT OUTLOOK SYNC FOR LOGGED-IN CLIENT DASHBOARD
   if (dashDatePicker) {
-    dashDatePicker.addEventListener('change', (e) => {
+    dashDatePicker.addEventListener('change', async (e) => {
       const selectedDateObj = new Date(e.target.value);
       const dayOfWeek = new Date(selectedDateObj.getTime() + Math.abs(selectedDateObj.getTimezoneOffset() * 60000)).getDay();
+      
       if (dayOfWeek === 0 || dayOfWeek === 6) {
         alert("Our office is closed on weekends. Please select a date between Monday and Friday.");
-        dashDatePicker.value = ""; dashSlotContainer.classList.add('hidden'); dashConfirmation.classList.add('hidden');
+        dashDatePicker.value = ""; 
+        dashSlotContainer.classList.add('hidden'); 
+        dashConfirmation.classList.add('hidden');
         return; 
       }
 
       dashBookingDate = e.target.value;
       dashConfirmation.classList.add('hidden'); 
-      dashTimeSlots.innerHTML = "";
-      
-      const mockSlots = [
-        { time: "09:00 AM", isAvailable: false },
-        { time: "10:30 AM", isAvailable: true },
-        { time: "01:00 PM", isAvailable: false },
-        { time: "03:30 PM", isAvailable: true }
-      ];
-      
-      mockSlots.forEach(slot => {
-        const btn = document.createElement('button');
-        btn.type = "button"; btn.innerText = slot.time;
-        
-        if (!slot.isAvailable) {
-          btn.className = "dash-slot-btn border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed font-semibold py-2 px-3 rounded-xl text-xs line-through";
-          btn.disabled = true;
-        } else {
-          btn.className = "dash-slot-btn border border-slate-300 text-slate-700 bg-white hover:border-brand-500 hover:text-brand-600 font-semibold py-2 px-3 rounded-xl text-xs transition-all shadow-sm";
-          btn.onclick = () => {
-            document.querySelectorAll('.dash-slot-btn:not(:disabled)').forEach(b => {
-              b.classList.remove('bg-brand-500', 'text-white', 'border-brand-500');
-              b.classList.add('bg-white', 'text-slate-700', 'border-slate-300');
-            });
-            btn.classList.remove('bg-white', 'text-slate-700', 'border-slate-300');
-            btn.classList.add('bg-brand-500', 'text-white', 'border-brand-500');
-            
-            dashBookingTime = slot.time;
-            dashSelectedDisplay.innerText = `${dashMeetingType} on ${dashBookingDate} at ${dashBookingTime}`;
-            dashConfirmation.classList.remove('hidden');
-          };
-        }
-        dashTimeSlots.appendChild(btn);
-      });
+      dashTimeSlots.innerHTML = "<p class='text-xs text-slate-400 col-span-2 sm:col-span-4 italic animate-pulse py-2'>Checking Wasim's Live Outlook Calendar...</p>";
       dashSlotContainer.classList.remove('hidden');
+
+      try {
+        const response = await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: "getAvailableSlots", bookingDate: dashBookingDate })
+        });
+
+        const result = await response.json();
+        dashTimeSlots.innerHTML = "";
+
+        const liveSlots = result.slots || [];
+
+        if (liveSlots.length === 0) {
+          dashTimeSlots.innerHTML = "<p class='text-xs text-amber-600 col-span-2 sm:col-span-4 py-2 font-semibold'>No available slots found for this date.</p>";
+          return;
+        }
+
+        liveSlots.forEach(slot => {
+          const btn = document.createElement('button');
+          btn.type = "button"; 
+          btn.innerText = slot.time;
+          
+          if (!slot.isAvailable) {
+            btn.className = "dash-slot-btn border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed font-semibold py-2 px-3 rounded-xl text-xs line-through";
+            btn.disabled = true;
+          } else {
+            btn.className = "dash-slot-btn border border-slate-300 text-slate-700 bg-white hover:border-brand-500 hover:text-brand-600 font-semibold py-2 px-3 rounded-xl text-xs transition-all shadow-sm";
+            btn.onclick = () => {
+              document.querySelectorAll('.dash-slot-btn:not(:disabled)').forEach(b => {
+                b.classList.remove('bg-brand-500', 'text-white', 'border-brand-500');
+                b.classList.add('bg-white', 'text-slate-700', 'border-slate-300');
+              });
+              btn.classList.remove('bg-white', 'text-slate-700', 'border-slate-300');
+              btn.classList.add('bg-brand-500', 'text-white', 'border-brand-500');
+              
+              dashBookingTime = slot.time;
+              dashSelectedDisplay.innerText = `${dashMeetingType} on ${dashBookingDate} at ${dashBookingTime}`;
+              dashConfirmation.classList.remove('hidden');
+            };
+          }
+          dashTimeSlots.appendChild(btn);
+        });
+      } catch (err) {
+        console.error("Dashboard Calendar Error:", err);
+        dashTimeSlots.innerHTML = "<p class='text-xs text-red-500 col-span-2 sm:col-span-4 py-2'>Error connecting to Microsoft Calendar servers.</p>";
+      }
     });
   }
 
