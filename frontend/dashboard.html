@@ -1226,11 +1226,22 @@ layout: layout.html
     });
   }
 
-  // T1/T2 Toggle Buttons
+// T1/T2 Toggle Buttons with Dynamic Required Validation
   const tabT1 = document.getElementById('tab-t1');
   const tabT2 = document.getElementById('tab-t2');
   const t1Section = document.getElementById('t1-section');
   const t2Section = document.getElementById('t2-section');
+
+  function setT1Required(isRequired) {
+    const t1Fields = ['org-firstname', 'org-lastname', 'org-sin', 'org-dob', 'org-telephone', 'org-address', 'org-marital'];
+    t1Fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (isRequired) el.setAttribute('required', 'true');
+        else el.removeAttribute('required');
+      }
+    });
+  }
 
   if (tabT1 && tabT2) {
     tabT1.addEventListener('click', () => {
@@ -1238,12 +1249,14 @@ layout: layout.html
       t1Section.classList.remove('hidden'); t2Section.classList.add('hidden');
       tabT1.className = "px-5 py-2 rounded-lg text-xs font-bold bg-white text-brand-700 shadow-sm transition-all";
       tabT2.className = "px-5 py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all";
+      setT1Required(true); // Enable required validation for T1
     });
     tabT2.addEventListener('click', () => {
       activeTaxType = "T2 Corporate";
       t2Section.classList.remove('hidden'); t1Section.classList.add('hidden');
       tabT2.className = "px-5 py-2 rounded-lg text-xs font-bold bg-white text-brand-700 shadow-sm transition-all";
       tabT1.className = "px-5 py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all";
+      setT1Required(false); // Disable required validation for hidden T1 fields so T2 can submit!
     });
   }
 
@@ -1354,10 +1367,19 @@ layout: layout.html
       if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = "Transmitting Data..."; }
 
       try {
-        if (organizerFilesQueue.length > 0) {
-          for (let i = 0; i < organizerFilesQueue.length; i++) {
-            const fileObj = organizerFilesQueue[i].file;
-            if (submitBtn) submitBtn.innerText = `Uploading Doc ${i + 1} of ${organizerFilesQueue.length}...`;
+        // FILTER FILES STRICTLY BY FORM SELECTION (T1 VS T2 ISOLATION)
+        const relevantFilesToUpload = organizerFilesQueue.filter(item => {
+          if (activeTaxType.includes("T2")) {
+            return item.containerId === 'list-t2-docs';
+          } else {
+            return item.containerId !== 'list-t2-docs';
+          }
+        });
+
+        if (relevantFilesToUpload.length > 0) {
+          for (let i = 0; i < relevantFilesToUpload.length; i++) {
+            const fileObj = relevantFilesToUpload[i].file;
+            if (submitBtn) submitBtn.innerText = `Uploading Doc ${i + 1} of ${relevantFilesToUpload.length}...`;
             const authRes = await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: "getUploadUrl", fileName: fileObj.name, fileType: fileObj.type, userEmail: userEmail })
@@ -1366,7 +1388,7 @@ layout: layout.html
             if (!authRes.ok || authResult.status !== 'SUCCESS') throw new Error(authResult.message);
             const uploadRes = await fetch(authResult.uploadUrl, { method: 'PUT', headers: { 'Content-Type': fileObj.type }, body: fileObj });
             if (!uploadRes.ok) throw new Error("S3 rejected the file.");
-            organizerFilesQueue[i].fileKey = authResult.fileKey;
+            relevantFilesToUpload[i].fileKey = authResult.fileKey;
           }
         }
 
@@ -1384,7 +1406,7 @@ layout: layout.html
           userEmail: userEmail,
           taxType: activeTaxType,
           craConsent: `Yes, Authorized via secure digital timestamp: ${timestamp}`,
-          uploadedFiles: organizerFilesQueue.map(item => ({ fileName: item.file.name, fileKey: item.fileKey })),
+          uploadedFiles: relevantFilesToUpload.map(item => ({ fileName: item.file.name, fileKey: item.fileKey })),
           notes: document.getElementById('org-notes').value || "None provided.",
           
           personalInfo: {
