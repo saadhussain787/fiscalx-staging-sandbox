@@ -46,6 +46,9 @@
           <p class="text-sm text-slate-400 mt-1">Logged in as: <span id="active-admin-email" class="text-teal-300 font-medium"></span></p>
         </div>
         <div class="mt-4 md:mt-0 flex gap-3">
+          <button id="btn-qbo-connect" onclick="connectQuickBooks()" class="hidden px-4 py-2 rounded-lg bg-[#2CA01C] border border-[#238016] text-white text-sm font-bold hover:bg-[#238016] transition shadow-md shadow-green-500/20">
+            🟢 Connect QBO
+          </button>
           <button id="btn-ms-connect" onclick="connectMicrosoft()" class="hidden px-4 py-2 rounded-lg bg-[#0078D4] border border-[#005A9E] text-white text-sm font-bold hover:bg-[#005A9E] transition shadow-md shadow-blue-500/20">
             🔗 Connect Outlook
           </button>
@@ -232,8 +235,8 @@
 
       </div>
       
-      <div class="px-6 py-4 border-t border-white/10 bg-black/20 flex justify-between items-center">
-        <button onclick="deleteClientCard(this)" class="px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold hover:bg-red-500/20 transition flex items-center gap-1.5">
+<div class="px-6 py-4 border-t border-white/10 bg-black/20 flex justify-between items-center">
+        <button id="btn-delete-card" onclick="deleteClientCard(this)" class="px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold hover:bg-red-500/20 transition flex items-center gap-1.5">
           🗑️ Delete Record
         </button>
         <button onclick="closeModal()" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition">Close Window</button>
@@ -297,31 +300,68 @@
       window.location.href = authUrl;
     }
 
+    // QuickBooks OAuth Redirection Logic
+    function connectQuickBooks() {
+      const clientId = "ABDnUXIYkmVQ8IhyLE2C4H2vQeUwfeQYJgHJLFZ6QpzyizsGhu"; // Safe to expose in frontend
+      const redirectUri = encodeURIComponent("https://www.fiscalx.ca/admin/");
+      const scope = encodeURIComponent("com.intuit.quickbooks.accounting");
+      const state = "fiscalx_qbo_auth";
+      const authUrl = `https://appcenter.intuit.com/connect/oauth2?client_id=${clientId}&response_type=code&scope=${scope}&redirect_uri=${redirectUri}&state=${state}`;
+      window.location.href = authUrl;
+    }
+
 async function showCRM(email) {
       loginScreen.classList.add('hidden'); crmScreen.classList.remove('hidden'); displayEmail.innerText = email;
       
       const msBtn = document.getElementById('btn-ms-connect');
       if (msBtn) msBtn.classList.remove('hidden');
+      
+      const qboBtn = document.getElementById('btn-qbo-connect');
+      if (qboBtn) qboBtn.classList.remove('hidden');
+      
+const urlParams = new URLSearchParams(window.location.search);
+      const authCode = urlParams.get('code');
+      const authState = urlParams.get('state');
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const msCode = urlParams.get('code');
-      if (msCode) {
+      if (authCode) {
         window.history.replaceState({}, document.title, window.location.pathname);
-        document.getElementById('kanban-status').innerText = "Exchanging Microsoft Token securely...";
-        try {
-          const msRes = await fetch(API_URL, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: "exchangeMsCode", adminEmail: email, code: msCode })
-          });
-          const msData = await msRes.json();
-          if (msData.status === 'SUCCESS') {
-            alert("✅ Outlook Calendar Successfully Connected to AWS!");
-            document.getElementById('kanban-status').innerText = "Outlook Synced.";
-          } else {
-            alert("Failed to connect Outlook: " + msData.message);
-          }
-        } catch(e) {
-          alert("Network error connecting Outlook to AWS.");
+        
+        if (authState === 'fiscalx_qbo_auth') {
+            // ROUTE TO QUICKBOOKS BACKEND
+            document.getElementById('kanban-status').innerText = "Exchanging QuickBooks Token securely...";
+            try {
+              const qboRes = await fetch(API_URL, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: "exchangeQboCode", adminEmail: email, code: authCode })
+              });
+              const qboData = await qboRes.json();
+              if (qboData.status === 'SUCCESS') {
+                alert("✅ QuickBooks Successfully Connected to AWS!");
+                document.getElementById('kanban-status').innerText = "QuickBooks Synced.";
+              } else {
+                alert("Failed to connect QuickBooks: " + qboData.message);
+              }
+            } catch(e) {
+              alert("Network error connecting QuickBooks to AWS.");
+            }
+        } else {
+            // ROUTE TO MICROSOFT BACKEND
+            document.getElementById('kanban-status').innerText = "Exchanging Microsoft Token securely...";
+            try {
+              const msRes = await fetch(API_URL, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: "exchangeMsCode", adminEmail: email, code: authCode })
+              });
+              const msData = await msRes.json();
+              if (msData.status === 'SUCCESS') {
+                alert("✅ Outlook Calendar Successfully Connected to AWS!");
+                document.getElementById('kanban-status').innerText = "Outlook Synced.";
+              } else {
+                alert("Failed to connect Outlook: " + msData.message);
+              }
+            } catch(e) {
+              alert("Network error connecting Outlook to AWS.");
+            }
         }
       } else {
         document.getElementById('kanban-status').innerText = "Syncing with secure AWS vault...";
@@ -336,7 +376,7 @@ async function showCRM(email) {
           const inProgress = deduplicatedClients.filter(c => c.campaignStatus === 'Pending' || c.campaignStatus === 'In Progress').length;
           const completed = deduplicatedClients.filter(c => c.campaignStatus === 'Completed').length;
           document.getElementById('stat-total').innerText = total; document.getElementById('stat-progress').innerText = inProgress; document.getElementById('stat-completed').innerText = completed;
-          if (!msCode) document.getElementById('kanban-status').innerText = ""; 
+          if (!authCode) document.getElementById('kanban-status').innerText = ""; 
           window.allClients = deduplicatedClients; renderKanbanBoard(deduplicatedClients);
         } else { document.getElementById('kanban-status').innerText = "Error fetching data."; }
       } catch (error) { document.getElementById('kanban-status').innerText = "Network Error connecting to Database."; }
@@ -505,6 +545,16 @@ async function showCRM(email) {
         renderFinalQueue();
       } else {
         finalDeliverablesBox.classList.add('hidden');
+      }
+
+      // Hide Delete button if client is in Completed column
+      const deleteBtn = document.getElementById('btn-delete-card');
+      if (deleteBtn) {
+        if (client.campaignStatus === 'Completed') {
+          deleteBtn.classList.add('hidden');
+        } else {
+          deleteBtn.classList.remove('hidden');
+        }
       }
 
       modal.classList.remove('hidden');
