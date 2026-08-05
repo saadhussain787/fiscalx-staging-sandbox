@@ -80,7 +80,6 @@ async function getMsAccessToken() {
     }
 }
 
-// Global Helper Function: Fetches a fresh Access Token from QuickBooks API
 async function getQboAccessToken() {
     try {
         const configRes = await ddbDocClient.send(new ScanCommand({
@@ -110,7 +109,6 @@ async function getQboAccessToken() {
         const tokenData = await tokenRes.json();
         if (!tokenData.access_token) throw new Error("QBO Token Refresh Failed");
 
-        // Intuit rotates refresh tokens periodically; we must ALWAYS save the latest one back to DynamoDB
         await ddbDocClient.send(new UpdateCommand({
             TableName: TABLE_NAME,
             Key: { "userEmail": "SYSTEM_CONFIG", "timestamp": "QUICKBOOKS_AUTH" },
@@ -141,6 +139,9 @@ export const handler = async (event) => {
     try {
         const data = JSON.parse(event.body || "{}");
 
+        // ==============================================================
+        // ACTION A: GENERATE SECURE S3 PRESIGNED UPLOAD URL
+        // ==============================================================
         if (data.action === "getUploadUrl") {
             const fileName = data.fileName;
             const fileType = data.fileType;
@@ -156,6 +157,9 @@ export const handler = async (event) => {
             };
         }
 
+        // ==============================================================
+        // ACTION B: NOTIFY UPLOAD COMPLETE
+        // ==============================================================
         if (data.action === "notifyUploadComplete") {
             const fileKey = data.fileKey;
             const userEmail = data.userEmail;
@@ -211,15 +215,17 @@ export const handler = async (event) => {
                 </div>
             `;
 
-            const sesCommand = new SendEmailCommand({
+            await ses.send(new SendEmailCommand({
                 Source: SENDER_EMAIL, Destination: { ToAddresses: [OFFICE_EMAIL] },
                 Message: { Subject: { Charset: "UTF-8", Data: `[Vault Alert] New Client Upload from ${userEmail}` }, Body: { Html: { Charset: "UTF-8", Data: emailHtml } } }
-            });
-            await ses.send(sesCommand);
+            }));
 
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
         }
 
+        // ==============================================================
+        // ACTION C: SUBMIT CANADIAN TAX ORGANIZER
+        // ==============================================================
         if (data.action === "submitTaxOrganizer") {
             const {
                 userEmail = "Unknown", taxType = "T1 Personal", craConsent = "Not Provided", howHeard = "Not Specified",
@@ -321,40 +327,15 @@ export const handler = async (event) => {
                             <tr><td style="padding: 8px 0; font-weight: bold; color: #475569;">Industry:</td><td style="padding: 8px 0;">${corporateInfo.industry || "N/A"}</td></tr>
                         </table>
                     </div>
-                    <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-                        <h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">2. Tax Remittance Accounts</h3>
-                        <p style="font-size: 13px;"><strong>GST/HST (RT):</strong> ${(corporateInfo.remittance?.gst || "no").toUpperCase()} | <strong>Payroll (RP):</strong> ${(corporateInfo.remittance?.payroll || "no").toUpperCase()}</p>
-                    </div>
-                    <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-                        <h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">3. Corporate Directors & Shareholders</h3>
-                        <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
-                            <thead><tr style="background-color: #f8fafc; color: #475569;"><th style="padding: 8px;">Name</th><th style="padding: 8px;">SIN</th><th style="padding: 8px;">Share %</th><th style="padding: 8px;">Role</th></tr></thead>
-                            <tbody>${directorRows}</tbody>
-                        </table>
-                    </div>
                 `;
             } else {
-                let familyRows = familyMembers.map(m => `<tr><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${m.name}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${m.sin}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${m.dob}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9; text-transform: capitalize;">${m.relationship}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9; text-transform: uppercase;">${m.disability}</td></tr>`).join("");
-                let residencyRows = ontarioResidency.map(r => `<tr><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${r.months} Mos</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${r.address}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${r.landlord}</td></tr>`).join("");
-                const selfEmployedHtml = selfEmployed.active === "yes" ? `<div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;"><h3 style="color: #059669; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">UBER/Lyft (T2125)</h3><p style="font-size: 12px;"><strong>Total KMs:</strong> ${selfEmployed.totalKms || "0"} | <strong>Business KMs:</strong> ${selfEmployed.businessKms || "0"}</p></div>` : "";
-                const rentalHtml = rentalIncome.active === "yes" ? `<div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;"><h3 style="color: #0284c7; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">Rental Income (T776)</h3><p style="font-size: 12px;"><strong>Address:</strong> ${rentalIncome.address || "N/A"} | <strong>Gross Income:</strong> $${rentalIncome.grossIncome || "0.00"}</p></div>` : "";
-                specificHtmlBody = `
-                    <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+                specificHtmlBody = `<div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
                         <h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">1. Personal Profile</h3>
                         <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                             <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569; width: 140px;">Name:</td><td style="padding: 8px 0; font-weight: bold;">${combinedName || "N/A"}</td></tr>
-                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">9-Digit SIN:</td><td style="padding: 8px 0; font-family: monospace;">${personalInfo.sin || "N/A"}</td></tr>
                             <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Telephone:</td><td style="padding: 8px 0;">${personalInfo.telephone || "N/A"}</td></tr>
-                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Marital Status:</td><td style="padding: 8px 0; text-transform: capitalize;">${personalInfo.maritalStatus || "N/A"}</td></tr>
-                            <tr><td style="padding: 8px 0; font-weight: bold; color: #475569;">Spousal Net Inc.:</td><td style="padding: 8px 0; font-weight: bold; color: #059669;">$${personalInfo.spousalIncome || "0.00"}</td></tr>
                         </table>
-                    </div>
-                    <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;"><h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">2. Family Dependents</h3><table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;"><thead><tr style="background-color: #f8fafc; color: #475569;"><th style="padding: 8px;">Name</th><th style="padding: 8px;">SIN</th><th style="padding: 8px;">DOB</th><th style="padding: 8px;">Relation</th><th style="padding: 8px;">DTC</th></tr></thead><tbody>${familyRows || "<tr><td colspan='5' style='padding:6px; text-align:center;'>None</td></tr>"}</tbody></table></div>
-                    <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;"><h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">3. Status & Ontario Properties</h3><p style="font-size: 13px;"><strong>Immigration:</strong> ${statusInCanada.status || "N/A"} | <strong>Entry Date:</strong> ${statusInCanada.entryDate || "N/A"}</p><table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; border: 1px solid #e2e8f0; margin-top: 10px;"><thead><tr style="background-color: #f1f5f9;"><th style="padding: 8px;">Months</th><th style="padding: 8px;">Address</th><th style="padding: 8px;">Landlord/City</th></tr></thead><tbody>${residencyRows || "<tr><td colspan='3' style='padding:6px; text-align:center;'>None</td></tr>"}</tbody></table></div>
-                    <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;"><h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">4. Milestones Disclosures</h3><table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;"><tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0; width: 75%;">Auth. Elections Canada?</td><td style="padding: 10px 0; font-weight: bold;">${(milestones.electionsCanada || "no").toUpperCase()}</td></tr><tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0;">Direct Deposit Changed?</td><td style="padding: 10px 0; font-weight: bold;">${(milestones.directDeposit || "no").toUpperCase()}</td></tr><tr><td style="padding: 10px 0;">Purchased a new home in this tax year?</td><td style="padding: 10px 0; font-weight: bold;">${(milestones.purchasedHome || "no").toUpperCase()}</td></tr></table></div>
-                    ${selfEmployedHtml}
-                    ${rentalHtml}
-                `;
+                    </div>`;
             }
 
             const organizerHtml = `
@@ -377,15 +358,17 @@ export const handler = async (event) => {
                 </div>
             `;
 
-            const sesOrganizerCommand = new SendEmailCommand({
+            await ses.send(new SendEmailCommand({
                 Source: SENDER_EMAIL, Destination: { ToAddresses: [OFFICE_EMAIL] },
                 Message: { Subject: { Charset: "UTF-8", Data: `[${taxType}] Complete Onboarding from ${combinedName || userEmail}` }, Body: { Html: { Charset: "UTF-8", Data: organizerHtml } } }
-            });
-            await ses.send(sesOrganizerCommand);
+            }));
 
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Your onboarding organizer and files have been securely compiled and delivered." }) };
         }
 
+        // ==============================================================
+        // ACTION E: FETCH CRM DATA FOR ADMIN PORTAL (FILTERS SYSTEM_CONFIG)
+        // ==============================================================
         if (data.action === "getCrmData") {
             const adminEmail = data.adminEmail;
 
@@ -396,6 +379,8 @@ export const handler = async (event) => {
 
             const scanParams = { TableName: TABLE_NAME };
             const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
+            
+            // FILTER OUT INTERNAL SYSTEM CONFIG CARDS
             const clients = (scanResult.Items || []).filter(c => c.userEmail !== "SYSTEM_CONFIG");
 
             const total = clients.length;
@@ -408,6 +393,9 @@ export const handler = async (event) => {
             };
         }
 
+        // ==============================================================
+        // ACTION F: UPDATE CLIENT KANBAN STATUS
+        // ==============================================================
         if (data.action === "updateClientStatus") {
             const adminEmail = data.adminEmail;
             const clientEmail = data.clientEmail;
@@ -426,7 +414,10 @@ export const handler = async (event) => {
             try {
                 const updateParams = {
                     TableName: TABLE_NAME,
-                    Key: { "userEmail": String(clientEmail), "timestamp": String(clientTimestamp) },
+                    Key: { 
+                        "userEmail": String(clientEmail),
+                        "timestamp": String(clientTimestamp) 
+                    },
                     UpdateExpression: "set campaignStatus = :s",
                     ExpressionAttributeValues: { ":s": String(newStatus) },
                     ReturnValues: "UPDATED_NEW"
@@ -434,12 +425,16 @@ export const handler = async (event) => {
 
                 await ddbDocClient.send(new UpdateCommand(updateParams));
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Status updated successfully." }) };
+            
             } catch (updateError) {
                 console.error("DynamoDB Update Error:", updateError);
                 return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Database update failed: " + updateError.message }) };
             }
         }
 
+        // ==============================================================
+        // ACTION G: GENERATE SECURE DOWNLOAD URL FOR ADMINS
+        // ==============================================================
         if (data.action === "getDownloadUrl") {
             const adminEmail = data.adminEmail;
             const fileKey = data.fileKey;
@@ -456,6 +451,7 @@ export const handler = async (event) => {
             try {
                 const downloadCommand = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileKey });
                 const secureUrl = await getSignedUrl(s3, downloadCommand, { expiresIn: 60 });
+
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", secureUrl: secureUrl }) };
             } catch (s3Error) {
                 console.error("S3 Decryption Error:", s3Error);
@@ -463,6 +459,9 @@ export const handler = async (event) => {
             }
         }
 
+        // ==============================================================
+        // ACTION H: FETCH A SINGLE CLIENT'S STATUS FOR THEIR DASHBOARD
+        // ==============================================================
         if (data.action === "getClientStatus") {
             const userEmail = data.userEmail;
 
@@ -485,9 +484,19 @@ export const handler = async (event) => {
                     const isPaid = userRecords[0].paymentConfirmed || false;
                     const finalReturns = userRecords[0].finalFiles || [];
                     
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", campaignStatus: latestStatus, paymentConfirmed: isPaid, finalFiles: finalReturns }) };
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ 
+                        status: "SUCCESS", 
+                        campaignStatus: latestStatus,
+                        paymentConfirmed: isPaid,
+                        finalFiles: finalReturns
+                    }) };
                 } else {
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", campaignStatus: "Unsubmitted", paymentConfirmed: false, finalFiles: [] }) };
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ 
+                        status: "SUCCESS", 
+                        campaignStatus: "Unsubmitted",
+                        paymentConfirmed: false,
+                        finalFiles: []
+                    }) };
                 }
             } catch (dbError) {
                 console.error("Failed to fetch client status:", dbError);
@@ -495,6 +504,9 @@ export const handler = async (event) => {
             }
         }
 
+        // ==============================================================
+        // ACTION I: SEND DOCUMENT REQUEST EMAIL REMINDERS
+        // ==============================================================
         if (data.action === "sendDocumentReminder") {
             const adminEmail = data.adminEmail;
             const clientEmail = data.clientEmail;
@@ -518,24 +530,32 @@ export const handler = async (event) => {
                         <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
                         <p style="font-size: 15px; line-height: 1.6;">Hello ${clientName},</p>
                         <p style="font-size: 15px; line-height: 1.6;">Wasim Kadri, CPA is currently actively preparing your tax file. To proceed with your return, we securely require the following document:</p>
+                        
                         <div style="margin: 25px 0; padding: 20px; background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; text-align: center;">
                             <span style="font-size: 16px; font-weight: bold; color: #b45309;">⚠️ Required Document: ${requestedDocName}</span>
                         </div>
+                        
                         <p style="font-size: 15px; line-height: 1.6;">Please click the secure button below to log into your portal. Once logged in, scroll to the bottom of your screen to the <strong>"Secure Document Upload Center"</strong> to transmit your document directly into our encrypted S3 vault.</p>
+                        
                         <div style="text-align: center; margin: 30px 0;">
                             <a href="https://www.fiscalx.ca/dashboard/" target="_blank" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; font-size: 14px; border-radius: 8px;">Log In & Upload Document</a>
                         </div>
+                        
+                        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                            This is an automated transmission on behalf of Wasim Kadri, CPA (FiscalX). Please do not reply directly to this email.
+                        </p>
                     </div>
                 `;
 
-                await ses.send(new SendEmailCommand({
+                const sesCommand = new SendEmailCommand({
                     Source: SENDER_EMAIL,
                     Destination: { ToAddresses: [clientEmail] },
                     Message: {
                         Subject: { Charset: "UTF-8", Data: `[Action Required] Document Reminder for Your FiscalX Tax File` },
                         Body: { Html: { Charset: "UTF-8", Data: reminderHtml } }
                     }
-                }));
+                });
+                await ses.send(sesCommand);
 
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Reminder sent successfully." }) };
             } catch (err) {
@@ -544,6 +564,9 @@ export const handler = async (event) => {
             }
         }
 
+        // ==============================================================
+        // ACTION J: UPDATE BILLING STATUS & FINAL RETURNS (CASHFLOW SECURE)
+        // ==============================================================
         if (data.action === "updateBillingStatus") {
             const { adminEmail, clientEmail, timestamp, finalFiles = [], paymentConfirmed = false } = data;
 
@@ -565,12 +588,13 @@ export const handler = async (event) => {
                 const items = scanResult.Items || [];
 
                 for (const item of items) {
-                    await ddbDocClient.send(new UpdateCommand({
+                    const updateParams = {
                         TableName: TABLE_NAME,
                         Key: { "userEmail": item.userEmail, "timestamp": item.timestamp },
                         UpdateExpression: "set finalFiles = :f, paymentConfirmed = :p",
                         ExpressionAttributeValues: { ":f": finalFiles, ":p": paymentConfirmed }
-                    }));
+                    };
+                    await ddbDocClient.send(new UpdateCommand(updateParams));
                 }
 
                 if (paymentConfirmed === true) {
@@ -589,14 +613,15 @@ export const handler = async (event) => {
                             </div>
                         </div>
                     `;
-                    await ses.send(new SendEmailCommand({
+                    const sesCommand = new SendEmailCommand({
                         Source: SENDER_EMAIL,
                         Destination: { ToAddresses: [clientEmail] },
                         Message: {
                             Subject: { Charset: "UTF-8", Data: `[FiscalX] Payment Confirmed - Your Tax Returns are Unlocked` },
                             Body: { Html: { Charset: "UTF-8", Data: unlockHtml } }
                         }
-                    }));
+                    });
+                    await ses.send(sesCommand);
                 }
 
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Billing status updated successfully across all records." }) };
@@ -606,6 +631,9 @@ export const handler = async (event) => {
             }
         }
 
+        // ==============================================================
+        // ACTION K: CLIENT-SAFE DOWNLOAD URL GENERATOR
+        // ==============================================================
         if (data.action === "getClientDownloadUrl") {
             const userEmail = data.userEmail;
             const fileKey = data.fileKey;
@@ -628,6 +656,9 @@ export const handler = async (event) => {
             }
         }
 
+        // ==============================================================
+        // ACTION O: EXCHANGE MICROSOFT OAUTH CODE FOR REFRESH TOKEN
+        // ==============================================================
         if (data.action === "exchangeMsCode") {
             const isAuthorized = await isStaff(data.adminEmail);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
@@ -687,7 +718,6 @@ export const handler = async (event) => {
             if (!qboCode) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing QuickBooks Authorization Code." }) };
 
             try {
-                // Intuit requires Basic Auth formatting for the Client ID and Secret
                 const authHeader = Buffer.from(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`).toString('base64');
                 
                 const tokenResponse = await fetch(`https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer`, {
@@ -710,7 +740,6 @@ export const handler = async (event) => {
                     throw new Error(tokenData.error_description || tokenData.error);
                 }
 
-                // Save QBO Refresh Token and Realm ID in DynamoDB
                 await ddbDocClient.send(new PutCommand({
                     TableName: TABLE_NAME,
                     Item: {
@@ -730,6 +759,102 @@ export const handler = async (event) => {
             }
         }
 
+        // ==============================================================
+        // ACTION S: FETCH UNPAID INVOICES FROM QUICKBOOKS (CASH RECOVERY)
+        // ==============================================================
+        if (data.action === "fetchQboInvoices") {
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+
+            try {
+                const qboAuth = await getQboAccessToken();
+                if (!qboAuth) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "QuickBooks not connected." }) };
+
+                const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
+                
+                const query = encodeURIComponent(`select * from Invoice where Balance > '0'`);
+                const qboUrl = `${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`;
+
+                const invoiceRes = await fetch(qboUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${qboAuth.accessToken}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const invoiceData = await invoiceRes.json();
+                const invoices = invoiceData.QueryResponse.Invoice || [];
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", invoices: invoices }) };
+
+            } catch (err) {
+                console.error("QBO Fetch Invoices Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION T: SEND QBO INVOICE REMINDER (E-TRANSFER TO PAYMENTS)
+        // ==============================================================
+        if (data.action === "sendQboReminder") {
+            const { adminEmail, customerEmail, customerName, balance, docNumber } = data;
+
+            const isAuthorized = await isStaff(adminEmail);
+            if (!isAuthorized) {
+                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
+            }
+
+            if (!customerEmail || !balance) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing customer details. Make sure client has an email in QuickBooks." }) };
+            }
+
+            try {
+                const reminderHtml = `
+                    <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                        <h2 style="color: #ef4444; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
+                        <p style="font-size: 14px; color: #64748b; margin-top: 0;">Outstanding Invoice Reminder</p>
+                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                        <p style="font-size: 15px; line-height: 1.6;">Hello ${customerName},</p>
+                        <p style="font-size: 15px; line-height: 1.6;">This is a friendly automated reminder that you currently have an outstanding balance on your account.</p>
+                        
+                        <div style="margin: 25px 0; padding: 20px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; text-align: center;">
+                            <p style="font-size: 14px; color: #991b1b; margin: 0 0 5px 0; font-weight: bold;">Invoice #${docNumber}</p>
+                            <span style="font-size: 24px; font-weight: 900; color: #b91c1c;">$${parseFloat(balance).toFixed(2)} CAD</span>
+                        </div>
+                        
+                        <h3 style="font-size: 14px; color: #334155; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">Payment Instructions</h3>
+                        <p style="font-size: 14px; line-height: 1.6; color: #475569;">To avoid any interruptions to your accounting services, please remit payment at your earliest convenience using one of the following methods:</p>
+                        <ul style="font-size: 14px; color: #475569; line-height: 1.6;">
+                            <li><strong>Interac e-Transfer:</strong> Please send to <a href="mailto:payments@fiscalx.ca" style="color: #4f46e5; font-weight: bold;">payments@fiscalx.ca</a> (Auto-deposit is enabled).</li>
+                            <li><strong>Cash:</strong> Drop-off available at our North York office during business hours.</li>
+                        </ul>
+                        
+                        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                            This is an automated transmission on behalf of Wasim Kadri, CPA. If you have already sent payment, please disregard this notice.
+                        </p>
+                    </div>
+                `;
+
+                await ses.send(new SendEmailCommand({
+                    Source: SENDER_EMAIL,
+                    Destination: { ToAddresses: [customerEmail], BccAddresses: [OFFICE_EMAIL] },
+                    Message: {
+                        Subject: { Charset: "UTF-8", Data: `[Action Required] Outstanding Balance Reminder - FiscalX` },
+                        Body: { Html: { Charset: "UTF-8", Data: reminderHtml } }
+                    }
+                }));
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Reminder email sent successfully." }) };
+            } catch (err) {
+                console.error("QBO Reminder Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION P: GET REAL-TIME CALENDAR AVAILABILITY FROM MICROSOFT
+        // ==============================================================
         if (data.action === "getAvailableSlots") {
             const bookingDate = data.bookingDate; // YYYY-MM-DD
             if (!bookingDate) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing bookingDate." }) };
@@ -828,6 +953,9 @@ export const handler = async (event) => {
             }
         }
 
+        // ==============================================================
+        // ACTION L: SUBMIT NEW BOOKING (CAPTURES msEventId FOR OUTLOOK SYNC)
+        // ==============================================================
         if (data.action === "createBooking" || data.action === "submitBooking") {
             const userEmail = data.email || data.userEmail;
             const userName = data.fullName || data.userName || "Valued Client";
@@ -959,6 +1087,9 @@ export const handler = async (event) => {
             }
         }
 
+        // ==============================================================
+        // ACTION M: RESCHEDULE BOOKING (MOVES EXISTING OUTLOOK EVENT)
+        // ==============================================================
         if (data.action === "rescheduleBooking") {
             const { adminEmail, clientEmail, timestamp, newDate, newTime } = data;
 
@@ -1082,6 +1213,9 @@ export const handler = async (event) => {
             }
         }
 
+        // ==============================================================
+        // ACTION N: CANCEL BOOKING (DELETES OUTLOOK EVENT & FREES SLOT)
+        // ==============================================================
         if (data.action === "cancelBooking") {
             const { adminEmail, clientEmail, timestamp } = data;
 
@@ -1147,6 +1281,9 @@ export const handler = async (event) => {
             }
         }
 
+        // ==============================================================
+        // ACTION Q: PERMANENTLY DELETE ALL CLIENT RECORDS FROM DYNAMODB
+        // ==============================================================
         if (data.action === "deleteClient") {
             const { adminEmail, clientEmail } = data;
 
@@ -1204,6 +1341,9 @@ export const handler = async (event) => {
             }
         }
 
+        // ==============================================================
+        // ACTION D: PROCESS THE STANDARD CONTACT INTAKE FORM
+        // ==============================================================
         const fullName = data.fullName; const email = data.email; const service = data.service; const message = data.message;
         const intakeHtml = `
             <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
