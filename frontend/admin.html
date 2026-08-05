@@ -322,6 +322,7 @@ async function showCRM(email) {
 const urlParams = new URLSearchParams(window.location.search);
       const authCode = urlParams.get('code');
       const authState = urlParams.get('state');
+      const realmId = urlParams.get('realmId'); // Grab QBO Company ID
 
       if (authCode) {
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -332,8 +333,9 @@ const urlParams = new URLSearchParams(window.location.search);
             try {
               const qboRes = await fetch(API_URL, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: "exchangeQboCode", adminEmail: email, code: authCode })
+                body: JSON.stringify({ action: "exchangeQboCode", adminEmail: email, code: authCode, realmId: realmId }) // Pass realmId to backend
               });
+              
               const qboData = await qboRes.json();
               if (qboData.status === 'SUCCESS') {
                 alert("✅ QuickBooks Successfully Connected to AWS!");
