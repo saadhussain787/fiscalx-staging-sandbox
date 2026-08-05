@@ -80,6 +80,51 @@ async function getMsAccessToken() {
     }
 }
 
+// Global Helper Function: Fetches a fresh Access Token from QuickBooks API
+async function getQboAccessToken() {
+    try {
+        const configRes = await ddbDocClient.send(new ScanCommand({
+            TableName: TABLE_NAME,
+            FilterExpression: "userEmail = :e AND #ts = :t",
+            ExpressionAttributeNames: { "#ts": "timestamp" },
+            ExpressionAttributeValues: { ":e": "SYSTEM_CONFIG", ":t": "QUICKBOOKS_AUTH" }
+        }));
+        const configItem = (configRes.Items || [])[0];
+        if (!configItem || !configItem.qboRefreshToken || !configItem.qboRealmId) return null;
+
+        const authHeader = Buffer.from(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`).toString('base64');
+
+        const tokenRes = await fetch(`https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer`, {
+            method: 'POST',
+            headers: { 
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': `Basic ${authHeader}`
+            },
+            body: new URLSearchParams({
+                grant_type: 'refresh_token',
+                refresh_token: configItem.qboRefreshToken
+            })
+        });
+        
+        const tokenData = await tokenRes.json();
+        if (!tokenData.access_token) throw new Error("QBO Token Refresh Failed");
+
+        // Intuit rotates refresh tokens periodically; we must ALWAYS save the latest one back to DynamoDB
+        await ddbDocClient.send(new UpdateCommand({
+            TableName: TABLE_NAME,
+            Key: { "userEmail": "SYSTEM_CONFIG", "timestamp": "QUICKBOOKS_AUTH" },
+            UpdateExpression: "set qboRefreshToken = :r, updatedAt = :u",
+            ExpressionAttributeValues: { ":r": tokenData.refresh_token, ":u": new Date().toISOString() }
+        }));
+
+        return { accessToken: tokenData.access_token, realmId: configItem.qboRealmId };
+    } catch (err) {
+        console.error("QuickBooks Token Refresh Error:", err);
+        return null;
+    }
+}
+
 export const handler = async (event) => {
     console.log("Incoming Event Payload:", JSON.stringify(event));
 
@@ -625,6 +670,62 @@ export const handler = async (event) => {
 
             } catch (err) {
                 console.error("Microsoft Token Exchange Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION R: EXCHANGE QUICKBOOKS OAUTH CODE FOR REFRESH TOKEN
+        // ==============================================================
+        if (data.action === "exchangeQboCode") {
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+
+            const qboCode = data.code;
+            const realmId = data.realmId; // The QuickBooks Company ID
+
+            if (!qboCode) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing QuickBooks Authorization Code." }) };
+
+            try {
+                // Intuit requires Basic Auth formatting for the Client ID and Secret
+                const authHeader = Buffer.from(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`).toString('base64');
+                
+                const tokenResponse = await fetch(`https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer`, {
+                    method: 'POST',
+                    headers: { 
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Authorization': `Basic ${authHeader}`
+                    },
+                    body: new URLSearchParams({
+                        code: qboCode,
+                        redirect_uri: QBO_REDIRECT_URI,
+                        grant_type: 'authorization_code'
+                    })
+                });
+
+                const tokenData = await tokenResponse.json();
+                
+                if (tokenData.error) {
+                    throw new Error(tokenData.error_description || tokenData.error);
+                }
+
+                // Save QBO Refresh Token and Realm ID in DynamoDB
+                await ddbDocClient.send(new PutCommand({
+                    TableName: TABLE_NAME,
+                    Item: {
+                        userEmail: "SYSTEM_CONFIG",
+                        timestamp: "QUICKBOOKS_AUTH",
+                        qboRefreshToken: tokenData.refresh_token,
+                        qboRealmId: realmId || "UNKNOWN",
+                        updatedAt: new Date().toISOString()
+                    }
+                }));
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "QuickBooks connected and token secured." }) };
+
+            } catch (err) {
+                console.error("QuickBooks Token Exchange Error:", err);
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
