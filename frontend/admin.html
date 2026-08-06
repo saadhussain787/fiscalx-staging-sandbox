@@ -898,21 +898,38 @@ invoices.forEach(inv => {
                     const docNumber = inv.DocNumber || "N/A";
                     const dueDate = inv.DueDate || "N/A";
                     
-                    // Extract email from QBO and safely escape quotes for HTML
                     const customerEmail = inv.BillEmail ? inv.BillEmail.Address : "";
                     const safeName = customerName.replace(/'/g, "\\'");
 
+                    // THE MEMORY: Read the ledger data injected by our backend
+                    const ledger = inv._ledger || { escalationLevel: 0, lastContactDate: "Never", isPaused: false };
+                    
+                    const pauseText = ledger.isPaused ? "▶️ Resume Auto" : "⏸️ Pause Auto";
+                    const pauseBtnClass = ledger.isPaused ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500 hover:text-slate-900" : "bg-slate-500/10 text-slate-400 border-slate-500/30 hover:bg-slate-500 hover:text-white";
+                    const rowOpacity = ledger.isPaused ? "opacity-50 grayscale" : ""; // Grays out the row if paused
+                    const reminderDisabled = ledger.isPaused ? "disabled" : "";
+                    const reminderClass = ledger.isPaused ? "bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed" : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500 hover:text-white";
+
                     listDiv.innerHTML += `
-                        <div class="flex justify-between items-center bg-[#131A2B] border border-white/5 p-3.5 rounded-xl hover:border-green-500/30 transition-colors">
+                        <div class="flex justify-between items-center bg-[#131A2B] border border-white/5 p-3.5 rounded-xl hover:border-green-500/30 transition-all ${rowOpacity}">
                             <div>
                                 <p class="text-sm font-bold text-slate-200">${customerName} <span class="text-[10px] font-bold text-slate-500 ml-2 bg-black/40 px-2 py-0.5 rounded border border-white/10">Inv #${docNumber}</span></p>
-                                <p class="text-[11px] text-red-400 font-semibold mt-1">Due: ${dueDate}</p>
+                                <p class="text-[10px] text-slate-400 font-semibold mt-1.5 flex items-center gap-2">
+                                    <span class="text-red-400">Due: ${dueDate}</span> 
+                                    <span class="text-slate-600">|</span> 
+                                    <span class="text-green-400">Last Alert: ${ledger.lastContactDate} (Level ${ledger.escalationLevel})</span>
+                                </p>
                             </div>
-                            <div class="text-right">
-                                <p class="text-sm font-black text-slate-100">$${balance.toFixed(2)}</p>
-                                <button onclick="sendQboReminderEmail('${customerEmail}', '${safeName}', '${balance}', '${docNumber}', this)" class="text-[9px] uppercase tracking-wider font-bold mt-1.5 px-2.5 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500 hover:text-white transition shadow-sm">
-                                    Send Reminder
-                                </button>
+                            <div class="text-right flex flex-col items-end">
+                                <p class="text-sm font-black text-slate-100 mb-1.5">$${balance.toFixed(2)}</p>
+                                <div class="flex gap-2">
+                                    <button onclick="toggleInvoicePause('${docNumber}', ${ledger.isPaused}, this)" class="text-[9px] uppercase tracking-wider font-bold px-2 py-1.5 border rounded-lg transition shadow-sm ${pauseBtnClass}">
+                                        ${pauseText}
+                                    </button>
+                                    <button ${reminderDisabled} onclick="sendQboReminderEmail('${customerEmail}', '${safeName}', '${balance}', '${docNumber}', this)" class="text-[9px] uppercase tracking-wider font-bold px-2.5 py-1.5 border rounded-lg transition shadow-sm ${reminderClass}">
+                                        Send Reminder
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -977,6 +994,42 @@ invoices.forEach(inv => {
         } catch (err) {
             alert("Network error trying to send reminder.");
             btnElement.innerText = originalText;
+            btnElement.disabled = false;
+        }
+    };
+
+    // ==============================================================
+    // ACTION V: TOGGLE INVOICE KILL SWITCH (PAUSE AUTOMATION)
+    // ==============================================================
+    window.toggleInvoicePause = async function(docNumber, isCurrentlyPaused, btnElement) {
+        const adminEmail = localStorage.getItem('admin_email');
+        if (!adminEmail) return;
+
+        btnElement.disabled = true;
+        btnElement.innerText = "Saving...";
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: "toggleInvoicePause",
+                    adminEmail: adminEmail,
+                    docNumber: docNumber,
+                    isPaused: !isCurrentlyPaused // Flip the boolean
+                })
+            });
+
+            const result = await response.json();
+            if (response.ok && result.status === 'SUCCESS') {
+                // Instantly re-fetch the invoices to reflect the new visual state
+                fetchAndRenderInvoices();
+            } else {
+                alert("Error updating automation status: " + (result.message || "Server error"));
+                btnElement.disabled = false;
+            }
+        } catch (err) {
+            alert("Network error trying to update automation status.");
             btnElement.disabled = false;
         }
     };
