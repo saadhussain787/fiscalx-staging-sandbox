@@ -732,9 +732,158 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
             }
         }
 
+        // ==============================================================
+        // ACTION W: THE AUTONOMOUS ROBOT (DAILY COLLECTIONS CRON JOB)
+        // ==============================================================
+        if (data.action === "runDailyCollections") {
+            // SECURITY: Only allow this to run via internal AWS cron secret
+            if (data.cronSecret !== "fiscalx_auto_8899") {
+                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Robot Access Denied." }) };
+            }
+
+            console.log("🤖 ROBOT WAKING UP: Starting Daily Collections Scan...");
+
+            try {
+                const qboAuth = await getQboAccessToken();
+                if (!qboAuth) throw new Error("Robot cannot connect to QuickBooks.");
+
+                const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
+                const query = encodeURIComponent(`select * from Invoice where Balance > '0'`);
+                const invoiceRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`, {
+                    method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
+                });
+
+                const invoiceData = await invoiceRes.json();
+                const invoices = invoiceData.QueryResponse.Invoice || [];
+                const todayDate = new Date();
+                const todayString = todayDate.toISOString().split('T')[0];
+
+                let emailsSent = 0;
+                let smsSent = 0;
+
+                for (const inv of invoices) {
+                    const balance = parseFloat(inv.Balance || 0);
+                    const docNumber = inv.DocNumber || "N/A";
+                    const customerName = inv.CustomerRef ? inv.CustomerRef.name : "Client";
+                    const customerEmail = inv.BillEmail ? inv.BillEmail.Address : null;
+                    const customerPhone = inv.PrimaryPhone ? inv.PrimaryPhone.FreeFormNumber : null;
+                    const dueDateStr = inv.DueDate; 
+
+                    if (!dueDateStr) continue; 
+
+                    const dueDateObj = new Date(dueDateStr);
+                    const timeDiff = todayDate.getTime() - dueDateObj.getTime();
+                    const daysOverdue = Math.floor(timeDiff / (1000 * 3600 * 24));
+
+                    if (daysOverdue < 8) continue; // RULE 1: 7-Day Grace Period.
+
+                    const ledgerRes = await ddbDocClient.send(new GetCommand({
+                        TableName: TABLE_NAME,
+                        Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" }
+                    }));
+                    const memory = ledgerRes.Item || { escalationLevel: 0, isPaused: false };
+
+                    if (memory.isPaused) continue; // RULE 2: Kill Switch Active.
+
+                    // LEVEL 1 (EMAIL): Day 8 to 14
+                    if (daysOverdue >= 8 && memory.escalationLevel === 0) {
+                        if (customerEmail) {
+                            console.log(`🤖 LEVEL 1 TRIGGERED: Emailing ${customerName} for Inv #${docNumber}`);
+                            const reminderHtml = `
+                                <div style="font-family: sans-serif; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0;">
+                                    <h2 style="color: #ef4444;">FiscalX Outstanding Invoice</h2>
+                                    <p>Hello ${customerName},</p>
+                                    <p>Your account has an outstanding balance of <strong>$${balance.toFixed(2)} CAD</strong> for Invoice #${docNumber}.</p>
+                                    <p>Please send an Interac e-Transfer to <strong>payments@fiscalx.ca</strong> to avoid service interruption.</p>
+                                </div>`;
+                            
+                            await ses.send(new SendEmailCommand({
+                                Source: SENDER_EMAIL, Destination: { ToAddresses: [customerEmail], BccAddresses: [OFFICE_EMAIL] },
+                                Message: { Subject: { Charset: "UTF-8", Data: `Outstanding Balance Reminder - FiscalX` }, Body: { Html: { Charset: "UTF-8", Data: reminderHtml } } }
+                            }));
+                            
+                            await ddbDocClient.send(new UpdateCommand({
+                                TableName: TABLE_NAME, Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
+                                UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date, isPaused = if_not_exists(isPaused, :falseVal)",
+                                ExpressionAttributeValues: { ":lvl": 1, ":date": todayString, ":falseVal": false }
+                            }));
+                            emailsSent++;
+                        }
+                    }
+                    // LEVEL 2 (SMS): Day 15+
+                    else if (daysOverdue >= 15 && memory.escalationLevel === 1) {
+                        if (customerPhone) {
+                            console.log(`🤖 LEVEL 2 TRIGGERED: Texting ${customerName} for Inv #${docNumber}`);
+                            let rawDigits = String(customerPhone).toLowerCase().split('x')[0].split('ext')[0].replace(/\D/g, '');
+                            let cleanPhone = "";
+                            if (rawDigits.length === 10) cleanPhone = "+1" + rawDigits;
+                            else if (rawDigits.length === 11 && rawDigits.startsWith("1")) cleanPhone = "+" + rawDigits;
+
+                            if (cleanPhone) {
+                                const smsMessage = `FiscalX Alert: Hi ${customerName}, invoice #${docNumber} has an outstanding balance of $${balance.toFixed(2)} CAD. Please remit via Interac e-Transfer to payments@fiscalx.ca.`;
+                                await sns.send(new PublishCommand({
+                                    PhoneNumber: cleanPhone, Message: smsMessage,
+                                    MessageAttributes: { 'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: 'Transactional' } }
+                                }));
+                                
+                                await ddbDocClient.send(new UpdateCommand({
+                                    TableName: TABLE_NAME, Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
+                                    UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date",
+                                    ExpressionAttributeValues: { ":lvl": 2, ":date": todayString }
+                                }));
+                                smsSent++;
+                            }
+                        }
+                    }
+
+                    // ANTI-SPAM BATCHING: Sleep for 1 second between clients
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                console.log(`🤖 ROBOT SLEEPING: Sent ${emailsSent} Emails and ${smsSent} Texts.`);
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", emails: emailsSent, sms: smsSent }) };
+
+            } catch (err) {
+                console.error("Robot Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION D: PROCESS THE STANDARD CONTACT INTAKE FORM
+        // ==============================================================
+        const fullName = data.fullName || "Valued Client"; 
+        const email = data.email || data.userEmail || "Unknown Email"; 
+        const service = data.service || "General Inquiry"; 
+        const message = data.message || "None provided";
+
+        // SECURE CHECK: Only fire this if it's explicitly a contact form!
+        if (data.action === "submitContact" || (!data.action && fullName && email !== "Unknown Email")) {
+            const intakeHtml = `
+                <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                    <h2 style="color: #0284c7; margin-bottom: 4px;">FiscalX Intake Portal</h2>
+                    <p style="font-size: 14px; color: #64748b; margin-top: 0;">New Consultation Request Received</p>
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <tr><td style="padding: 12px; font-weight: bold; width: 140px; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Name:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${fullName}</td></tr>
+                        <tr><td style="padding: 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Email:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${email}</td></tr>
+                        <tr><td style="padding: 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Service:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${service}</td></tr>
+                        <tr><td style="padding: 12px; font-weight: bold; background-color: #f1f5f9;">Message:</td><td style="padding: 12px;">${message}</td></tr>
+                    </table>
+                </div>
+            `;
+            await ses.send(new SendEmailCommand({
+                Source: SENDER_EMAIL, Destination: { ToAddresses: [OFFICE_EMAIL] },
+                Message: { Subject: { Charset: "UTF-8", Data: `[New Lead] Consultation Request from ${fullName}` }, Body: { Html: { Charset: "UTF-8", Data: intakeHtml } } }
+            }));
+            return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: `Thank you. Your request is queued.` }) };
+        }
+
+        // Default catch-all if no valid action was provided
         return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
 
     } catch (error) {
+        console.error("Error processing request:", error);
         return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: error.message }) };
     }
 };
