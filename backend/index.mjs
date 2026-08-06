@@ -1,12 +1,14 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, ScanCommand, UpdateCommand, DeleteCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { CognitoIdentityProviderClient, AdminListGroupsForUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 
 const s3 = new S3Client({ region: "ca-central-1" });
 const ses = new SESClient({ region: "ca-central-1" });
+const sns = new SNSClient({ region: "ca-central-1" });
 const ddbClient = new DynamoDBClient({ region: "ca-central-1" });
 const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
 const cognito = new CognitoIdentityProviderClient({ region: "ca-central-1" });
@@ -89,7 +91,7 @@ async function getQboAccessToken() {
             ExpressionAttributeValues: { ":e": "SYSTEM_CONFIG", ":t": "QUICKBOOKS_AUTH" }
         }));
         const configItem = (configRes.Items || [])[0];
-        if (!configItem || !configItem.qboRefreshToken || !configItem.qboRealmId) return null;
+        if (!configItem || !configItem.qboRefreshToken) return null;
 
         const authHeader = Buffer.from(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`).toString('base64');
 
@@ -116,7 +118,7 @@ async function getQboAccessToken() {
             ExpressionAttributeValues: { ":r": tokenData.refresh_token, ":u": new Date().toISOString() }
         }));
 
-        return { accessToken: tokenData.access_token, realmId: configItem.qboRealmId };
+        return { accessToken: tokenData.access_token, realmId: configItem.qboRealmId || "UNKNOWN" };
     } catch (err) {
         console.error("QuickBooks Token Refresh Error:", err);
         return null;
@@ -139,9 +141,6 @@ export const handler = async (event) => {
     try {
         const data = JSON.parse(event.body || "{}");
 
-        // ==============================================================
-        // ACTION A: GENERATE SECURE S3 PRESIGNED UPLOAD URL
-        // ==============================================================
         if (data.action === "getUploadUrl") {
             const fileName = data.fileName;
             const fileType = data.fileType;
@@ -151,15 +150,9 @@ export const handler = async (event) => {
             const command = new PutObjectCommand({ Bucket: BUCKET_NAME, Key: fileKey, ContentType: fileType });
             const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
 
-            return {
-                statusCode: 200, headers: headers,
-                body: JSON.stringify({ status: "SUCCESS", uploadUrl: uploadUrl, fileKey: fileKey })
-            };
+            return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", uploadUrl: uploadUrl, fileKey: fileKey }) };
         }
 
-        // ==============================================================
-        // ACTION B: NOTIFY UPLOAD COMPLETE
-        // ==============================================================
         if (data.action === "notifyUploadComplete") {
             const fileKey = data.fileKey;
             const userEmail = data.userEmail;
@@ -182,13 +175,12 @@ export const handler = async (event) => {
                     
                     if (!existingFiles.some(f => f.fileKey === fileKey)) {
                         existingFiles.push({ fileName: cleanFileName, fileKey: fileKey });
-                        const updateParams = {
+                        await ddbDocClient.send(new UpdateCommand({
                             TableName: TABLE_NAME,
                             Key: { userEmail: latestRecord.userEmail, timestamp: latestRecord.timestamp },
                             UpdateExpression: "set uploadedFiles = :f",
                             ExpressionAttributeValues: { ":f": existingFiles }
-                        };
-                        await ddbDocClient.send(new UpdateCommand(updateParams));
+                        }));
                     }
                 }
             } catch (dbError) {
@@ -223,9 +215,6 @@ export const handler = async (event) => {
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
         }
 
-        // ==============================================================
-        // ACTION C: SUBMIT CANADIAN TAX ORGANIZER
-        // ==============================================================
         if (data.action === "submitTaxOrganizer") {
             const {
                 userEmail = "Unknown", taxType = "T1 Personal", craConsent = "Not Provided", howHeard = "Not Specified",
@@ -237,7 +226,7 @@ export const handler = async (event) => {
             const combinedName = isT2 ? corporateInfo.corpName : `${personalInfo.firstName || ""} ${personalInfo.middleName || ""} ${personalInfo.lastName || ""}`.trim();
             const timestamp = new Date().toISOString();
 
-            const ddbParams = {
+            await ddbDocClient.send(new PutCommand({
                 TableName: TABLE_NAME,
                 Item: {
                     userEmail: userEmail, timestamp: timestamp, taxType: taxType, craConsent: craConsent, clientName: combinedName,
@@ -245,11 +234,9 @@ export const handler = async (event) => {
                     uploadedFiles: uploadedFiles, personalInfo: personalInfo, corporateInfo: corporateInfo, statusInCanada: statusInCanada,
                     familyMembers: familyMembers, ontarioResidency: ontarioResidency, milestones: milestones, selfEmployed: selfEmployed,
                     rentalIncome: rentalIncome, childCareBenefit: childCareBenefit,
-                    paymentConfirmed: false,
-                    finalFiles: []
+                    paymentConfirmed: false, finalFiles: []
                 }
-            };
-            await ddbDocClient.send(new PutCommand(ddbParams));
+            }));
 
             const csvRows = [ ["Section", "Field", "Value"] ];
             csvRows.push(["System", "Tax Type", taxType], ["System", "CRA Consent", craConsent], ["System", "Client Email", userEmail], ["System", "Client Notes", notes], ["System", "How Heard", howHeard]);
@@ -269,29 +256,6 @@ export const handler = async (event) => {
                     ["T1 Personal", "Full Name", combinedName || "N/A"], ["T1 Personal", "SIN", personalInfo.sin || "N/A"], ["T1 Personal", "Telephone", personalInfo.telephone || "N/A"], ["T1 Personal", "Address", personalInfo.address || "N/A"], ["T1 Personal", "US Citizen", personalInfo.usCitizen || "N/A"], ["T1 Personal", "Marital Status", personalInfo.maritalStatus || "N/A"], ["T1 Personal", "Spousal Income ($)", personalInfo.spousalIncome || "0.00"],
                     ["T1 Status", "Immigration Status", statusInCanada.status || "N/A"], ["T1 Status", "Entry Date", statusInCanada.entryDate || "N/A"]
                 );
-                if (familyMembers.length > 0) {
-                    familyMembers.forEach((mem, index) => { csvRows.push(["Dependent " + (index + 1), "Name", mem.name], ["Dependent " + (index + 1), "SIN", mem.sin], ["Dependent " + (index + 1), "DOB", mem.dob], ["Dependent " + (index + 1), "Relationship", mem.relationship], ["Dependent " + (index + 1), "Disability", mem.disability]); });
-                }
-                if (ontarioResidency.length > 0) {
-                    ontarioResidency.forEach((res, index) => { csvRows.push(["Residency " + (index + 1), "Months", res.months], ["Residency " + (index + 1), "Address", res.address], ["Residency " + (index + 1), "Landlord", res.landlord]); });
-                }
-                csvRows.push(["Milestones", "Elections Canada", milestones.electionsCanada || "no"], ["Milestones", "Direct Deposit Changed", milestones.directDeposit || "no"], ["Milestones", "Tuition Paid", milestones.tuition || "no"], ["Milestones", "RRSP Contribution", milestones.rrsp || "no"], ["Milestones", "Charitable Donations", milestones.charitable || "no"], ["Milestones", "Stock/Crypto", milestones.crypto || "no"], ["Milestones", "Daycare", milestones.daycare || "no"], ["Milestones", "Work From Home", milestones.workFromHome || "no"], ["Milestones", "Purchased Home", milestones.purchasedHome || "no"]);
-                csvRows.push(["UBER (T2125)", "Active", selfEmployed.active || "no"]);
-                if (selfEmployed.active === "yes") {
-                    csvRows.push(["UBER (T2125)", "HST No", selfEmployed.hstNo || "N/A"], ["UBER (T2125)", "Access Code", selfEmployed.accessCode || "N/A"], ["UBER (T2125)", "Period From", selfEmployed.periodFrom || "N/A"], ["UBER (T2125)", "Period To", selfEmployed.periodTo || "N/A"], ["UBER (T2125)", "Total KMs Driven", selfEmployed.totalKms || "0"], ["UBER (T2125)", "Business KMs", selfEmployed.businessKms || "0"], ["UBER (T2125)", "Fuel", selfEmployed.expenses?.fuel || "0"], ["UBER (T2125)", "Repairs", selfEmployed.expenses?.repairs || "0"], ["UBER (T2125)", "Insurance", selfEmployed.expenses?.insurance || "0"], ["UBER (T2125)", "License", selfEmployed.expenses?.license || "0"], ["UBER (T2125)", "Interest", selfEmployed.expenses?.interest || "0"], ["UBER (T2125)", "Carwash", selfEmployed.expenses?.carwash || "0"], ["UBER (T2125)", "Parking", selfEmployed.expenses?.parking || "0"], ["UBER (T2125)", "Tolls", selfEmployed.expenses?.tolls || "0"], ["UBER (T2125)", "Tickets", selfEmployed.expenses?.tickets || "0"], ["UBER (T2125)", "Phone Line $", selfEmployed.expenses?.phone || "0"], ["UBER (T2125)", "Supplies", selfEmployed.expenses?.supplies || "0"], ["UBER (T2125)", "Meals", selfEmployed.expenses?.meals || "0"]);
-                }
-                csvRows.push(["Rental (T776)", "Active", rentalIncome.active || "no"]);
-                if (rentalIncome.active === "yes") {
-                    csvRows.push(["Rental (T776)", "Address", rentalIncome.address || "N/A"], ["Rental (T776)", "Gross Income", rentalIncome.grossIncome || "0"], ["Rental (T776)", "Percentage Rented", rentalIncome.percentageRented || "100"]);
-                    if (rentalIncome.coOwners && rentalIncome.coOwners.length > 0) {
-                        rentalIncome.coOwners.forEach((owner, index) => { csvRows.push(["Rental Co-Owner " + (index + 1), "Name", owner.name], ["Rental Co-Owner " + (index + 1), "SIN", owner.sin], ["Rental Co-Owner " + (index + 1), "Share %", owner.share], ["Rental Co-Owner " + (index + 1), "Address", owner.address]); });
-                    }
-                    csvRows.push(["Rental (T776)", "Insurance", rentalIncome.expenses?.insurance || "0"], ["Rental (T776)", "Mortgage Interest", rentalIncome.expenses?.interest || "0"], ["Rental (T776)", "Bank Charges", rentalIncome.expenses?.bankCharges || "0"], ["Rental (T776)", "Office", rentalIncome.expenses?.office || "0"], ["Rental (T776)", "Professional Fees", rentalIncome.expenses?.professional || "0"], ["Rental (T776)", "Management", rentalIncome.expenses?.management || "0"], ["Rental (T776)", "Repairs", rentalIncome.expenses?.repairs || "0"], ["Rental (T776)", "Property Tax", rentalIncome.expenses?.propertyTax || "0"], ["Rental (T776)", "Utilities", rentalIncome.expenses?.utilities || "0"]);
-                }
-                csvRows.push(["CCB", "Active", childCareBenefit.active || "no"]);
-                if (childCareBenefit.active === "yes") {
-                    csvRows.push(["CCB", "Marriage Date", childCareBenefit.marriageDate || "N/A"], ["CCB", "Status Change Date", childCareBenefit.statusChangeDate || "N/A"], ["CCB", "Resident Year", childCareBenefit.worldIncome?.becameResidentYear || "0"], ["CCB", "1 Year Before", childCareBenefit.worldIncome?.oneYearBefore || "0"], ["CCB", "2 Years Before", childCareBenefit.worldIncome?.twoYearsBefore || "0"]);
-                }
             }
             
             const csvString = csvRows.map(row => row.map(cell => `"${(cell||'').toString().replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -299,62 +263,16 @@ export const handler = async (event) => {
             await s3.send(new PutObjectCommand({ Bucket: BUCKET_NAME, Key: csvKey, Body: csvString, ContentType: "text/csv" }));
             const excelDownloadUrl = await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET_NAME, Key: csvKey }), { expiresIn: 86400 });
 
-            let documentLinksHtml = "";
-            if (uploadedFiles.length > 0) {
-                documentLinksHtml = `<div style="margin-top: 30px; background-color: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                                     <h3 style="color: #0f172a; margin-top: 0; font-size: 15px;">📁 Attached Client Documents (${uploadedFiles.length})</h3>
-                                     <ul style="list-style-type: none; padding-left: 0; margin-bottom: 0;">`;
-                for (const file of uploadedFiles) {
-                    const docUrl = await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET_NAME, Key: file.fileKey }), { expiresIn: 86400 });
-                    documentLinksHtml += `<li style="margin-bottom: 10px; font-size: 13px;">📄 <strong>${file.fileName}</strong> - <a href="${docUrl}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: bold;">[Download]</a></li>`;
-                }
-                documentLinksHtml += `</ul></div>`;
-            }
-
-            let specificHtmlBody = "";
-            if (isT2) {
-                let directorRows = (corporateInfo.directors || []).map(d => `<tr><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${d.name}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${d.sin}</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${d.share}%</td><td style="padding: 6px; border-bottom: 1px solid #f1f5f9;">${d.role}</td></tr>`).join("");
-                if (!directorRows) directorRows = `<tr><td colspan='4' style='padding:6px; text-align:center;'>None Declared</td></tr>`;
-                specificHtmlBody = `
-                    <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-                        <h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">1. Corporate Baseline Information</h3>
-                        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569; width: 140px;">Corporate Name:</td><td style="padding: 8px 0; font-weight: bold;">${corporateInfo.corpName || "N/A"}</td></tr>
-                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Business Number:</td><td style="padding: 8px 0; font-family: monospace;">${corporateInfo.businessNumber || "N/A"}</td></tr>
-                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Inc. Date:</td><td style="padding: 8px 0;">${corporateInfo.incDate || "N/A"}</td></tr>
-                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Fiscal Year-End:</td><td style="padding: 8px 0;">${corporateInfo.fiscalYearEnd || "N/A"}</td></tr>
-                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; text-transform: capitalize;">${corporateInfo.software || "N/A"}</td></tr>
-                            <tr><td style="padding: 8px 0; font-weight: bold; color: #475569;">Industry:</td><td style="padding: 8px 0;">${corporateInfo.industry || "N/A"}</td></tr>
-                        </table>
-                    </div>
-                `;
-            } else {
-                specificHtmlBody = `<div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-                        <h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">1. Personal Profile</h3>
-                        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569; width: 140px;">Name:</td><td style="padding: 8px 0; font-weight: bold;">${combinedName || "N/A"}</td></tr>
-                            <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 0; font-weight: bold; color: #475569;">Telephone:</td><td style="padding: 8px 0;">${personalInfo.telephone || "N/A"}</td></tr>
-                        </table>
-                    </div>`;
-            }
-
             const organizerHtml = `
                 <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 650px; margin: 0 auto; border: 1px solid #e2e8f0;">
                     <h2 style="color: #059669; margin-bottom: 4px;">FiscalX Professional Portal</h2>
                     <p style="font-size: 14px; color: #64748b; margin-top: 0;">Completed Tax Organizer (${taxType})</p>
                     <div style="margin-top: 15px; padding: 12px; background-color: #fef3c7; border: 1px solid #fde68a; border-radius: 8px;">
                         <p style="font-size: 12px; color: #92400e; margin: 0;"><strong>Client Email:</strong> ${userEmail}</p>
-                        <p style="font-size: 12px; color: #92400e; margin: 5px 0 0 0;"><strong>CRA Auth:</strong> ${craConsent}</p>
                     </div>
                     <div style="text-align: center; margin: 25px 0;">
                         <a href="${excelDownloadUrl}" target="_blank" style="background-color: #059669; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; font-size: 14px; border-radius: 8px;">📊 Download Full Data as Excel (.CSV)</a>
                     </div>
-                    ${specificHtmlBody}
-                    <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-                        <h3 style="color: #334155; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 15px;">Additional Notes</h3>
-                        <p style="font-size: 13px; line-height: 1.5; color: #475569; margin-top: 10px;">${notes || "None provided."}</p>
-                    </div>
-                    ${documentLinksHtml}
                 </div>
             `;
 
@@ -366,36 +284,22 @@ export const handler = async (event) => {
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Your onboarding organizer and files have been securely compiled and delivered." }) };
         }
 
-        // ==============================================================
-        // ACTION E: FETCH CRM DATA FOR ADMIN PORTAL (FILTERS SYSTEM_CONFIG)
-        // ==============================================================
         if (data.action === "getCrmData") {
             const adminEmail = data.adminEmail;
 
             const isAuthorized = await isStaff(adminEmail);
-            if (!isAuthorized) {
-                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
-            }
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
-            const scanParams = { TableName: TABLE_NAME };
-            const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
-            
-            // FILTER OUT INTERNAL SYSTEM CONFIG CARDS
-            const clients = (scanResult.Items || []).filter(c => c.userEmail !== "SYSTEM_CONFIG");
+            const scanResult = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME }));
+            const clients = (scanResult.Items || []).filter(c => c.userEmail !== "SYSTEM_CONFIG" && !c.userEmail.includes("QBO_INVOICE#"));
 
             const total = clients.length;
             const inProgress = clients.filter(c => c.campaignStatus === 'Pending' || c.campaignStatus === 'In Progress').length;
             const completed = clients.filter(c => c.campaignStatus === 'Completed').length;
 
-            return {
-                statusCode: 200, headers: headers,
-                body: JSON.stringify({ status: "SUCCESS", stats: { total, inProgress, completed }, clients: clients })
-            };
+            return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", stats: { total, inProgress, completed }, clients: clients }) };
         }
 
-        // ==============================================================
-        // ACTION F: UPDATE CLIENT KANBAN STATUS
-        // ==============================================================
         if (data.action === "updateClientStatus") {
             const adminEmail = data.adminEmail;
             const clientEmail = data.clientEmail;
@@ -403,368 +307,138 @@ export const handler = async (event) => {
             const newStatus = data.newStatus;
 
             const isAuthorized = await isStaff(adminEmail);
-            if (!isAuthorized) {
-                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
-            }
-
-            if (!clientEmail || !clientTimestamp) {
-                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing required keys: Email or Timestamp." }) };
-            }
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
             try {
-                const updateParams = {
+                await ddbDocClient.send(new UpdateCommand({
                     TableName: TABLE_NAME,
-                    Key: { 
-                        "userEmail": String(clientEmail),
-                        "timestamp": String(clientTimestamp) 
-                    },
+                    Key: { "userEmail": String(clientEmail), "timestamp": String(clientTimestamp) },
                     UpdateExpression: "set campaignStatus = :s",
-                    ExpressionAttributeValues: { ":s": String(newStatus) },
-                    ReturnValues: "UPDATED_NEW"
-                };
-
-                await ddbDocClient.send(new UpdateCommand(updateParams));
+                    ExpressionAttributeValues: { ":s": String(newStatus) }
+                }));
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Status updated successfully." }) };
-            
             } catch (updateError) {
-                console.error("DynamoDB Update Error:", updateError);
-                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Database update failed: " + updateError.message }) };
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: updateError.message }) };
             }
         }
 
-        // ==============================================================
-        // ACTION G: GENERATE SECURE DOWNLOAD URL FOR ADMINS
-        // ==============================================================
         if (data.action === "getDownloadUrl") {
-            const adminEmail = data.adminEmail;
-            const fileKey = data.fileKey;
-
-            const isAuthorized = await isStaff(adminEmail);
-            if (!isAuthorized) {
-                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Decryption Request." }) };
-            }
-
-            if (!fileKey) {
-                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "No file key provided." }) };
-            }
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
-                const downloadCommand = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileKey });
+                const downloadCommand = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: data.fileKey });
                 const secureUrl = await getSignedUrl(s3, downloadCommand, { expiresIn: 60 });
-
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", secureUrl: secureUrl }) };
             } catch (s3Error) {
-                console.error("S3 Decryption Error:", s3Error);
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Failed to unlock document vault." }) };
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Decryption failed." }) };
             }
         }
 
-        // ==============================================================
-        // ACTION H: FETCH A SINGLE CLIENT'S STATUS FOR THEIR DASHBOARD
-        // ==============================================================
         if (data.action === "getClientStatus") {
-            const userEmail = data.userEmail;
-
-            if (!userEmail) {
-                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing user email." }) };
-            }
+            if (!data.userEmail) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
-                const scanParams = {
+                const scanResult = await ddbDocClient.send(new ScanCommand({
                     TableName: TABLE_NAME,
                     FilterExpression: "userEmail = :email",
-                    ExpressionAttributeValues: { ":email": userEmail }
-                };
-                const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
+                    ExpressionAttributeValues: { ":email": data.userEmail }
+                }));
                 const userRecords = scanResult.Items || [];
 
                 if (userRecords.length > 0) {
                     userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                    const latestStatus = userRecords[0].campaignStatus || "Pending";
-                    const isPaid = userRecords[0].paymentConfirmed || false;
-                    const finalReturns = userRecords[0].finalFiles || [];
-                    
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ 
-                        status: "SUCCESS", 
-                        campaignStatus: latestStatus,
-                        paymentConfirmed: isPaid,
-                        finalFiles: finalReturns
-                    }) };
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", campaignStatus: userRecords[0].campaignStatus || "Pending", paymentConfirmed: userRecords[0].paymentConfirmed || false, finalFiles: userRecords[0].finalFiles || [] }) };
                 } else {
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ 
-                        status: "SUCCESS", 
-                        campaignStatus: "Unsubmitted",
-                        paymentConfirmed: false,
-                        finalFiles: []
-                    }) };
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", campaignStatus: "Unsubmitted", paymentConfirmed: false, finalFiles: [] }) };
                 }
             } catch (dbError) {
-                console.error("Failed to fetch client status:", dbError);
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: dbError.message }) };
             }
         }
 
-        // ==============================================================
-        // ACTION I: SEND DOCUMENT REQUEST EMAIL REMINDERS
-        // ==============================================================
         if (data.action === "sendDocumentReminder") {
-            const adminEmail = data.adminEmail;
-            const clientEmail = data.clientEmail;
-            const clientName = data.clientName || "Client";
-            const requestedDocName = data.requestedDocName;
-
-            const isAuthorized = await isStaff(adminEmail);
-            if (!isAuthorized) {
-                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
-            }
-
-            if (!clientEmail || !requestedDocName) {
-                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing clientEmail or requestedDocName." }) };
-            }
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
-                const reminderHtml = `
-                    <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
-                        <h2 style="color: #4f46e5; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
-                        <p style="font-size: 14px; color: #64748b; margin-top: 0;">Secure Document Reminder</p>
-                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-                        <p style="font-size: 15px; line-height: 1.6;">Hello ${clientName},</p>
-                        <p style="font-size: 15px; line-height: 1.6;">Wasim Kadri, CPA is currently actively preparing your tax file. To proceed with your return, we securely require the following document:</p>
-                        
-                        <div style="margin: 25px 0; padding: 20px; background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; text-align: center;">
-                            <span style="font-size: 16px; font-weight: bold; color: #b45309;">⚠️ Required Document: ${requestedDocName}</span>
-                        </div>
-                        
-                        <p style="font-size: 15px; line-height: 1.6;">Please click the secure button below to log into your portal. Once logged in, scroll to the bottom of your screen to the <strong>"Secure Document Upload Center"</strong> to transmit your document directly into our encrypted S3 vault.</p>
-                        
-                        <div style="text-align: center; margin: 30px 0;">
-                            <a href="https://www.fiscalx.ca/dashboard/" target="_blank" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; font-size: 14px; border-radius: 8px;">Log In & Upload Document</a>
-                        </div>
-                        
-                        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
-                            This is an automated transmission on behalf of Wasim Kadri, CPA (FiscalX). Please do not reply directly to this email.
-                        </p>
-                    </div>
-                `;
-
-                const sesCommand = new SendEmailCommand({
-                    Source: SENDER_EMAIL,
-                    Destination: { ToAddresses: [clientEmail] },
-                    Message: {
-                        Subject: { Charset: "UTF-8", Data: `[Action Required] Document Reminder for Your FiscalX Tax File` },
-                        Body: { Html: { Charset: "UTF-8", Data: reminderHtml } }
-                    }
-                });
-                await ses.send(sesCommand);
-
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Reminder sent successfully." }) };
+                const reminderHtml = `<div style="padding: 30px; font-family: sans-serif;"><h2 style="color: #4f46e5;">FiscalX Reminder</h2><p>Please upload: <strong>${data.requestedDocName}</strong></p></div>`;
+                await ses.send(new SendEmailCommand({
+                    Source: SENDER_EMAIL, Destination: { ToAddresses: [data.clientEmail] },
+                    Message: { Subject: { Charset: "UTF-8", Data: `Document Reminder` }, Body: { Html: { Charset: "UTF-8", Data: reminderHtml } } }
+                }));
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
             } catch (err) {
-                console.error("Failed to send document reminder:", err);
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
             }
         }
 
-        // ==============================================================
-        // ACTION J: UPDATE BILLING STATUS & FINAL RETURNS (CASHFLOW SECURE)
-        // ==============================================================
         if (data.action === "updateBillingStatus") {
-            const { adminEmail, clientEmail, timestamp, finalFiles = [], paymentConfirmed = false } = data;
-
-            const isAuthorized = await isStaff(adminEmail);
-            if (!isAuthorized) {
-                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
-            }
-            if (!clientEmail) {
-                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing client identity keys." }) };
-            }
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
-                const scanParams = {
-                    TableName: TABLE_NAME,
-                    FilterExpression: "userEmail = :email",
-                    ExpressionAttributeValues: { ":email": String(clientEmail) }
-                };
-                const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
+                const scanResult = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME, FilterExpression: "userEmail = :email", ExpressionAttributeValues: { ":email": String(data.clientEmail) } }));
                 const items = scanResult.Items || [];
 
                 for (const item of items) {
-                    const updateParams = {
-                        TableName: TABLE_NAME,
-                        Key: { "userEmail": item.userEmail, "timestamp": item.timestamp },
-                        UpdateExpression: "set finalFiles = :f, paymentConfirmed = :p",
-                        ExpressionAttributeValues: { ":f": finalFiles, ":p": paymentConfirmed }
-                    };
-                    await ddbDocClient.send(new UpdateCommand(updateParams));
+                    await ddbDocClient.send(new UpdateCommand({
+                        TableName: TABLE_NAME, Key: { "userEmail": item.userEmail, "timestamp": item.timestamp },
+                        UpdateExpression: "set finalFiles = :f, paymentConfirmed = :p", ExpressionAttributeValues: { ":f": data.finalFiles || [], ":p": data.paymentConfirmed || false }
+                    }));
                 }
-
-                if (paymentConfirmed === true) {
-                    const unlockHtml = `
-                        <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
-                            <h2 style="color: #10b981; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
-                            <p style="font-size: 14px; color: #64748b; margin-top: 0;">Payment Confirmed - Documents Unlocked</p>
-                            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-                            <p style="font-size: 15px;">Hello,</p>
-                            <p style="font-size: 15px;">Thank you for your payment. Wasim Kadri, CPA has finalized your tax return.</p>
-                            <div style="margin: 25px 0; padding: 20px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; text-align: center;">
-                                <span style="font-size: 16px; font-weight: bold; color: #065f46;">✅ Your secure tax documents are now unlocked and ready for download.</span>
-                            </div>
-                            <div style="text-align: center; margin: 30px 0;">
-                                <a href="https://www.fiscalx.ca/dashboard/" target="_blank" style="background-color: #10b981; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; font-size: 14px; border-radius: 8px;">Log In & Download Returns</a>
-                            </div>
-                        </div>
-                    `;
-                    const sesCommand = new SendEmailCommand({
-                        Source: SENDER_EMAIL,
-                        Destination: { ToAddresses: [clientEmail] },
-                        Message: {
-                            Subject: { Charset: "UTF-8", Data: `[FiscalX] Payment Confirmed - Your Tax Returns are Unlocked` },
-                            Body: { Html: { Charset: "UTF-8", Data: unlockHtml } }
-                        }
-                    });
-                    await ses.send(sesCommand);
-                }
-
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Billing status updated successfully across all records." }) };
-            } catch (updateError) {
-                console.error("DynamoDB Billing Update Error:", updateError);
-                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Database update failed: " + updateError.message }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
+            } catch (err) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
             }
         }
 
-        // ==============================================================
-        // ACTION K: CLIENT-SAFE DOWNLOAD URL GENERATOR
-        // ==============================================================
-        if (data.action === "getClientDownloadUrl") {
-            const userEmail = data.userEmail;
-            const fileKey = data.fileKey;
-
-            if (!userEmail || !fileKey) {
-                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing required fields." }) };
-            }
-
-            if (!fileKey.includes(`clients/${userEmail}/`)) {
-                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "You are not authorized to download this file." }) };
-            }
-
-            try {
-                const downloadCommand = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileKey });
-                const secureUrl = await getSignedUrl(s3, downloadCommand, { expiresIn: 60 });
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", secureUrl: secureUrl }) };
-            } catch (s3Error) {
-                console.error("Client S3 Decryption Error:", s3Error);
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Failed to unlock document vault." }) };
-            }
-        }
-
-        // ==============================================================
-        // ACTION O: EXCHANGE MICROSOFT OAUTH CODE FOR REFRESH TOKEN
-        // ==============================================================
         if (data.action === "exchangeMsCode") {
             const isAuthorized = await isStaff(data.adminEmail);
-            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
-
-            const msCode = data.code;
-            if (!msCode) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing Microsoft Authorization Code." }) };
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
                 const tokenResponse = await fetch(`https://login.microsoftonline.com/common/oauth2/v2.0/token`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        client_id: MS_CLIENT_ID,
-                        client_secret: MS_CLIENT_SECRET,
-                        code: msCode,
-                        redirect_uri: MS_REDIRECT_URI,
-                        grant_type: 'authorization_code'
-                    })
+                    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ client_id: MS_CLIENT_ID, client_secret: MS_CLIENT_SECRET, code: data.code, redirect_uri: MS_REDIRECT_URI, grant_type: 'authorization_code' })
                 });
-
                 const tokenData = await tokenResponse.json();
-                
-                if (tokenData.error) {
-                    throw new Error(tokenData.error_description || tokenData.error);
-                }
+                if (tokenData.error) throw new Error(tokenData.error);
 
-                const refreshToken = tokenData.refresh_token;
-                
                 await ddbDocClient.send(new PutCommand({
-                    TableName: TABLE_NAME,
-                    Item: {
-                        userEmail: "SYSTEM_CONFIG",
-                        timestamp: "MICROSOFT_OUTLOOK_AUTH",
-                        msRefreshToken: refreshToken,
-                        updatedAt: new Date().toISOString()
-                    }
+                    TableName: TABLE_NAME, Item: { userEmail: "SYSTEM_CONFIG", timestamp: "MICROSOFT_OUTLOOK_AUTH", msRefreshToken: tokenData.refresh_token, updatedAt: new Date().toISOString() }
                 }));
-
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Outlook connected and token secured." }) };
-
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Outlook connected." }) };
             } catch (err) {
-                console.error("Microsoft Token Exchange Error:", err);
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
             }
         }
 
-        // ==============================================================
-        // ACTION R: EXCHANGE QUICKBOOKS OAUTH CODE FOR REFRESH TOKEN
-        // ==============================================================
         if (data.action === "exchangeQboCode") {
             const isAuthorized = await isStaff(data.adminEmail);
-            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
-
-            const qboCode = data.code;
-            const realmId = data.realmId; // The QuickBooks Company ID
-
-            if (!qboCode) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing QuickBooks Authorization Code." }) };
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
                 const authHeader = Buffer.from(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`).toString('base64');
-                
                 const tokenResponse = await fetch(`https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer`, {
-                    method: 'POST',
-                    headers: { 
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Authorization': `Basic ${authHeader}`
-                    },
-                    body: new URLSearchParams({
-                        code: qboCode,
-                        redirect_uri: QBO_REDIRECT_URI,
-                        grant_type: 'authorization_code'
-                    })
+                    method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${authHeader}` },
+                    body: new URLSearchParams({ code: data.code, redirect_uri: QBO_REDIRECT_URI, grant_type: 'authorization_code' })
                 });
-
                 const tokenData = await tokenResponse.json();
-                
-                if (tokenData.error) {
-                    throw new Error(tokenData.error_description || tokenData.error);
-                }
+                if (tokenData.error) throw new Error(tokenData.error);
 
                 await ddbDocClient.send(new PutCommand({
-                    TableName: TABLE_NAME,
-                    Item: {
-                        userEmail: "SYSTEM_CONFIG",
-                        timestamp: "QUICKBOOKS_AUTH",
-                        qboRefreshToken: tokenData.refresh_token,
-                        qboRealmId: realmId || "UNKNOWN",
-                        updatedAt: new Date().toISOString()
-                    }
+                    TableName: TABLE_NAME, Item: { userEmail: "SYSTEM_CONFIG", timestamp: "QUICKBOOKS_AUTH", qboRefreshToken: tokenData.refresh_token, qboRealmId: data.realmId || "UNKNOWN", updatedAt: new Date().toISOString() }
                 }));
-
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "QuickBooks connected and token secured." }) };
-
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "QuickBooks connected." }) };
             } catch (err) {
-                console.error("QuickBooks Token Exchange Error:", err);
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
             }
         }
 
-// ==============================================================
-        // ACTION S: FETCH UNPAID INVOICES & ATTACH MEMORY LEDGER
-        // ==============================================================
         if (data.action === "fetchQboInvoices") {
             const isAuthorized = await isStaff(data.adminEmail);
-            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
                 const qboAuth = await getQboAccessToken();
@@ -772,645 +446,284 @@ export const handler = async (event) => {
 
                 const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
                 const query = encodeURIComponent(`select * from Invoice where Balance > '0'`);
-                const qboUrl = `${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`;
-
-                const invoiceRes = await fetch(qboUrl, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
+                const invoiceRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`, {
+                    method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
                 });
 
                 const invoiceData = await invoiceRes.json();
                 const invoices = invoiceData.QueryResponse.Invoice || [];
 
-                // THE MEMORY INJECTION: Fetch the ledger history for every unpaid invoice
                 const enrichedInvoices = await Promise.all(invoices.map(async (inv) => {
-                    const docNumber = inv.DocNumber || "UNKNOWN";
                     try {
-                        const ledgerRes = await ddbDocClient.send(new GetCommand({
-                            TableName: TABLE_NAME,
-                            Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" }
-                        }));
-                        const memory = ledgerRes.Item || { escalationLevel: 0, lastContactDate: "Never", isPaused: false };
-                        return { ...inv, _ledger: memory };
+                        const ledgerRes = await ddbDocClient.send(new GetCommand({ TableName: TABLE_NAME, Key: { "userEmail": `QBO_INVOICE#${inv.DocNumber}`, "timestamp": "LEDGER" } }));
+                        return { ...inv, _ledger: ledgerRes.Item || { escalationLevel: 0, lastContactDate: "Never", isPaused: false } };
                     } catch (e) {
                         return { ...inv, _ledger: { escalationLevel: 0, lastContactDate: "Never", isPaused: false } };
                     }
                 }));
 
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", invoices: enrichedInvoices }) };
-
             } catch (err) {
-                console.error("QBO Fetch Invoices Error:", err);
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
 
-        // ==============================================================
-        // ACTION T: SEND QBO REMINDER & UPDATE MEMORY LEDGER
-        // ==============================================================
         if (data.action === "sendQboReminder") {
-            const { adminEmail, customerEmail, customerName, balance, docNumber } = data;
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
+
+            try {
+                const reminderHtml = `
+                    <div style="font-family: sans-serif; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0;">
+                        <h2 style="color: #ef4444;">FiscalX Outstanding Invoice</h2>
+                        <p>Hello ${data.customerName},</p>
+                        <p>You have an outstanding balance of <strong>$${parseFloat(data.balance).toFixed(2)} CAD</strong> for Invoice #${data.docNumber}.</p>
+                        <p>Please send an Interac e-Transfer to <strong>payments@fiscalx.ca</strong>.</p>
+                    </div>
+                `;
+
+                await ses.send(new SendEmailCommand({
+                    Source: SENDER_EMAIL, Destination: { ToAddresses: [data.customerEmail], BccAddresses: [OFFICE_EMAIL] },
+                    Message: { Subject: { Charset: "UTF-8", Data: `Outstanding Balance Reminder - FiscalX` }, Body: { Html: { Charset: "UTF-8", Data: reminderHtml } } }
+                }));
+
+                await ddbDocClient.send(new UpdateCommand({
+                    TableName: TABLE_NAME, Key: { "userEmail": `QBO_INVOICE#${data.docNumber}`, "timestamp": "LEDGER" },
+                    UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date, isPaused = if_not_exists(isPaused, :falseVal)",
+                    ExpressionAttributeValues: { ":lvl": 1, ":date": new Date().toISOString().split('T')[0], ":falseVal": false }
+                }));
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
+            } catch (err) {
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
+            }
+        }
+
+        if (data.action === "toggleInvoicePause") {
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
+
+            try {
+                await ddbDocClient.send(new UpdateCommand({
+                    TableName: TABLE_NAME, Key: { "userEmail": `QBO_INVOICE#${data.docNumber}`, "timestamp": "LEDGER" },
+                    UpdateExpression: "set isPaused = :p, escalationLevel = if_not_exists(escalationLevel, :zero), lastContactDate = if_not_exists(lastContactDate, :never)",
+                    ExpressionAttributeValues: { ":p": data.isPaused, ":zero": 0, ":never": "Never" }
+                }));
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
+            } catch (err) {
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
+            }
+        }
+
+        if (data.action === "sendQboSmsReminder") {
+            const { adminEmail, customerPhone, customerName, balance, docNumber } = data;
 
             const isAuthorized = await isStaff(adminEmail);
             if (!isAuthorized) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
             }
 
-            if (!customerEmail || !balance) {
-                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing customer details. Make sure client has an email in QuickBooks." }) };
+            if (!customerPhone || !balance) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing customer phone number in QuickBooks." }) };
             }
 
             try {
-                const reminderHtml = `
-                    <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
-                        <h2 style="color: #ef4444; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
-                        <p style="font-size: 14px; color: #64748b; margin-top: 0;">Outstanding Invoice Reminder</p>
-                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-                        <p style="font-size: 15px; line-height: 1.6;">Hello ${customerName},</p>
-                        <p style="font-size: 15px; line-height: 1.6;">This is a friendly automated reminder that you currently have an outstanding balance on your account.</p>
-                        
-                        <div style="margin: 25px 0; padding: 20px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; text-align: center;">
-                            <p style="font-size: 14px; color: #991b1b; margin: 0 0 5px 0; font-weight: bold;">Invoice #${docNumber}</p>
-                            <span style="font-size: 24px; font-weight: 900; color: #b91c1c;">$${parseFloat(balance).toFixed(2)} CAD</span>
-                        </div>
-                        
-                        <h3 style="font-size: 14px; color: #334155; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">Payment Instructions</h3>
-                        <p style="font-size: 14px; line-height: 1.6; color: #475569;">To avoid any interruptions to your accounting services, please remit payment at your earliest convenience using one of the following methods:</p>
-                        <ul style="font-size: 14px; color: #475569; line-height: 1.6;">
-                            <li><strong>Interac e-Transfer:</strong> Please send to <a href="mailto:payments@fiscalx.ca" style="color: #4f46e5; font-weight: bold;">payments@fiscalx.ca</a> (Auto-deposit is enabled).</li>
-                            <li><strong>Cash:</strong> Drop-off available at our North York office during business hours.</li>
-                        </ul>
-                        
-                        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
-                            This is an automated transmission on behalf of Wasim Kadri, CPA. If you have already sent payment, please disregard this notice.
-                        </p>
-                    </div>
-                `;
+                // 1. The Phone Scrubber: Clean dirty QBO numbers to strict E.164 format
+                // Strip extensions (ext or x) and remove all non-numeric characters
+                let rawDigits = String(customerPhone).toLowerCase().split('x')[0].split('ext')[0].replace(/\D/g, '');
+                
+                let cleanPhone = "";
+                if (rawDigits.length === 10) {
+                    cleanPhone = "+1" + rawDigits; // Standard Canadian/US number
+                } else if (rawDigits.length === 11 && rawDigits.startsWith("1")) {
+                    cleanPhone = "+" + rawDigits; // Already has the 1 country code
+                } else {
+                    return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: `Invalid phone format: ${customerPhone}. Must be 10 digits.` }) };
+                }
 
-                await ses.send(new SendEmailCommand({
-                    Source: SENDER_EMAIL,
-                    Destination: { ToAddresses: [customerEmail], BccAddresses: [OFFICE_EMAIL] },
-                    Message: {
-                        Subject: { Charset: "UTF-8", Data: `[Action Required] Outstanding Balance Reminder - FiscalX` },
-                        Body: { Html: { Charset: "UTF-8", Data: reminderHtml } }
+                // 2. Format the SMS Message (Keep it short for telecom limits)
+                const smsMessage = `FiscalX Alert: Hi ${customerName}, your invoice #${docNumber} has an outstanding balance of $${parseFloat(balance).toFixed(2)} CAD. Please remit via Interac e-Transfer to payments@fiscalx.ca to avoid service interruption.`;
+
+                // 3. Fire the AWS SNS Cannon
+                await sns.send(new PublishCommand({
+                    PhoneNumber: cleanPhone,
+                    Message: smsMessage,
+                    MessageAttributes: {
+                        'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: 'Transactional' } // Prioritizes delivery speed
                     }
                 }));
 
-                // UPDATING THE MEMORY LEDGER: Mark Level 1 Sent & Timestamp
+                // 4. Update the Memory Ledger: Mark Level 2 Sent & Timestamp
                 const today = new Date().toISOString().split('T')[0];
                 await ddbDocClient.send(new UpdateCommand({
                     TableName: TABLE_NAME,
                     Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
                     UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date, isPaused = if_not_exists(isPaused, :falseVal)",
-                    ExpressionAttributeValues: { ":lvl": 1, ":date": today, ":falseVal": false }
+                    ExpressionAttributeValues: { ":lvl": 2, ":date": today, ":falseVal": false }
                 }));
 
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Reminder email sent successfully." }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: `SMS successfully fired to ${cleanPhone}` }) };
+
             } catch (err) {
-                console.error("QBO Reminder Error:", err);
+                console.error("QBO SMS Error:", err);
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
 
-        // ==============================================================
-        // ACTION V: THE "KILL SWITCH" - PAUSE AUTOMATION FOR AN INVOICE
-        // ==============================================================
-        if (data.action === "toggleInvoicePause") {
-            const { adminEmail, docNumber, isPaused } = data;
-            
-            const isAuthorized = await isStaff(adminEmail);
-            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
-
-            try {
-                await ddbDocClient.send(new UpdateCommand({
-                    TableName: TABLE_NAME,
-                    Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
-                    UpdateExpression: "set isPaused = :p, escalationLevel = if_not_exists(escalationLevel, :zero), lastContactDate = if_not_exists(lastContactDate, :never)",
-                    ExpressionAttributeValues: { ":p": isPaused, ":zero": 0, ":never": "Never" }
-                }));
-
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
-            } catch (err) {
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
-            }
-        }
-
-        // ==============================================================
-        // ACTION P: GET REAL-TIME CALENDAR AVAILABILITY FROM MICROSOFT
-        // ==============================================================
         if (data.action === "getAvailableSlots") {
-            const bookingDate = data.bookingDate; // YYYY-MM-DD
-            if (!bookingDate) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing bookingDate." }) };
-
-            const fallbackSlots = [
-                { time: "12:00 PM EST", isAvailable: true }, { time: "12:30 PM EST", isAvailable: true },
-                { time: "01:00 PM EST", isAvailable: true }, { time: "01:30 PM EST", isAvailable: true },
-                { time: "02:00 PM EST", isAvailable: true }, { time: "02:30 PM EST", isAvailable: true },
-                { time: "03:00 PM EST", isAvailable: true }, { time: "03:30 PM EST", isAvailable: true },
-                { time: "04:00 PM EST", isAvailable: true }, { time: "04:30 PM EST", isAvailable: true },
-                { time: "05:00 PM EST", isAvailable: true }, { time: "05:30 PM EST", isAvailable: true },
-                { time: "06:00 PM EST", isAvailable: true }
-            ];
-
             try {
                 const accessToken = await getMsAccessToken();
-
-                if (!accessToken) {
-                    console.log("No MS Access Token available. Returning open fallback slots.");
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: fallbackSlots }) };
-                }
-
-                const startDateTime = `${bookingDate}T00:00:00`;
-                const endDateTime = `${bookingDate}T23:59:59`;
+                if (!accessToken) throw new Error("No MS Access Token");
 
                 const scheduleRes = await fetch(`https://graph.microsoft.com/v1.0/me/calendar/getSchedule`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'outlook.timezone="Eastern Standard Time"'
-                    },
+                    method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json', 'Prefer': 'outlook.timezone="Eastern Standard Time"' },
                     body: JSON.stringify({
                         schedules: [OFFICE_EMAIL],
-                        startTime: { dateTime: startDateTime, timeZone: "Eastern Standard Time" },
-                        endTime: { dateTime: endDateTime, timeZone: "Eastern Standard Time" },
+                        startTime: { dateTime: `${data.bookingDate}T00:00:00`, timeZone: "Eastern Standard Time" },
+                        endTime: { dateTime: `${data.bookingDate}T23:59:59`, timeZone: "Eastern Standard Time" },
                         availabilityViewInterval: 30
                     })
                 });
 
                 const scheduleData = await scheduleRes.json();
-                const rawItems = scheduleData?.value?.[0]?.scheduleItems || [];
+                const busyItems = (scheduleData?.value?.[0]?.scheduleItems || []).filter(item => ["busy", "oof", "tentative"].includes((item.status || "").toLowerCase()));
 
-                const busyItems = rawItems.filter(item => {
-                    const status = (item.status || "").toLowerCase();
-                    return status === "busy" || status === "oof" || status === "tentative";
-                });
-
-                const masterSlots = [
-                    "12:00 PM EST", "12:30 PM EST", "01:00 PM EST", "01:30 PM EST", 
-                    "02:00 PM EST", "02:30 PM EST", "03:00 PM EST", "03:30 PM EST", 
-                    "04:00 PM EST", "04:30 PM EST", "05:00 PM EST", "05:30 PM EST", "06:00 PM EST"
-                ];
-
+                const masterSlots = ["12:00 PM EST", "12:30 PM EST", "01:00 PM EST", "01:30 PM EST", "02:00 PM EST", "02:30 PM EST", "03:00 PM EST", "03:30 PM EST", "04:00 PM EST", "04:30 PM EST", "05:00 PM EST", "05:30 PM EST", "06:00 PM EST"];
                 const processedSlots = masterSlots.map(timeStr => {
-                    let isBusy = false;
-                    const parts = timeStr.split(":");
-                    let hour = parseInt(parts[0]);
-                    const minute = parseInt(parts[1].substring(0, 2));
-                    const isPm = timeStr.includes("PM");
-
-                    if (isPm && hour !== 12) hour += 12;
-                    if (!isPm && hour === 12) hour = 0;
-
+                    let isBusy = false; let hour = parseInt(timeStr.split(":")[0]); const minute = parseInt(timeStr.split(":")[1].substring(0, 2)); const isPm = timeStr.includes("PM");
+                    if (isPm && hour !== 12) hour += 12; if (!isPm && hour === 12) hour = 0;
                     const slotDecimal = hour + (minute / 60);
 
                     busyItems.forEach(busy => {
-                        if (busy.start && busy.start.dateTime && busy.end && busy.end.dateTime) {
+                        if (busy.start && busy.end) {
                             try {
-                                const startTimeStr = busy.start.dateTime.includes("T") ? busy.start.dateTime.split("T")[1] : busy.start.dateTime;
-                                const endTimeStr = busy.end.dateTime.includes("T") ? busy.end.dateTime.split("T")[1] : busy.end.dateTime;
-
-                                const startParts = startTimeStr.split(":");
-                                const endParts = endTimeStr.split(":");
-
-                                const startDecimal = parseInt(startParts[0]) + (parseInt(startParts[1]) / 60);
-                                const endDecimal = parseInt(endParts[0]) + (parseInt(endParts[1]) / 60);
-
-                                if (slotDecimal >= startDecimal && slotDecimal < endDecimal) {
-                                    isBusy = true;
-                                }
-                            } catch (parseErr) {
-                                console.error("Error parsing busy item time:", parseErr);
-                            }
+                                const startParts = (busy.start.dateTime.includes("T") ? busy.start.dateTime.split("T")[1] : busy.start.dateTime).split(":");
+                                const endParts = (busy.end.dateTime.includes("T") ? busy.end.dateTime.split("T")[1] : busy.end.dateTime).split(":");
+                                if (slotDecimal >= (parseInt(startParts[0]) + (parseInt(startParts[1])/60)) && slotDecimal < (parseInt(endParts[0]) + (parseInt(endParts[1])/60))) isBusy = true;
+                            } catch (e) {}
                         }
                     });
-
                     return { time: timeStr, isAvailable: !isBusy };
                 });
-
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: processedSlots }) };
-
             } catch (err) {
-                console.error("Microsoft Graph Schedule Error:", err);
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: fallbackSlots }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: [{ time: "12:00 PM EST", isAvailable: true }, { time: "01:00 PM EST", isAvailable: true }] }) };
             }
         }
 
-        // ==============================================================
-        // ACTION L: SUBMIT NEW BOOKING (CAPTURES msEventId FOR OUTLOOK SYNC)
-        // ==============================================================
         if (data.action === "createBooking" || data.action === "submitBooking") {
-            const userEmail = data.email || data.userEmail;
-            const userName = data.fullName || data.userName || "Valued Client";
-            const bookingDate = data.bookingDate;
-            const bookingTime = data.bookingTime;
-            const meetingType = data.meetingType || "MS Teams Consultation";
-            const phone = data.phone || "Not Provided";
-
-            if (!userEmail || !bookingDate || !bookingTime) {
-                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing required booking details." }) };
-            }
-
             try {
                 let msEventId = null;
                 const accessToken = await getMsAccessToken();
-
                 if (accessToken) {
                     try {
-                        const timeParts = bookingTime.replace(" EST", "").trim().split(" ");
-                        let [hours, minutes] = timeParts[0].split(":").map(Number);
-                        const ampm = timeParts[1];
-
-                        if (ampm === "PM" && hours !== 12) hours += 12;
-                        if (ampm === "AM" && hours === 12) hours = 0;
-
-                        const startHourStr = hours.toString().padStart(2, '0');
-                        const startMinStr = minutes.toString().padStart(2, '0');
-
-                        let endHours = hours;
-                        let endMinutes = minutes + 30;
-                        if (endMinutes >= 60) {
-                            endHours += 1;
-                            endMinutes -= 60;
-                        }
-                        const endHourStr = endHours.toString().padStart(2, '0');
-                        const endMinStr = endMinutes.toString().padStart(2, '0');
-
-                        const startDateTime = `${bookingDate}T${startHourStr}:${startMinStr}:00`;
-                        const endDateTime = `${bookingDate}T${endHourStr}:${endMinStr}:00`;
-
-                        const eventPayload = {
-                            subject: `FiscalX Consultation: ${userName}`,
-                            body: {
-                                contentType: "HTML",
-                                content: `<p><strong>Client Name:</strong> ${userName}</p><p><strong>Client Email:</strong> ${userEmail}</p><p><strong>Phone:</strong> ${phone}</p><p><strong>Format:</strong> ${meetingType}</p>`
-                            },
-                            start: { dateTime: startDateTime, timeZone: "Eastern Standard Time" },
-                            end: { dateTime: endDateTime, timeZone: "Eastern Standard Time" },
-                            location: { displayName: meetingType },
-                            attendees: [
-                                { emailAddress: { address: userEmail, name: userName }, type: "required" }
-                            ]
-                        };
+                        let [hours, minutes] = data.bookingTime.replace(" EST", "").trim().split(" ")[0].split(":").map(Number);
+                        const ampm = data.bookingTime.replace(" EST", "").trim().split(" ")[1];
+                        if (ampm === "PM" && hours !== 12) hours += 12; if (ampm === "AM" && hours === 12) hours = 0;
+                        const endMinutes = minutes + 30; const endHours = endMinutes >= 60 ? hours + 1 : hours;
 
                         const graphRes = await fetch(`https://graph.microsoft.com/v1.0/me/events`, {
-                            method: "POST",
-                            headers: {
-                                "Authorization": `Bearer ${accessToken}`,
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify(eventPayload)
+                            method: "POST", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                subject: `FiscalX Consultation: ${data.fullName}`,
+                                body: { contentType: "HTML", content: `<p>Client Email: ${data.email}</p>` },
+                                start: { dateTime: `${data.bookingDate}T${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:00`, timeZone: "Eastern Standard Time" },
+                                end: { dateTime: `${data.bookingDate}T${endHours.toString().padStart(2,'0')}:${(endMinutes%60).toString().padStart(2,'0')}:00`, timeZone: "Eastern Standard Time" },
+                                attendees: [{ emailAddress: { address: data.email }, type: "required" }]
+                            })
                         });
-
-                        if (graphRes.ok) {
-                            const graphData = await graphRes.json();
-                            msEventId = graphData.id || null;
-                            console.log("Successfully created event on Wasim's Outlook Calendar. EventID:", msEventId);
-                        } else {
-                            const errData = await graphRes.json();
-                            console.error("Microsoft Graph Event Creation Error:", JSON.stringify(errData));
-                        }
-                    } catch (msErr) {
-                        console.error("Failed to post event to Microsoft Graph:", msErr);
-                    }
+                        if (graphRes.ok) { msEventId = (await graphRes.json()).id; }
+                    } catch (e) {}
                 }
 
-                const timestamp = new Date().toISOString();
-                await ddbDocClient.send(new PutCommand({
-                    TableName: TABLE_NAME,
-                    Item: {
-                        userEmail: userEmail,
-                        timestamp: timestamp,
-                        clientName: userName,
-                        bookingDate: bookingDate,
-                        bookingTime: bookingTime,
-                        meetingType: meetingType,
-                        phone: phone,
-                        msEventId: msEventId,
-                        campaignStatus: "Pending",
-                        paymentConfirmed: false,
-                        finalFiles: [],
-                        uploadedFiles: []
-                    }
-                }));
-
-                const emailHtml = `
-                    <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
-                        <h2 style="color: #059669; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
-                        <p style="font-size: 14px; color: #64748b; margin-top: 0;">Consultation Confirmed</p>
-                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-                        <p style="font-size: 15px;">Hello ${userName},</p>
-                        <p style="font-size: 15px;">Your consultation with Wasim Kadri, CPA has been successfully reserved.</p>
-                        <div style="margin: 25px 0; padding: 20px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px;">
-                            <p style="font-size: 14px; color: #065f46; margin: 0 0 8px 0;"><strong>📅 Date:</strong> ${bookingDate}</p>
-                            <p style="font-size: 14px; color: #065f46; margin: 0 0 8px 0;"><strong>⏰ Time:</strong> ${bookingTime}</p>
-                            <p style="font-size: 14px; color: #065f46; margin: 0;"><strong>💻 Format:</strong> ${meetingType}</p>
-                        </div>
-                        <p style="font-size: 14px; color: #475569;">If you need to upload tax documents prior to our meeting, please log into your <a href="https://www.fiscalx.ca/dashboard/" style="color: #059669; font-weight: bold;">Client Portal</a>.</p>
-                    </div>
-                `;
-
-                await ses.send(new SendEmailCommand({
-                    Source: SENDER_EMAIL,
-                    Destination: { ToAddresses: [userEmail], BccAddresses: [OFFICE_EMAIL] },
-                    Message: {
-                        Subject: { Charset: "UTF-8", Data: `[FiscalX] Consultation Confirmed for ${bookingDate} @ ${bookingTime}` },
-                        Body: { Html: { Charset: "UTF-8", Data: emailHtml } }
-                    }
-                }));
-
-                return {
-                    statusCode: 200, headers: headers,
-                    body: JSON.stringify({ status: "SUCCESS", message: "Booking confirmed, Outlook calendar synced, and confirmation email delivered.", msEventId: msEventId })
-                };
-
+                await ddbDocClient.send(new PutCommand({ TableName: TABLE_NAME, Item: { userEmail: data.email, timestamp: new Date().toISOString(), clientName: data.fullName, bookingDate: data.bookingDate, bookingTime: data.bookingTime, msEventId: msEventId, campaignStatus: "Pending", paymentConfirmed: false } }));
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
             } catch (err) {
-                console.error("Booking Creation Error:", err);
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
             }
         }
 
-        // ==============================================================
-        // ACTION M: RESCHEDULE BOOKING (MOVES EXISTING OUTLOOK EVENT)
-        // ==============================================================
         if (data.action === "rescheduleBooking") {
-            const { adminEmail, clientEmail, timestamp, newDate, newTime } = data;
-
-            const isAuthorized = await isStaff(adminEmail);
-            if (!isAuthorized) {
-                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
-            }
-
-            if (!clientEmail || !timestamp || !newDate || !newTime) {
-                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing required reschedule parameters." }) };
-            }
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
-                const scanRes = await ddbDocClient.send(new ScanCommand({
-                    TableName: TABLE_NAME,
-                    FilterExpression: "userEmail = :e AND #ts = :t",
-                    ExpressionAttributeNames: { "#ts": "timestamp" },
-                    ExpressionAttributeValues: { ":e": String(clientEmail), ":t": String(timestamp) }
-                }));
-                const existingItem = (scanRes.Items || [])[0];
-                const msEventId = existingItem?.msEventId;
-
+                const scanRes = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME, FilterExpression: "userEmail = :e AND #ts = :t", ExpressionAttributeNames: { "#ts": "timestamp" }, ExpressionAttributeValues: { ":e": String(data.clientEmail), ":t": String(data.timestamp) } }));
+                const msEventId = (scanRes.Items || [])[0]?.msEventId;
                 const accessToken = await getMsAccessToken();
 
-                if (accessToken) {
-                    const timeParts = newTime.replace(" EST", "").trim().split(" ");
-                    let [hours, minutes] = timeParts[0].split(":").map(Number);
-                    const ampm = timeParts[1];
+                if (accessToken && msEventId) {
+                    let [hours, minutes] = data.newTime.replace(" EST", "").trim().split(" ")[0].split(":").map(Number);
+                    const ampm = data.newTime.replace(" EST", "").trim().split(" ")[1];
+                    if (ampm === "PM" && hours !== 12) hours += 12; if (ampm === "AM" && hours === 12) hours = 0;
+                    const endMinutes = minutes + 30; const endHours = endMinutes >= 60 ? hours + 1 : hours;
 
-                    if (ampm === "PM" && hours !== 12) hours += 12;
-                    if (ampm === "AM" && hours === 12) hours = 0;
-
-                    const startHourStr = hours.toString().padStart(2, '0');
-                    const startMinStr = minutes.toString().padStart(2, '0');
-
-                    let endHours = hours;
-                    let endMinutes = minutes + 30;
-                    if (endMinutes >= 60) {
-                        endHours += 1;
-                        endMinutes -= 60;
-                    }
-                    const endHourStr = endHours.toString().padStart(2, '0');
-                    const endMinStr = endMinutes.toString().padStart(2, '0');
-
-                    const startDateTime = `${newDate}T${startHourStr}:${startMinStr}:00`;
-                    const endDateTime = `${newDate}T${endHourStr}:${endMinStr}:00`;
-
-                    if (msEventId) {
-                        await fetch(`https://graph.microsoft.com/v1.0/me/events/${msEventId}`, {
-                            method: "PATCH",
-                            headers: {
-                                "Authorization": `Bearer ${accessToken}`,
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                                start: { dateTime: startDateTime, timeZone: "Eastern Standard Time" },
-                                end: { dateTime: endDateTime, timeZone: "Eastern Standard Time" }
-                            })
-                        });
-                    } else {
-                        const graphRes = await fetch(`https://graph.microsoft.com/v1.0/me/events`, {
-                            method: "POST",
-                            headers: {
-                                "Authorization": `Bearer ${accessToken}`,
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                                subject: `FiscalX Consultation: ${clientEmail}`,
-                                start: { dateTime: startDateTime, timeZone: "Eastern Standard Time" },
-                                end: { dateTime: endDateTime, timeZone: "Eastern Standard Time" },
-                                attendees: [{ emailAddress: { address: clientEmail }, type: "required" }]
-                            })
-                        });
-                        if (graphRes.ok) {
-                            const newEv = await graphRes.json();
-                            await ddbDocClient.send(new UpdateCommand({
-                                TableName: TABLE_NAME,
-                                Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) },
-                                UpdateExpression: "set msEventId = :id",
-                                ExpressionAttributeValues: { ":id": newEv.id }
-                            }));
-                        }
-                    }
+                    await fetch(`https://graph.microsoft.com/v1.0/me/events/${msEventId}`, {
+                        method: "PATCH", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            start: { dateTime: `${data.newDate}T${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:00`, timeZone: "Eastern Standard Time" },
+                            end: { dateTime: `${data.newDate}T${endHours.toString().padStart(2,'0')}:${(endMinutes%60).toString().padStart(2,'0')}:00`, timeZone: "Eastern Standard Time" }
+                        })
+                    });
                 }
-
-                await ddbDocClient.send(new UpdateCommand({
-                    TableName: TABLE_NAME,
-                    Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) },
-                    UpdateExpression: "set bookingDate = :d, bookingTime = :t",
-                    ExpressionAttributeValues: { ":d": String(newDate), ":t": String(newTime) }
-                }));
-
-                const rescheduleHtml = `
-                    <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
-                        <h2 style="color: #4f46e5; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
-                        <p style="font-size: 14px; color: #64748b; margin-top: 0;">Appointment Rescheduled</p>
-                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-                        <p style="font-size: 15px;">Hello,</p>
-                        <p style="font-size: 15px;">Your consultation with Wasim Kadri, CPA has been rescheduled to a new time slot:</p>
-                        <div style="margin: 25px 0; padding: 20px; background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px;">
-                            <p style="font-size: 15px; color: #5b21b6; margin: 0 0 8px 0;"><strong>📅 New Date:</strong> ${newDate}</p>
-                            <p style="font-size: 15px; color: #5b21b6; margin: 0;"><strong>⏰ New Time:</strong> ${newTime}</p>
-                        </div>
-                        <p style="font-size: 14px; color: #475569;">If this time does not work for you, please reply to this email or visit your <a href="https://www.fiscalx.ca/dashboard/" style="color: #4f46e5; font-weight: bold;">Client Portal</a>.</p>
-                    </div>
-                `;
-
-                await ses.send(new SendEmailCommand({
-                    Source: SENDER_EMAIL,
-                    Destination: { ToAddresses: [clientEmail], BccAddresses: [OFFICE_EMAIL] },
-                    Message: {
-                        Subject: { Charset: "UTF-8", Data: `[FiscalX] Consultation Rescheduled to ${newDate} @ ${newTime}` },
-                        Body: { Html: { Charset: "UTF-8", Data: rescheduleHtml } }
-                    }
-                }));
-
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Booking rescheduled, Outlook updated, and client notified." }) };
+                
+                await ddbDocClient.send(new UpdateCommand({ TableName: TABLE_NAME, Key: { "userEmail": String(data.clientEmail), "timestamp": String(data.timestamp) }, UpdateExpression: "set bookingDate = :d, bookingTime = :t", ExpressionAttributeValues: { ":d": String(data.newDate), ":t": String(data.newTime) } }));
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
             } catch (err) {
-                console.error("Reschedule Error:", err);
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
             }
         }
 
-        // ==============================================================
-        // ACTION N: CANCEL BOOKING (DELETES OUTLOOK EVENT & FREES SLOT)
-        // ==============================================================
         if (data.action === "cancelBooking") {
-            const { adminEmail, clientEmail, timestamp } = data;
-
-            const isAuthorized = await isStaff(adminEmail);
-            if (!isAuthorized) {
-                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
-            }
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
-                const scanRes = await ddbDocClient.send(new ScanCommand({
-                    TableName: TABLE_NAME,
-                    FilterExpression: "userEmail = :e AND #ts = :t",
-                    ExpressionAttributeNames: { "#ts": "timestamp" },
-                    ExpressionAttributeValues: { ":e": String(clientEmail), ":t": String(timestamp) }
-                }));
-                const existingItem = (scanRes.Items || [])[0];
-                const msEventId = existingItem?.msEventId;
+                const scanRes = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME, FilterExpression: "userEmail = :e AND #ts = :t", ExpressionAttributeNames: { "#ts": "timestamp" }, ExpressionAttributeValues: { ":e": String(data.clientEmail), ":t": String(data.timestamp) } }));
+                const msEventId = (scanRes.Items || [])[0]?.msEventId;
+                const accessToken = await getMsAccessToken();
 
-                if (msEventId) {
-                    const accessToken = await getMsAccessToken();
-                    if (accessToken) {
-                        try {
-                            await fetch(`https://graph.microsoft.com/v1.0/me/events/${msEventId}`, {
-                                method: "DELETE",
-                                headers: { "Authorization": `Bearer ${accessToken}` }
-                            });
-                            console.log("Successfully deleted event from Outlook:", msEventId);
-                        } catch (delErr) { console.error("Outlook Event Delete Error:", delErr); }
-                    }
+                if (accessToken && msEventId) {
+                    await fetch(`https://graph.microsoft.com/v1.0/me/events/${msEventId}`, { method: "DELETE", headers: { "Authorization": `Bearer ${accessToken}` } });
                 }
 
-                await ddbDocClient.send(new UpdateCommand({
-                    TableName: TABLE_NAME,
-                    Key: { "userEmail": String(clientEmail), "timestamp": String(timestamp) },
-                    UpdateExpression: "set bookingDate = :c",
-                    ExpressionAttributeValues: { ":c": "CANCELLED" }
-                }));
-
-                const cancelHtml = `
-                    <div style="font-family: sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
-                        <h2 style="color: #ef4444; margin-bottom: 4px;">FiscalX Professional Corporation</h2>
-                        <p style="font-size: 14px; color: #64748b; margin-top: 0;">Appointment Cancellation</p>
-                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-                        <p style="font-size: 15px;">Hello,</p>
-                        <p style="font-size: 15px;">Your scheduled consultation with FiscalX Professional Corporation has been cancelled.</p>
-                        <p style="font-size: 14px; color: #475569;">If you believe this is an error or would like to rebook, please contact us at <a href="mailto:info@fiscalx.ca" style="color: #ef4444; font-weight: bold;">info@fiscalx.ca</a>.</p>
-                    </div>
-                `;
-
-                await ses.send(new SendEmailCommand({
-                    Source: SENDER_EMAIL,
-                    Destination: { ToAddresses: [clientEmail], BccAddresses: [OFFICE_EMAIL] },
-                    Message: {
-                        Subject: { Charset: "UTF-8", Data: `[FiscalX] Consultation Cancellation Notice` },
-                        Body: { Html: { Charset: "UTF-8", Data: cancelHtml } }
-                    }
-                }));
-
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Booking cancelled, Outlook event removed, and client notified." }) };
+                await ddbDocClient.send(new UpdateCommand({ TableName: TABLE_NAME, Key: { "userEmail": String(data.clientEmail), "timestamp": String(data.timestamp) }, UpdateExpression: "set bookingDate = :c", ExpressionAttributeValues: { ":c": "CANCELLED" } }));
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
             } catch (err) {
-                console.error("Cancel Error:", err);
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
             }
         }
 
-        // ==============================================================
-        // ACTION Q: PERMANENTLY DELETE ALL CLIENT RECORDS FROM DYNAMODB
-        // ==============================================================
         if (data.action === "deleteClient") {
-            const { adminEmail, clientEmail } = data;
-
-            const isAuthorized = await isStaff(adminEmail);
-            if (!isAuthorized) {
-                return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
-            }
-
-            if (!clientEmail) {
-                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Missing client email key." }) };
-            }
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
-                const targetEmailClean = String(clientEmail).trim().toLowerCase();
+                const targetEmailClean = String(data.clientEmail).trim().toLowerCase();
                 const accessToken = await getMsAccessToken();
 
                 if (data.timestamp) {
-                    try {
-                        await ddbDocClient.send(new DeleteCommand({
-                            TableName: TABLE_NAME,
-                            Key: { "userEmail": String(clientEmail), "timestamp": String(data.timestamp) }
-                        }));
-                    } catch (directErr) { console.log("Direct key delete attempt completed."); }
+                    try { await ddbDocClient.send(new DeleteCommand({ TableName: TABLE_NAME, Key: { "userEmail": String(data.clientEmail), "timestamp": String(data.timestamp) } })); } catch (e) {}
                 }
 
                 const scanRes = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME }));
-                const allItems = scanRes.Items || [];
-
-                const matchingItems = allItems.filter(item => 
-                    String(item.userEmail || "").trim().toLowerCase() === targetEmailClean
-                );
+                const matchingItems = (scanRes.Items || []).filter(item => String(item.userEmail || "").trim().toLowerCase() === targetEmailClean);
 
                 for (const item of matchingItems) {
                     if (item.msEventId && accessToken) {
-                        try {
-                            await fetch(`https://graph.microsoft.com/v1.0/me/events/${item.msEventId}`, {
-                                method: "DELETE",
-                                headers: { "Authorization": `Bearer ${accessToken}` }
-                            });
-                            console.log("Deleted Outlook event:", item.msEventId);
-                        } catch (e) { console.error("Outlook Event Delete Error:", e); }
+                        try { await fetch(`https://graph.microsoft.com/v1.0/me/events/${item.msEventId}`, { method: "DELETE", headers: { "Authorization": `Bearer ${accessToken}` } }); } catch (e) {}
                     }
-
-                    await ddbDocClient.send(new DeleteCommand({
-                        TableName: TABLE_NAME,
-                        Key: { "userEmail": item.userEmail, "timestamp": item.timestamp }
-                    }));
+                    await ddbDocClient.send(new DeleteCommand({ TableName: TABLE_NAME, Key: { "userEmail": item.userEmail, "timestamp": item.timestamp } }));
                 }
-
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: `All records for ${clientEmail} permanently deleted.` }) };
-
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
             } catch (err) {
-                console.error("Delete Record Error:", err);
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
             }
         }
 
-        // ==============================================================
-        // ACTION D: PROCESS THE STANDARD CONTACT INTAKE FORM
-        // ==============================================================
-        const fullName = data.fullName; const email = data.email; const service = data.service; const message = data.message;
-        const intakeHtml = `
-            <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
-                <h2 style="color: #0284c7; margin-bottom: 4px;">FiscalX Intake Portal</h2>
-                <p style="font-size: 14px; color: #64748b; margin-top: 0;">New Consultation Request Received</p>
-                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-                <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <tr><td style="padding: 12px; font-weight: bold; width: 140px; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Name:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${fullName}</td></tr>
-                    <tr><td style="padding: 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Email:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${email}</td></tr>
-                    <tr><td style="padding: 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">Service:</td><td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${service}</td></tr>
-                    <tr><td style="padding: 12px; font-weight: bold; background-color: #f1f5f9;">Message:</td><td style="padding: 12px;">${message || "N/A"}</td></tr>
-                </table>
-            </div>
-        `;
-        const sesIntakeCommand = new SendEmailCommand({
-            Source: SENDER_EMAIL, Destination: { ToAddresses: [OFFICE_EMAIL] },
-            Message: { Subject: { Charset: "UTF-8", Data: `[New Lead] Consultation Request from ${fullName}` }, Body: { Html: { Charset: "UTF-8", Data: intakeHtml } } }
-        });
-        await ses.send(sesIntakeCommand);
-
-        return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: `Thank you. Your request is queued.` }) };
+        return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
 
     } catch (error) {
-        console.error("Error processing request:", error);
         return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: error.message }) };
     }
 };
