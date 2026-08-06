@@ -899,6 +899,7 @@ invoices.forEach(inv => {
                     const dueDate = inv.DueDate || "N/A";
                     
                     const customerEmail = inv.BillEmail ? inv.BillEmail.Address : "";
+                    const customerPhone = inv.PrimaryPhone ? inv.PrimaryPhone.FreeFormNumber : "";
                     const safeName = customerName.replace(/'/g, "\\'");
 
                     // THE MEMORY: Read the ledger data injected by our backend
@@ -906,9 +907,10 @@ invoices.forEach(inv => {
                     
                     const pauseText = ledger.isPaused ? "▶️ Resume Auto" : "⏸️ Pause Auto";
                     const pauseBtnClass = ledger.isPaused ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500 hover:text-slate-900" : "bg-slate-500/10 text-slate-400 border-slate-500/30 hover:bg-slate-500 hover:text-white";
-                    const rowOpacity = ledger.isPaused ? "opacity-50 grayscale" : ""; // Grays out the row if paused
+                    const rowOpacity = ledger.isPaused ? "opacity-50 grayscale" : ""; 
                     const reminderDisabled = ledger.isPaused ? "disabled" : "";
                     const reminderClass = ledger.isPaused ? "bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed" : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500 hover:text-white";
+                    const smsClass = ledger.isPaused ? "bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed" : "bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500 hover:text-white";
 
                     listDiv.innerHTML += `
                         <div class="flex justify-between items-center bg-[#131A2B] border border-white/5 p-3.5 rounded-xl hover:border-green-500/30 transition-all ${rowOpacity}">
@@ -927,7 +929,10 @@ invoices.forEach(inv => {
                                         ${pauseText}
                                     </button>
                                     <button ${reminderDisabled} onclick="sendQboReminderEmail('${customerEmail}', '${safeName}', '${balance}', '${docNumber}', this)" class="text-[9px] uppercase tracking-wider font-bold px-2.5 py-1.5 border rounded-lg transition shadow-sm ${reminderClass}">
-                                        Send Reminder
+                                        Send Email
+                                    </button>
+                                    <button ${reminderDisabled} onclick="sendQboSmsReminder('${customerPhone}', '${safeName}', '${balance}', '${docNumber}', this)" class="text-[9px] uppercase tracking-wider font-bold px-2.5 py-1.5 border rounded-lg transition shadow-sm ${smsClass}">
+                                        Send SMS
                                     </button>
                                 </div>
                             </div>
@@ -993,6 +998,54 @@ invoices.forEach(inv => {
             }
         } catch (err) {
             alert("Network error trying to send reminder.");
+            btnElement.innerText = originalText;
+            btnElement.disabled = false;
+        }
+    };
+
+// ==============================================================
+    // ACTION U: SEND REMINDER SMS FUNCTION (1-CLICK PRODUCTION MODE)
+    // ==============================================================
+    window.sendQboSmsReminder = async function(customerPhone, customerName, balance, docNumber, btnElement) {
+        if (!customerPhone) {
+            alert(`Error: ${customerName} does not have a phone number saved in QuickBooks.`);
+            return;
+        }
+
+        const adminEmail = localStorage.getItem('admin_email');
+        if (!adminEmail) return;
+
+        const originalText = btnElement.innerText;
+        btnElement.disabled = true;
+        btnElement.innerText = "Texting...";
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: "sendQboSmsReminder",
+                    adminEmail: adminEmail,
+                    customerPhone: customerPhone, // Now pulls directly from QuickBooks data
+                    customerName: customerName,
+                    balance: balance,
+                    docNumber: docNumber
+                })
+            });
+
+            const result = await response.json();
+            if (response.ok && result.status === 'SUCCESS') {
+                alert(`✅ SMS successfully fired!`);
+                btnElement.innerText = "SMS Sent!";
+                btnElement.classList.remove('text-blue-400', 'border-blue-500/20', 'bg-blue-500/10', 'hover:bg-blue-500');
+                btnElement.classList.add('text-green-400', 'border-green-500/20', 'bg-green-500/10', 'cursor-not-allowed');
+            } else {
+                alert("Error sending SMS: " + (result.message || "Server error"));
+                btnElement.innerText = originalText;
+                btnElement.disabled = false;
+            }
+        } catch (err) {
+            alert("Network error trying to send SMS.");
             btnElement.innerText = originalText;
             btnElement.disabled = false;
         }
