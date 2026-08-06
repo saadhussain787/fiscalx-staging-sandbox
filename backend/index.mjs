@@ -611,7 +611,7 @@ export const handler = async (event) => {
             }
         }
 
-        if (data.action === "createBooking" || data.action === "submitBooking") {
+if (data.action === "createBooking" || data.action === "submitBooking") {
             try {
                 let msEventId = null;
                 const accessToken = await getMsAccessToken();
@@ -622,15 +622,26 @@ export const handler = async (event) => {
                         if (ampm === "PM" && hours !== 12) hours += 12; if (ampm === "AM" && hours === 12) hours = 0;
                         const endMinutes = minutes + 30; const endHours = endMinutes >= 60 ? hours + 1 : hours;
 
+                        // Check if client selected MS Teams
+                        const isTeams = (data.meetingType || "").includes("Teams");
+                        
+                        const eventPayload = {
+                            subject: `FiscalX Consultation: ${data.fullName}`,
+                            body: { contentType: "HTML", content: `<p>Client Email: ${data.email}</p><p>Format: ${data.meetingType || 'In-Office'}</p>` },
+                            start: { dateTime: `${data.bookingDate}T${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:00`, timeZone: "Eastern Standard Time" },
+                            end: { dateTime: `${data.bookingDate}T${endHours.toString().padStart(2,'0')}:${(endMinutes%60).toString().padStart(2,'0')}:00`, timeZone: "Eastern Standard Time" },
+                            attendees: [{ emailAddress: { address: data.email }, type: "required" }]
+                        };
+
+                        // The "Magic Switch" to auto-generate the MS Teams Video Link
+                        if (isTeams) {
+                            eventPayload.isOnlineMeeting = true;
+                            eventPayload.onlineMeetingProvider = "teamsForBusiness";
+                        }
+
                         const graphRes = await fetch(`https://graph.microsoft.com/v1.0/me/events`, {
                             method: "POST", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                subject: `FiscalX Consultation: ${data.fullName}`,
-                                body: { contentType: "HTML", content: `<p>Client Email: ${data.email}</p>` },
-                                start: { dateTime: `${data.bookingDate}T${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:00`, timeZone: "Eastern Standard Time" },
-                                end: { dateTime: `${data.bookingDate}T${endHours.toString().padStart(2,'0')}:${(endMinutes%60).toString().padStart(2,'0')}:00`, timeZone: "Eastern Standard Time" },
-                                attendees: [{ emailAddress: { address: data.email }, type: "required" }]
-                            })
+                            body: JSON.stringify(eventPayload)
                         });
                         if (graphRes.ok) { msEventId = (await graphRes.json()).id; }
                     } catch (e) {}
