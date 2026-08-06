@@ -2,7 +2,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand, ScanCommand, UpdateCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, ScanCommand, UpdateCommand, DeleteCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { CognitoIdentityProviderClient, AdminListGroupsForUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 
 const s3 = new S3Client({ region: "ca-central-1" });
@@ -759,8 +759,8 @@ export const handler = async (event) => {
             }
         }
 
-        // ==============================================================
-        // ACTION S: FETCH UNPAID INVOICES FROM QUICKBOOKS (CASH RECOVERY)
+// ==============================================================
+        // ACTION S: FETCH UNPAID INVOICES & ATTACH MEMORY LEDGER
         // ==============================================================
         if (data.action === "fetchQboInvoices") {
             const isAuthorized = await isStaff(data.adminEmail);
@@ -771,22 +771,33 @@ export const handler = async (event) => {
                 if (!qboAuth) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "QuickBooks not connected." }) };
 
                 const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
-                
                 const query = encodeURIComponent(`select * from Invoice where Balance > '0'`);
                 const qboUrl = `${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`;
 
                 const invoiceRes = await fetch(qboUrl, {
                     method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${qboAuth.accessToken}`,
-                        'Accept': 'application/json'
-                    }
+                    headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
                 });
 
                 const invoiceData = await invoiceRes.json();
                 const invoices = invoiceData.QueryResponse.Invoice || [];
 
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", invoices: invoices }) };
+                // THE MEMORY INJECTION: Fetch the ledger history for every unpaid invoice
+                const enrichedInvoices = await Promise.all(invoices.map(async (inv) => {
+                    const docNumber = inv.DocNumber || "UNKNOWN";
+                    try {
+                        const ledgerRes = await ddbDocClient.send(new GetCommand({
+                            TableName: TABLE_NAME,
+                            Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" }
+                        }));
+                        const memory = ledgerRes.Item || { escalationLevel: 0, lastContactDate: "Never", isPaused: false };
+                        return { ...inv, _ledger: memory };
+                    } catch (e) {
+                        return { ...inv, _ledger: { escalationLevel: 0, lastContactDate: "Never", isPaused: false } };
+                    }
+                }));
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", invoices: enrichedInvoices }) };
 
             } catch (err) {
                 console.error("QBO Fetch Invoices Error:", err);
@@ -795,7 +806,7 @@ export const handler = async (event) => {
         }
 
         // ==============================================================
-        // ACTION T: SEND QBO INVOICE REMINDER (E-TRANSFER TO PAYMENTS)
+        // ACTION T: SEND QBO REMINDER & UPDATE MEMORY LEDGER
         // ==============================================================
         if (data.action === "sendQboReminder") {
             const { adminEmail, customerEmail, customerName, balance, docNumber } = data;
@@ -845,9 +856,41 @@ export const handler = async (event) => {
                     }
                 }));
 
+                // UPDATING THE MEMORY LEDGER: Mark Level 1 Sent & Timestamp
+                const today = new Date().toISOString().split('T')[0];
+                await ddbDocClient.send(new UpdateCommand({
+                    TableName: TABLE_NAME,
+                    Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
+                    UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date, isPaused = if_not_exists(isPaused, :falseVal)",
+                    ExpressionAttributeValues: { ":lvl": 1, ":date": today, ":falseVal": false }
+                }));
+
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Reminder email sent successfully." }) };
             } catch (err) {
                 console.error("QBO Reminder Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION V: THE "KILL SWITCH" - PAUSE AUTOMATION FOR AN INVOICE
+        // ==============================================================
+        if (data.action === "toggleInvoicePause") {
+            const { adminEmail, docNumber, isPaused } = data;
+            
+            const isAuthorized = await isStaff(adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
+
+            try {
+                await ddbDocClient.send(new UpdateCommand({
+                    TableName: TABLE_NAME,
+                    Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
+                    UpdateExpression: "set isPaused = :p, escalationLevel = if_not_exists(escalationLevel, :zero), lastContactDate = if_not_exists(lastContactDate, :never)",
+                    ExpressionAttributeValues: { ":p": isPaused, ":zero": 0, ":never": "Never" }
+                }));
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
+            } catch (err) {
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
