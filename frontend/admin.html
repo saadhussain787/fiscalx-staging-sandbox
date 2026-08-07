@@ -74,20 +74,21 @@
       </div>
 
       <!-- QBO CASH RECOVERY WIDGET -->
-      <div id="qbo-recovery-widget" class="mb-8 border border-green-500/20 bg-gradient-to-br from-[#0B0F19] to-[#0A1A12] rounded-3xl p-6 shadow-xl relative overflow-hidden">
-        <!-- Glow effect -->
-        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-green-500/20 blur-2xl rounded-full pointer-events-none"></div>
-        
-        <div class="flex justify-between items-center mb-6 relative z-10">
+      <div class="flex justify-between items-center mb-6 relative z-10">
           <div>
             <h2 class="text-lg font-extrabold text-green-400 tracking-wide flex items-center gap-2">
               <span>💰</span> QBO Cash Recovery Engine
             </h2>
             <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">Live Outstanding Invoice Sync</p>
           </div>
-          <button onclick="fetchAndRenderInvoices()" class="text-xs px-4 py-2 bg-green-500/10 text-green-400 border border-green-500/30 font-bold rounded-xl hover:bg-green-500 hover:text-slate-900 transition-all shadow-md shadow-green-500/10 flex items-center gap-2">
-            🔄 Sync QuickBooks
-          </button>
+          <div class="flex gap-2">
+            <button onclick="generateCommissionReport(this)" class="text-xs px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold rounded-xl hover:bg-emerald-500 hover:text-slate-900 transition-all shadow-md shadow-emerald-500/10 flex items-center gap-2">
+              🧾 5% Commission Report
+            </button>
+            <button onclick="fetchAndRenderInvoices()" class="text-xs px-4 py-2 bg-green-500/10 text-green-400 border border-green-500/30 font-bold rounded-xl hover:bg-green-500 hover:text-slate-900 transition-all shadow-md shadow-green-500/10 flex items-center gap-2">
+              🔄 Sync QuickBooks
+            </button>
+          </div>
         </div>
         
         <div class="grid grid-cols-2 gap-4 mb-6 relative z-10">
@@ -963,6 +964,38 @@ invoices.forEach(inv => {
             listDiv.innerHTML = "<p class='text-xs text-red-500 font-bold'>Network error fetching QuickBooks data.</p>";
         }
     }
+
+    // ==============================================================
+    // ACTION: GENERATE COMMISSION REPORT
+    // ==============================================================
+    window.generateCommissionReport = async function(btnElement) {
+        const adminEmail = localStorage.getItem('admin_email');
+        if (!adminEmail) return;
+
+        const originalText = btnElement.innerHTML;
+        btnElement.disabled = true;
+        btnElement.innerHTML = "⏳ Calculating...";
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: "generateCommissionReport", adminEmail: adminEmail })
+            });
+            const result = await response.json();
+
+            if (response.ok && result.status === 'SUCCESS') {
+                alert(`💰 COMMISSION REPORT\n\nTotal Invoices Recovered by System: ${result.recoveredCount}\nTotal Cash Recovered: $${result.recoveredCash.toFixed(2)} CAD\n\nYour 5% Commission Earned: $${result.yourCommission.toFixed(2)} CAD`);
+            } else {
+                alert("Error generating report: " + (result.message || "Server error"));
+            }
+        } catch (err) {
+            alert("Network error generating report.");
+        } finally {
+            btnElement.disabled = false;
+            btnElement.innerHTML = originalText;
+        }
+    };
 
     // ==============================================================
     // ACTION T: SEND REMINDER EMAIL FUNCTION

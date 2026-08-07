@@ -760,6 +760,65 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
         }
 
         // ==============================================================
+        // ACTION: GENERATE MONTH-END 5% COMMISSION REPORT
+        // ==============================================================
+        if (data.action === "generateCommissionReport") {
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+
+            try {
+                const qboAuth = await getQboAccessToken();
+                if (!qboAuth) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "QuickBooks not connected." }) };
+
+                // 1. Get all invoices our system has interacted with from DynamoDB Memory
+                const scanResult = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME }));
+                const ledgers = (scanResult.Items || []).filter(item => 
+                    item.userEmail && item.userEmail.startsWith("QBO_INVOICE#") && item.escalationLevel > 0
+                );
+
+                if (ledgers.length === 0) {
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", recoveredCount: 0, recoveredCash: 0, yourCommission: 0 }) };
+                }
+
+                // 2. Extract Document Numbers and query QBO for real-time status
+                const docNumbers = ledgers.map(l => l.userEmail.replace("QBO_INVOICE#", ""));
+                const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
+                
+                const docList = docNumbers.map(n => `'${n}'`).join(",");
+                const query = encodeURIComponent(`select * from Invoice where DocNumber in (${docList})`);
+                
+                const invoiceRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`, {
+                    method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
+                });
+
+                const invoiceData = await invoiceRes.json();
+                const qboInvoices = invoiceData.QueryResponse.Invoice || [];
+
+                let recoveredCount = 0;
+                let recoveredCash = 0;
+
+                // 3. Calculate exactly how much cash was recovered
+                qboInvoices.forEach(inv => {
+                    const balance = parseFloat(inv.Balance || 0);
+                    const totalAmt = parseFloat(inv.TotalAmt || 0);
+                    const amountPaid = totalAmt - balance; // Handles full AND partial payments!
+                    
+                    if (amountPaid > 0) {
+                        recoveredCount++;
+                        recoveredCash += amountPaid;
+                    }
+                });
+
+                const yourCommission = recoveredCash * 0.05;
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", recoveredCount, recoveredCash, yourCommission }) };
+            } catch (err) {
+                console.error("Commission Report Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
         // ACTION W: THE AUTONOMOUS ROBOT (DAILY COLLECTIONS CRON JOB)
         // ==============================================================
         if (data.action === "runDailyCollections") {
