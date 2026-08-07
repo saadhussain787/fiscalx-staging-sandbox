@@ -24,7 +24,7 @@ const MS_CLIENT_SECRET = process.env.MS_CLIENT_SECRET;
 const MS_REDIRECT_URI = "https://www.fiscalx.ca/admin/";
 
 // QuickBooks Online (QBO) Integration Keys 
-const QBO_CLIENT_ID = process.env.QBO_CLIENT_ID; 
+const QBO_CLIENT_ID = "ABSTHCiuPkKUWseYOpR7KjNLOYqR43fKOVg85XCqQZqXOpI9oz"; 
 const QBO_CLIENT_SECRET = process.env.QBO_CLIENT_SECRET; 
 const QBO_REDIRECT_URI = "https://www.fiscalx.ca/admin/"; 
 const QBO_ENVIRONMENT = "production";
@@ -416,23 +416,47 @@ export const handler = async (event) => {
 
         if (data.action === "exchangeQboCode") {
             const isAuthorized = await isStaff(data.adminEmail);
-            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Staff Access." }) };
 
             try {
+                console.log("Attempting QBO Exchange. ClientID present:", Boolean(QBO_CLIENT_ID), "Secret present:", Boolean(QBO_CLIENT_SECRET));
                 const authHeader = Buffer.from(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`).toString('base64');
+                
                 const tokenResponse = await fetch(`https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer`, {
-                    method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${authHeader}` },
-                    body: new URLSearchParams({ code: data.code, redirect_uri: QBO_REDIRECT_URI, grant_type: 'authorization_code' })
+                    method: 'POST', 
+                    headers: { 
+                        'Accept': 'application/json', 
+                        'Content-Type': 'application/x-www-form-urlencoded', 
+                        'Authorization': `Basic ${authHeader}` 
+                    },
+                    body: new URLSearchParams({ 
+                        code: data.code, 
+                        redirect_uri: QBO_REDIRECT_URI, 
+                        grant_type: 'authorization_code' 
+                    })
                 });
+                
                 const tokenData = await tokenResponse.json();
-                if (tokenData.error) throw new Error(tokenData.error);
+                console.log("Intuit API Raw Response:", JSON.stringify(tokenData));
+
+                if (tokenData.error || tokenData.error_description) {
+                    throw new Error(`Intuit Rejected: ${tokenData.error_description || tokenData.error}`);
+                }
 
                 await ddbDocClient.send(new PutCommand({
-                    TableName: TABLE_NAME, Item: { userEmail: "SYSTEM_CONFIG", timestamp: "QUICKBOOKS_AUTH", qboRefreshToken: tokenData.refresh_token, qboRealmId: data.realmId || "UNKNOWN", updatedAt: new Date().toISOString() }
+                    TableName: TABLE_NAME, 
+                    Item: { 
+                        userEmail: "SYSTEM_CONFIG", 
+                        timestamp: "QUICKBOOKS_AUTH", 
+                        qboRefreshToken: tokenData.refresh_token, 
+                        qboRealmId: data.realmId || "UNKNOWN", 
+                        updatedAt: new Date().toISOString() 
+                    }
                 }));
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "QuickBooks connected." }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "QuickBooks connected successfully!" }) };
             } catch (err) {
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
+                console.error("Exchange QBO Code Failure:", err.message);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
 
