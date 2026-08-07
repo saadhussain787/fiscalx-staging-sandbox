@@ -23,10 +23,9 @@ const MS_TENANT_ID = "8793dd74-ad92-4663-a197-95c9e0955c5e";
 const MS_CLIENT_SECRET = process.env.MS_CLIENT_SECRET; 
 const MS_REDIRECT_URI = "https://www.fiscalx.ca/admin/";
 
-// QuickBooks Online (QBO) Integration Keys 
 const QBO_CLIENT_ID = "ABpC4zd9xPXxZkN9AgXd8mGM2EvvT1Uiw1bt9BvUJHBRxvoXex"; 
 const QBO_CLIENT_SECRET = process.env.QBO_CLIENT_SECRET; 
-const QBO_REDIRECT_URI = "https://www.fiscalx.ca/admin/"; 
+const QBO_REDIRECT_URI = "https://fiscalx.ca/admin/"; 
 const QBO_ENVIRONMENT = "production";
 
 const AUTHORIZED_STAFF = [
@@ -127,6 +126,7 @@ async function getQboAccessToken() {
 
 export const handler = async (event) => {
     console.log("Incoming Event Payload:", JSON.stringify(event));
+    console.log("DIAGNOSTIC - QBO ID:", QBO_CLIENT_ID, "QBO SECRET Length:", QBO_CLIENT_SECRET ? QBO_CLIENT_SECRET.length : "MISSING/UNDEFINED");
 
     const headers = {
         "Access-Control-Allow-Origin": "*",
@@ -419,7 +419,10 @@ export const handler = async (event) => {
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Staff Access." }) };
 
             try {
-                console.log("Attempting QBO Exchange. ClientID present:", Boolean(QBO_CLIENT_ID), "Secret present:", Boolean(QBO_CLIENT_SECRET));
+                // Dynamically use the redirectUri sent by the frontend, fallback to hardcoded if empty
+                const redirectUri = data.redirectUri || QBO_REDIRECT_URI;
+                console.log("QBO Exchange. ClientID present:", Boolean(QBO_CLIENT_ID), "Secret present:", Boolean(QBO_CLIENT_SECRET), "Using Redirect:", redirectUri);
+                
                 const authHeader = Buffer.from(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`).toString('base64');
                 
                 const tokenResponse = await fetch(`https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer`, {
@@ -431,7 +434,7 @@ export const handler = async (event) => {
                     },
                     body: new URLSearchParams({ 
                         code: data.code, 
-                        redirect_uri: QBO_REDIRECT_URI, 
+                        redirect_uri: redirectUri, // <-- Using the dynamic matching URI!
                         grant_type: 'authorization_code' 
                     })
                 });
