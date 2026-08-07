@@ -322,6 +322,28 @@ export const handler = async (event) => {
             }
         }
 
+        if (data.action === "updateClientAssignment") {
+            const adminEmail = data.adminEmail;
+            const clientEmail = data.clientEmail;
+            const clientTimestamp = data.timestamp;
+            const assignedTo = data.assignedTo;
+
+            const isAuthorized = await isStaff(adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+
+            try {
+                await ddbDocClient.send(new UpdateCommand({
+                    TableName: TABLE_NAME,
+                    Key: { "userEmail": String(clientEmail), "timestamp": String(clientTimestamp) },
+                    UpdateExpression: "set assignedTo = :a",
+                    ExpressionAttributeValues: { ":a": String(assignedTo) }
+                }));
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Assignment updated successfully." }) };
+            } catch (updateError) {
+                return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: updateError.message }) };
+            }
+        }
+
         if (data.action === "getDownloadUrl") {
             const isAuthorized = await isStaff(data.adminEmail);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
