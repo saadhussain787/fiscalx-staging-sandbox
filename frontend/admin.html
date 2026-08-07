@@ -336,15 +336,17 @@
       window.location.href = authUrl;
     }
 
-    // QuickBooks OAuth Redirection Logic
-    function connectQuickBooks() {
-      const clientId = "ABDnUXIYkmVQ8IhyLE2C4H2vQeUwfeQYJgHJLFZ6QpzyizsGhu"; // Safe to expose in frontend
-      const redirectUri = encodeURIComponent("https://www.fiscalx.ca/admin/");
-      const scope = encodeURIComponent("com.intuit.quickbooks.accounting");
-      const state = "fiscalx_qbo_auth";
-      const authUrl = `https://appcenter.intuit.com/connect/oauth2?client_id=ABDnUXIYkmVQ8IhyLE2C4H2vQeUwfeQYJgHJLFZ6QpzyizsGhu&response_type=code&scope=${scope}&redirect_uri=${redirectUri}&state=${state}`;
-      window.location.href = authUrl;
-    }
+   // QuickBooks OAuth Redirection Logic
+function connectQuickBooks() {
+  const scope = encodeURIComponent("com.intuit.quickbooks.accounting");
+  const state = "fiscalx_qbo_auth";
+  
+  // Dynamically build redirectUri so it matches your active browser address perfectly!
+  const redirectUri = encodeURIComponent(window.location.origin + "/admin/");
+  
+  const authUrl = `https://appcenter.intuit.com/connect/oauth2?client_id=ABDnUXIYkmVQ8IhyLE2C4H2vQeUwfeQYJgHJLFZ6QpzyizsGhu&response_type=code&scope=${scope}&redirect_uri=${redirectUri}&state=${state}`;
+  window.location.href = authUrl;
+}
 
 async function showCRM(email) {
       loginScreen.classList.add('hidden'); crmScreen.classList.remove('hidden'); displayEmail.innerText = email;
@@ -368,8 +370,15 @@ const urlParams = new URLSearchParams(window.location.search);
             document.getElementById('kanban-status').innerText = "Exchanging QuickBooks Token securely...";
             try {
               const qboRes = await fetch(API_URL, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: "exchangeQboCode", adminEmail: email, code: authCode, realmId: realmId }) // Pass realmId to backend
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  action: "exchangeQboCode", 
+                  adminEmail: email, 
+                  code: authCode, 
+                  realmId: realmId,
+                  redirectUri: window.location.origin + "/admin/" // <-- Send the exact URL we used!
+                })
               });
 
               const qboData = await qboRes.json();
