@@ -344,7 +344,7 @@ function connectQuickBooks() {
   // Dynamically build redirectUri so it matches your active browser address perfectly!
   const redirectUri = encodeURIComponent(window.location.origin + "/admin/");
   
-  const authUrl = `https://appcenter.intuit.com/connect/oauth2?client_id=ABSTHCiuPkKUWseYOpR7KjNLOYqR43fKOVg85XCqQZqXOpI9oz&response_type=code&scope=${scope}&redirect_uri=${redirectUri}&state=${state}`;
+  const authUrl = `https://appcenter.intuit.com/connect/oauth2?client_id=ABpC4zd9xPXxZkN9AgXd8mGM2EvvT1Uiw1bt9BvUJHBRxvoXex&response_type=code&scope=${scope}&redirect_uri=${redirectUri}&state=${state}`;
   window.location.href = authUrl;
 }
 
