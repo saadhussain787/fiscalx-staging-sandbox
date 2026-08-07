@@ -759,7 +759,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
             }
         }
 
-        // ==============================================================
+// ==============================================================
         // ACTION: GENERATE MONTH-END 5% COMMISSION REPORT
         // ==============================================================
         if (data.action === "generateCommissionReport") {
@@ -770,17 +770,16 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
                 const qboAuth = await getQboAccessToken();
                 if (!qboAuth) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "QuickBooks not connected." }) };
 
-                // 1. Get all invoices our system has interacted with from DynamoDB Memory
+                // 1. Get ledgers, ignoring ones where commission was already collected
                 const scanResult = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME }));
                 const ledgers = (scanResult.Items || []).filter(item => 
-                    item.userEmail && item.userEmail.startsWith("QBO_INVOICE#") && item.escalationLevel > 0
+                    item.userEmail && item.userEmail.startsWith("QBO_INVOICE#") && item.escalationLevel > 0 && !item.commissionCollected
                 );
 
                 if (ledgers.length === 0) {
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", recoveredCount: 0, recoveredCash: 0, yourCommission: 0 }) };
+                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", recoveredCount: 0, recoveredCash: 0, yourCommission: 0, paidDocNumbers: [] }) };
                 }
 
-                // 2. Extract Document Numbers and query QBO for real-time status
                 const docNumbers = ledgers.map(l => l.userEmail.replace("QBO_INVOICE#", ""));
                 const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
                 
@@ -796,24 +795,47 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
 
                 let recoveredCount = 0;
                 let recoveredCash = 0;
+                let paidDocNumbers = [];
 
-                // 3. Calculate exactly how much cash was recovered
                 qboInvoices.forEach(inv => {
                     const balance = parseFloat(inv.Balance || 0);
                     const totalAmt = parseFloat(inv.TotalAmt || 0);
-                    const amountPaid = totalAmt - balance; // Handles full AND partial payments!
+                    const amountPaid = totalAmt - balance; 
                     
                     if (amountPaid > 0) {
                         recoveredCount++;
                         recoveredCash += amountPaid;
+                        paidDocNumbers.push(inv.DocNumber); // Track exactly which ones paid
                     }
                 });
 
                 const yourCommission = recoveredCash * 0.05;
 
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", recoveredCount, recoveredCash, yourCommission }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", recoveredCount, recoveredCash, yourCommission, paidDocNumbers }) };
             } catch (err) {
-                console.error("Commission Report Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION: MARK COMMISSION AS PAID (RESET METER)
+        // ==============================================================
+        if (data.action === "markCommissionPaid") {
+            const isAuthorized = await isStaff(data.adminEmail);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+
+            try {
+                const paidDocs = data.paidDocNumbers || [];
+                for (const docNumber of paidDocs) {
+                    await ddbDocClient.send(new UpdateCommand({
+                        TableName: TABLE_NAME,
+                        Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
+                        UpdateExpression: "set commissionCollected = :trueVal",
+                        ExpressionAttributeValues: { ":trueVal": true }
+                    }));
+                }
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
+            } catch (err) {
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
