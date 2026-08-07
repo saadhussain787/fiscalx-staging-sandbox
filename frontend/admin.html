@@ -965,87 +965,51 @@ invoices.forEach(inv => {
         }
     }
 
+// ==============================================================
+    // ACTION: GENERATE COMMISSION REPORT & RESET METER
     // ==============================================================
-        // ACTION: GENERATE MONTH-END 5% COMMISSION REPORT
-        // ==============================================================
-        if (data.action === "generateCommissionReport") {
-            const isAuthorized = await isStaff(data.adminEmail);
-            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+    window.generateCommissionReport = async function(btnElement) {
+        const adminEmail = localStorage.getItem('admin_email');
+        if (!adminEmail) return;
 
-            try {
-                const qboAuth = await getQboAccessToken();
-                if (!qboAuth) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "QuickBooks not connected." }) };
+        const originalText = btnElement.innerHTML;
+        btnElement.disabled = true;
+        btnElement.innerHTML = "⏳ Calculating...";
 
-                // 1. Get ledgers, ignoring ones where commission was already collected
-                const scanResult = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME }));
-                const ledgers = (scanResult.Items || []).filter(item => 
-                    item.userEmail && item.userEmail.startsWith("QBO_INVOICE#") && item.escalationLevel > 0 && !item.commissionCollected
-                );
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: "generateCommissionReport", adminEmail: adminEmail })
+            });
+            const result = await response.json();
 
-                if (ledgers.length === 0) {
-                    return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", recoveredCount: 0, recoveredCash: 0, yourCommission: 0, paidDocNumbers: [] }) };
-                }
-
-                const docNumbers = ledgers.map(l => l.userEmail.replace("QBO_INVOICE#", ""));
-                const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
-                
-                const docList = docNumbers.map(n => `'${n}'`).join(",");
-                const query = encodeURIComponent(`select * from Invoice where DocNumber in (${docList})`);
-                
-                const invoiceRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`, {
-                    method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
-                });
-
-                const invoiceData = await invoiceRes.json();
-                const qboInvoices = invoiceData.QueryResponse.Invoice || [];
-
-                let recoveredCount = 0;
-                let recoveredCash = 0;
-                let paidDocNumbers = [];
-
-                qboInvoices.forEach(inv => {
-                    const balance = parseFloat(inv.Balance || 0);
-                    const totalAmt = parseFloat(inv.TotalAmt || 0);
-                    const amountPaid = totalAmt - balance; 
+            if (response.ok && result.status === 'SUCCESS') {
+                if (result.recoveredCash > 0) {
+                    const confirmReset = confirm(`💰 COMMISSION REPORT\n\nTotal Invoices Recovered by System: ${result.recoveredCount}\nTotal Cash Recovered: $${result.recoveredCash.toFixed(2)} CAD\n\nYour 5% Commission Earned: $${result.yourCommission.toFixed(2)} CAD\n\nWould you like to mark this commission as PAID and reset the meter to $0.00 for next month?`);
                     
-                    if (amountPaid > 0) {
-                        recoveredCount++;
-                        recoveredCash += amountPaid;
-                        paidDocNumbers.push(inv.DocNumber); // Track exactly which ones paid
+                    if (confirmReset) {
+                        btnElement.innerHTML = "🧹 Resetting Meter...";
+                        await fetch(API_URL, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: "markCommissionPaid", adminEmail: adminEmail, paidDocNumbers: result.paidDocNumbers })
+                        });
+                        alert("✅ Commission meter successfully reset! Next month's tracking begins now.");
                     }
-                });
-
-                const yourCommission = recoveredCash * 0.05;
-
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", recoveredCount, recoveredCash, yourCommission, paidDocNumbers }) };
-            } catch (err) {
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
-            }
-        }
-
-        // ==============================================================
-        // ACTION: MARK COMMISSION AS PAID (RESET METER)
-        // ==============================================================
-        if (data.action === "markCommissionPaid") {
-            const isAuthorized = await isStaff(data.adminEmail);
-            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
-
-            try {
-                const paidDocs = data.paidDocNumbers || [];
-                for (const docNumber of paidDocs) {
-                    await ddbDocClient.send(new UpdateCommand({
-                        TableName: TABLE_NAME,
-                        Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
-                        UpdateExpression: "set commissionCollected = :trueVal",
-                        ExpressionAttributeValues: { ":trueVal": true }
-                    }));
+                } else {
+                    alert(`💰 COMMISSION REPORT\n\nTotal Invoices Recovered by System: ${result.recoveredCount}\nTotal Cash Recovered: $${result.recoveredCash.toFixed(2)} CAD\n\nYour 5% Commission Earned: $${result.yourCommission.toFixed(2)} CAD`);
                 }
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
-            } catch (err) {
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            } else {
+                alert("Error generating report: " + (result.message || "Server error"));
             }
+        } catch (err) {
+            alert("Network error generating report.");
+        } finally {
+            btnElement.disabled = false;
+            btnElement.innerHTML = originalText;
         }
-
+    };
+    
     // ==============================================================
     // ACTION T: SEND REMINDER EMAIL FUNCTION
     // ==============================================================
