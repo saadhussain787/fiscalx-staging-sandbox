@@ -24,7 +24,7 @@ const MS_CLIENT_SECRET = process.env.MS_CLIENT_SECRET;
 const MS_REDIRECT_URI = "https://www.fiscalx.ca/admin/";
 
 // QuickBooks Online (QBO) Integration Keys 
-const QBO_CLIENT_ID = "ABSTHCiuPkKUWseYOpR7KjNLOYqR43fKOVg85XCqQZqXOpI9oz"; 
+const QBO_CLIENT_ID = "ABpC4zd9xPXxZkN9AgXd8mGM2EvvT1Uiw1bt9BvUJHBRxvoXex"; 
 const QBO_CLIENT_SECRET = process.env.QBO_CLIENT_SECRET; 
 const QBO_REDIRECT_URI = "https://www.fiscalx.ca/admin/"; 
 const QBO_ENVIRONMENT = "production";
