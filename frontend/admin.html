@@ -516,7 +516,7 @@ const urlParams = new URLSearchParams(window.location.search);
 
         const badgeHtml = client.hasNewActivity 
           ? `<span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded animate-pulse border border-amber-500/20">New Activity</span>`
-          : `<span class="text-[10px] font-bold uppercase tracking-wider text-teal-400 bg-teal-400/10 px-2.5 py-1 rounded">${client.taxType || 'Unknown'}</span>`;
+          : `<span class="text-[10px] font-bold uppercase tracking-wider text-teal-400 bg-teal-400/10 px-2.5 py-1 rounded">${client.taxType || 'Consultation'}</span>`;
         
         const appointmentBadge = (client.bookingDate && client.bookingTime && client.bookingDate !== "CANCELLED")
           ? `<div class="mt-2 text-[10px] font-bold text-purple-300 bg-purple-500/20 border border-purple-500/30 px-2.5 py-1 rounded-lg flex items-center justify-between">
@@ -548,7 +548,7 @@ const cardHtml = `
             </div>
           </div>
         `;
-        
+
         const status = client.campaignStatus || 'Pending';
         if (status === 'Completed') { colCompleted.innerHTML += cardHtml; countCompleted++; } else if (status === 'In Progress') { colProgress.innerHTML += cardHtml; countProgress++; } else { colPending.innerHTML += cardHtml; countPending++; }
       });
