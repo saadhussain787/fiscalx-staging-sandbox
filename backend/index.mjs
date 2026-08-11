@@ -5,6 +5,7 @@ import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, ScanCommand, UpdateCommand, DeleteCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { CognitoIdentityProviderClient, AdminListGroupsForUserCommand } from "@aws-sdk/client-cognito-identity-provider";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
 const s3 = new S3Client({ region: "ca-central-1" });
 const ses = new SESClient({ region: "ca-central-1" });
@@ -12,6 +13,7 @@ const sns = new SNSClient({ region: "ca-central-1" });
 const ddbClient = new DynamoDBClient({ region: "ca-central-1" });
 const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
 const cognito = new CognitoIdentityProviderClient({ region: "ca-central-1" });
+const bedrock = new BedrockRuntimeClient({ region: "ca-central-1" });
 
 const BUCKET_NAME = "fiscalx-document-vault-673098723249";
 const TABLE_NAME = "fiscalx-client-onboarding";
@@ -139,7 +141,7 @@ export const handler = async (event) => {
     }
 
     try {
-        const data = JSON.parse(event.body || "{}");
+        const data = event.body ? JSON.parse(event.body) : event;
 
         if (data.action === "getUploadUrl") {
             const fileName = data.fileName;
@@ -976,6 +978,85 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
             } catch (err) {
                 console.error("Robot Error:", err);
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION: FISCALBOT AI RECEPTIONIST (AMAZON NOVA 2 LITE)
+        // ==============================================================
+        if (data.action === "chatWithFiscalBot") {
+            const userMessage = data.message || "";
+            const conversationHistory = data.history || []; // Array of { role: "user" | "assistant", content: [{ text: "..." }] }
+            
+            if (!userMessage) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "No message provided." }) };
+
+            try {
+                // Prepare the message payload for Amazon Nova
+                const formattedMessages = [...conversationHistory];
+                formattedMessages.push({
+                    role: "user",
+                    content: [{ text: userMessage }]
+                });
+
+                const systemPrompt = `You are FiscalBot, the professional AI Receptionist for FiscalX Professional Corporation, a premium Canadian accounting firm based in the Greater Toronto Area (GTA). The firm is led by Wasim Kadri, CPA. 
+
+YOUR CORE DIRECTIVES:
+1. Be polite, concise, and highly professional. Limit responses to 2-3 short paragraphs maximum to keep the chat interface clean.
+2. Answer basic Canadian Revenue Agency (CRA) tax questions based on facts. 
+3. NEVER invent tax laws. NEVER invent phone numbers, addresses, or pricing.
+4. Your primary goal is lead generation: Always guide warm leads to book a consultation or leave their email/phone number.
+
+FIRM INFORMATION & CONTACTS:
+- Booking/Client Portal Link: https://www.fiscalx.ca/dashboard/
+- General Contact Page: https://www.fiscalx.ca/contact-us/
+- Office Email: info@fiscalx.ca
+- Hours: Monday to Friday, 11:00 AM - 6:00 PM EST. Virtual meetings available.
+
+OUR SERVICES (Use these to answer "What do you do?" or "Can you help me with..."):
+- PERSONAL TAX (T1): Self-Employed & Gig Economy (Uber, DoorDash), Prior Year Taxes, Remote Tax Filing, CRA Tax Audits, Tax Adjustments, Tax Planning, Disability Tax Credit Program, New Immigrant Tax Services, Voluntary Disclosure Program (VDP), and Debt/Credit Counselling.
+- CORPORATE TAX (T2): Corporate Tax Return Preparation & Filing, Accounting Services (Financial Statements), Cloud Bookkeeping, Registration of New Businesses (Incorporation), and Winding Up/Dissolving a Business.
+
+HOW WE WORK (Process & Pricing):
+- Pricing: We do not provide flat quotes over chat because every tax situation is unique. Tell the user to book a consultation so Wasim Kadri, CPA can review their file and provide a precise quote.
+- Secure Document Uploads: Tell clients we use a military-grade, secure Client Dashboard to upload tax slips (T4s, T5s, receipts). They can access it at https://www.fiscalx.ca/dashboard/
+
+IF ASKED ABOUT DEADLINES:
+- T1 Personal: April 30th (June 15th for Self-Employed, but balance due April 30th).
+- T2 Corporate: Filing is due 6 months after the fiscal year-end, but taxes owed are due 2 or 3 months after year-end.
+
+Always be helpful, and close your responses by asking if they would like the link to book a consultation with Wasim.`;
+
+                const novaPayload = {
+                    system: [{ text: systemPrompt }],
+                    messages: formattedMessages,
+                    inferenceConfig: {
+                        maxTokens: 500,
+                        temperature: 0.3,
+                        topP: 0.9
+                    }
+                };
+
+                const command = new InvokeModelCommand({
+                    modelId: "us.amazon.nova-2-lite-v1:0",
+                    contentType: "application/json",
+                    accept: "application/json",
+                    body: JSON.stringify(novaPayload)
+                });
+
+                const bedrockResponse = await bedrock.send(command);
+                
+                // Decode the response (Bedrock returns a Uint8Array)
+                const decodedResponseBody = new TextDecoder().decode(bedrockResponse.body);
+                const responseJson = JSON.parse(decodedResponseBody);
+                
+                // Nova messages API returns output in responseJson.output.message.content[0].text
+                const aiReply = responseJson.output.message.content[0].text;
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", reply: aiReply }) };
+
+            } catch (err) {
+                console.error("FiscalBot Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: "FiscalBot is currently sleeping. Please try again later." }) };
             }
         }
 
