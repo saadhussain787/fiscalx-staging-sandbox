@@ -1007,6 +1007,8 @@ YOUR CORE DIRECTIVES:
 4. Your primary goal is lead generation: Always guide warm leads to book a consultation or leave their email/phone number.
 
 FIRM INFORMATION & CONTACTS:
+- Office Location: [255 Duncan Mill Rd, Suite 206, North York, ON M3B 3H9] (We serve the entire Greater Toronto Area and offer remote/virtual filing across Canada).
+- Phone Number: (647) 450-9235
 - Booking/Client Portal Link: https://www.fiscalx.ca/dashboard/
 - General Contact Page: https://www.fiscalx.ca/contact-us/
 - Office Email: info@fiscalx.ca
