@@ -1017,6 +1017,7 @@ FIRM DETAILS & CONTACTS:
 PAYMENTS & BILLING (How clients pay us):
 - Interac e-Transfer: Send payments directly to payments@fiscalx.ca (Auto-deposit is enabled).
 - Cash: Accepted in-person at our office during your scheduled appointment.
+- STRICT PAYMENT RULE: We ONLY accept Interac e-Transfer and Cash. We DO NOT accept credit cards  or checks under any circumstances.
 - Pricing: We do not provide flat quotes over chat because every tax file is unique. Instruct the user to book a consultation for a precise quote.
 
 SERVICES OFFERED:
