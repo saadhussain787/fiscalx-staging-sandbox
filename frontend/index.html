@@ -762,29 +762,3 @@ function appendMessage(role, text) {
     });
   });
 </script>
-
-<!-- ========================================== -->
-<!-- CASUAL SNOOP DETERRENT                     -->
-<!-- ========================================== -->
-<script>
-  // Disable Right-Click
-  document.addEventListener('contextmenu', function(e) {
-    e.preventDefault();
-  });
-
-  // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, and Mac equivalents
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'F12' || e.keyCode === 123) {
-      e.preventDefault();
-    }
-    if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) {
-      e.preventDefault();
-    }
-    if (e.ctrlKey && (e.key === 'U' || e.key === 'u')) {
-      e.preventDefault();
-    }
-    if (e.metaKey && e.altKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'U' || e.key === 'u')) {
-      e.preventDefault();
-    }
-  });
-</script>
