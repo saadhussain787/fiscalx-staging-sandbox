@@ -1040,6 +1040,13 @@ invoices.forEach(inv => {
         const adminEmail = localStorage.getItem('admin_email');
         if (!adminEmail) return;
 
+        // --- MASTER SECURITY LOCK ---
+        const passcode = prompt("🔐 SECURE ACCESS: Please enter the Master Admin PIN to view commissions:");
+        if (passcode !== "0224") { 
+            alert("❌ Access Denied: Incorrect PIN.");
+            return;
+            } // --- END MASTER SECURITY LOCK ---
+
         const originalText = btnElement.innerHTML;
         btnElement.disabled = true;
         btnElement.innerHTML = "⏳ Calculating...";
