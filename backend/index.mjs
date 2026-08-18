@@ -228,18 +228,7 @@ export const handler = async (event) => {
             const combinedName = isT2 ? corporateInfo.corpName : `${personalInfo.firstName || ""} ${personalInfo.middleName || ""} ${personalInfo.lastName || ""}`.trim();
             const timestamp = new Date().toISOString();
 
-            await ddbDocClient.send(new PutCommand({
-                TableName: TABLE_NAME,
-                Item: {
-                    userEmail: userEmail, timestamp: timestamp, taxType: taxType, craConsent: craConsent, clientName: combinedName,
-                    amountOwed: "0.00", amountCollected: "0.00", campaignStatus: "Pending", howHeard: howHeard, notes: notes,
-                    uploadedFiles: uploadedFiles, personalInfo: personalInfo, corporateInfo: corporateInfo, statusInCanada: statusInCanada,
-                    familyMembers: familyMembers, ontarioResidency: ontarioResidency, milestones: milestones, selfEmployed: selfEmployed,
-                    rentalIncome: rentalIncome, childCareBenefit: childCareBenefit,
-                    paymentConfirmed: false, finalFiles: []
-                }
-            }));
-
+            // 1. BUILD THE EXCEL/CSV DATA
             const csvRows = [ ["Section", "Field", "Value"] ];
             csvRows.push(["System", "Tax Type", taxType], ["System", "CRA Consent", craConsent], ["System", "Client Email", userEmail], ["System", "Client Notes", notes], ["System", "How Heard", howHeard]);
 
@@ -260,20 +249,59 @@ export const handler = async (event) => {
                 );
             }
             
+            // 2. SAVE CSV DIRECTLY TO S3
             const csvString = csvRows.map(row => row.map(cell => `"${(cell||'').toString().replace(/"/g, '""')}"`).join(',')).join('\n');
             const csvKey = `clients/${userEmail}/${Date.now()}-${taxType.substring(0,2)}-Organizer.csv`;
             await s3.send(new PutObjectCommand({ Bucket: BUCKET_NAME, Key: csvKey, Body: csvString, ContentType: "text/csv" }));
-            const excelDownloadUrl = await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET_NAME, Key: csvKey }), { expiresIn: 86400 });
+            
+            // 3. INJECT THE CSV INTO THE KANBAN VAULT
+            const allFiles = [...uploadedFiles];
+            allFiles.push({ fileName: `[Data] ${taxType} Organizer.csv`, fileKey: csvKey });
+
+            // 4. SAVE EVERYTHING TO DYNAMODB
+            await ddbDocClient.send(new PutCommand({
+                TableName: TABLE_NAME,
+                Item: {
+                    userEmail: userEmail, timestamp: timestamp, taxType: taxType, craConsent: craConsent, clientName: combinedName,
+                    amountOwed: "0.00", amountCollected: "0.00", campaignStatus: "Pending", howHeard: howHeard, notes: notes,
+                    uploadedFiles: allFiles, personalInfo: personalInfo, corporateInfo: corporateInfo, statusInCanada: statusInCanada,
+                    familyMembers: familyMembers, ontarioResidency: ontarioResidency, milestones: milestones, selfEmployed: selfEmployed,
+                    rentalIncome: rentalIncome, childCareBenefit: childCareBenefit,
+                    paymentConfirmed: false, finalFiles: []
+                }
+            }));
+
+            // 5. BUILD THE "GOD VIEW" EMAIL
+            let godViewHtml = `<table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;">`;
+            // Skip the header row (index 0) and loop through all data
+            for (let i = 1; i < csvRows.length; i++) {
+                godViewHtml += `<tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #475569; width: 40%;">${csvRows[i][1]}:</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; color: #0f172a;">${csvRows[i][2]}</td>
+                </tr>`;
+            }
+            godViewHtml += `</table>`;
+
+            // Build a permanent, non-expiring link that points to the CRM dashboard
+            const permanentDownloadLink = `https://www.fiscalx.ca/admin/`;
 
             const organizerHtml = `
                 <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 650px; margin: 0 auto; border: 1px solid #e2e8f0;">
                     <h2 style="color: #059669; margin-bottom: 4px;">FiscalX Professional Portal</h2>
                     <p style="font-size: 14px; color: #64748b; margin-top: 0;">Completed Tax Organizer (${taxType})</p>
-                    <div style="margin-top: 15px; padding: 12px; background-color: #fef3c7; border: 1px solid #fde68a; border-radius: 8px;">
-                        <p style="font-size: 12px; color: #92400e; margin: 0;"><strong>Client Email:</strong> ${userEmail}</p>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <h3 style="margin-top: 0; color: #0f172a; font-size: 15px; border-bottom: 2px solid #059669; padding-bottom: 5px;">God View: Client Submission Data</h3>
+                        ${godViewHtml}
                     </div>
-                    <div style="text-align: center; margin: 25px 0;">
-                        <a href="${excelDownloadUrl}" target="_blank" style="background-color: #059669; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; font-size: 14px; border-radius: 8px;">📊 Download Full Data as Excel (.CSV)</a>
+
+                    <div style="margin-top: 25px; padding: 15px; background-color: #fef3c7; border: 1px solid #fde68a; border-radius: 8px;">
+                        <p style="font-size: 13px; color: #92400e; margin: 0;"><strong>${allFiles.length - 1} PDF/Image Documents</strong> were securely uploaded by the client.</p>
+                        <p style="font-size: 13px; color: #92400e; margin-top: 5px;">The complete Excel CSV file has also been generated.</p>
+                    </div>
+
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${permanentDownloadLink}" target="_blank" style="background-color: #059669; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; font-size: 14px; border-radius: 8px;">📂 Open CRM to Download Files & Excel</a>
                     </div>
                 </div>
             `;
