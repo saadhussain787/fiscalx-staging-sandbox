@@ -552,7 +552,8 @@ export const handler = async (event) => {
                 });
 
                 const invoiceData = await invoiceRes.json();
-                const invoices = invoiceData.QueryResponse.Invoice || [];
+                let invoices = invoiceData.QueryResponse.Invoice || [];
+                invoices = invoices.filter(inv => inv.EmailStatus === 'EmailSent');
 
                 invoices.forEach(inv => {
                     const customerId = inv.CustomerRef ? inv.CustomerRef.value : null;
@@ -704,7 +705,8 @@ export const handler = async (event) => {
                 });
                 
                 const invoiceData = await invoiceRes.json();
-                const invoices = invoiceData.QueryResponse.Invoice || [];
+                let invoices = invoiceData.QueryResponse.Invoice || [];
+                invoices = invoices.filter(inv => inv.EmailStatus === 'EmailSent');
                 
                 invoices.forEach(inv => {
                     const customerId = inv.CustomerRef ? inv.CustomerRef.value : null;
@@ -843,7 +845,8 @@ export const handler = async (event) => {
                 });
                 
                 const invoiceData = await invoiceRes.json();
-                const invoices = invoiceData.QueryResponse.Invoice || [];
+                let invoices = invoiceData.QueryResponse.Invoice || [];
+                invoices = invoices.filter(inv => inv.EmailStatus === 'EmailSent');
                 
                 invoices.forEach(inv => {
                     const customerId = inv.CustomerRef ? inv.CustomerRef.value : null;
