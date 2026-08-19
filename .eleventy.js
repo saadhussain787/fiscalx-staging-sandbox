@@ -5,6 +5,7 @@ module.exports = function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy("frontend/*.webp");
   eleventyConfig.addPassthroughCopy("frontend/*.jpg");
   eleventyConfig.addPassthroughCopy("frontend/*.png");
+  eleventyConfig.addPassthroughCopy("frontend/js");
 
   return {
     dir: {
