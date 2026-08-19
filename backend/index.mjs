@@ -126,6 +126,26 @@ async function getQboAccessToken() {
     }
 }
 
+async function getQboPhoneDirectory(baseUrl, qboAuth) {
+    try {
+        const custQuery = encodeURIComponent(`select Id, PrimaryPhone, Mobile from Customer MAXRESULTS 1000`);
+        const custRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${custQuery}&minorversion=65`, {
+            method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
+        });
+        const custData = await custRes.json();
+        const customers = custData?.QueryResponse?.Customer || [];
+        const phoneDirectory = {};
+        for (const c of customers) {
+            const phone = c.PrimaryPhone?.FreeFormNumber || c.Mobile?.FreeFormNumber;
+            if (phone) phoneDirectory[c.Id] = phone;
+        }
+        return phoneDirectory;
+    } catch (e) {
+        console.error("Failed to fetch QBO customer directory:", e);
+        return {};
+    }
+}
+
 export const handler = async (event) => {
     console.log("Incoming Event Payload:", JSON.stringify(event));
     console.log("DIAGNOSTIC - QBO ID:", QBO_CLIENT_ID, "QBO SECRET Length:", QBO_CLIENT_SECRET ? QBO_CLIENT_SECRET.length : "MISSING/UNDEFINED");
@@ -524,6 +544,8 @@ export const handler = async (event) => {
                 if (!qboAuth) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "QuickBooks not connected." }) };
 
                 const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
+                const phoneDirectory = await getQboPhoneDirectory(baseUrl, qboAuth);
+                
                 const query = encodeURIComponent(`select * from Invoice where Balance > '0'`);
                 const invoiceRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`, {
                     method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
@@ -531,6 +553,13 @@ export const handler = async (event) => {
 
                 const invoiceData = await invoiceRes.json();
                 const invoices = invoiceData.QueryResponse.Invoice || [];
+
+                invoices.forEach(inv => {
+                    const customerId = inv.CustomerRef ? inv.CustomerRef.value : null;
+                    if (!inv.PrimaryPhone && customerId && phoneDirectory[customerId]) {
+                        inv.PrimaryPhone = { FreeFormNumber: phoneDirectory[customerId] };
+                    }
+                });
 
                 const enrichedInvoices = await Promise.all(invoices.map(async (inv) => {
                     try {
@@ -632,6 +661,13 @@ export const handler = async (event) => {
                     }
                 }));
 
+                // Send SMS Receipt via Email
+                const receiptHtml = `<div style="font-family: sans-serif; padding: 20px;"><h2 style="color: #4f46e5;">SMS Delivery Receipt</h2><p><strong>Customer:</strong> ${customerName}</p><p><strong>Invoice:</strong> #${docNumber}</p><p><strong>Phone Number:</strong> ${cleanPhone}</p><p><strong>Status:</strong> Sent to carrier successfully.</p><br><p><strong>Message Sent:</strong></p><blockquote style="background: #f1f5f9; padding: 10px; border-left: 4px solid #94a3b8;">${smsMessage}</blockquote></div>`;
+                await ses.send(new SendEmailCommand({
+                    Source: SENDER_EMAIL, Destination: { ToAddresses: [OFFICE_EMAIL] },
+                    Message: { Subject: { Charset: "UTF-8", Data: `📱 SMS Sent: ${customerName} (Inv #${docNumber})` }, Body: { Html: { Charset: "UTF-8", Data: receiptHtml } } }
+                }));
+
                 // 4. Update the Memory Ledger: Mark Level 2 Sent & Timestamp
                 const today = new Date().toISOString().split('T')[0];
                 await ddbDocClient.send(new UpdateCommand({
@@ -645,6 +681,236 @@ export const handler = async (event) => {
 
             } catch (err) {
                 console.error("QBO SMS Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        if (data.action === "runDailyCollections") {
+            try {
+                if (data.cronSecret !== "fiscalx_auto_8899") {
+                    return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized cron trigger" }) };
+                }
+                
+                console.log("Starting Automated Daily Sweep for Level 1 & Level 2 Reminders...");
+                const qboAuth = await getQboAccessToken();
+                if (!qboAuth) throw new Error("No QBO Token available for automation");
+
+                const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
+                const phoneDirectory = await getQboPhoneDirectory(baseUrl, qboAuth);
+                
+                const query = encodeURIComponent(`select * from Invoice where Balance > '0'`);
+                const invoiceRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`, {
+                    method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
+                });
+                
+                const invoiceData = await invoiceRes.json();
+                const invoices = invoiceData.QueryResponse.Invoice || [];
+                
+                invoices.forEach(inv => {
+                    const customerId = inv.CustomerRef ? inv.CustomerRef.value : null;
+                    if (!inv.PrimaryPhone && customerId && phoneDirectory[customerId]) {
+                        inv.PrimaryPhone = { FreeFormNumber: phoneDirectory[customerId] };
+                    }
+                });
+                
+                const today = new Date();
+                let sentCount = 0;
+
+                for (const inv of invoices) {
+                    const balance = parseFloat(inv.Balance || 0);
+                    const docNumber = inv.DocNumber || "N/A";
+                    const customerName = inv.CustomerRef ? inv.CustomerRef.name : "Unknown Client";
+                    const customerPhone = inv.PrimaryPhone ? inv.PrimaryPhone.FreeFormNumber : null;
+                    const customerEmail = inv.BillEmail ? inv.BillEmail.Address : null;
+
+                    let ledger;
+                    try {
+                        const ledgerRes = await ddbDocClient.send(new GetCommand({ TableName: TABLE_NAME, Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" } }));
+                        ledger = ledgerRes.Item || null;
+                    } catch (e) {
+                        continue; // If DB read fails, skip to avoid spam
+                    }
+
+                    const isPaused = ledger && ledger.isPaused === true;
+                    if (isPaused) continue; // Skip paused invoices completely
+
+                    const escalationLevel = ledger ? (ledger.escalationLevel || 0) : 0;
+                    const todayStr = today.toISOString().split('T')[0];
+
+                    // LEVEL 1: Check if >= 30 days past due
+                    if (escalationLevel === 0 && customerEmail && inv.DueDate) {
+                        const dueDate = new Date(inv.DueDate);
+                        const daysSinceDue = (today.getTime() - dueDate.getTime()) / (1000 * 3600 * 24);
+
+                        if (daysSinceDue >= 30) {
+                            console.log(`Sending Level 1 Email to ${customerName} (Inv #${docNumber}). Days past due: ${Math.floor(daysSinceDue)}`);
+                            
+                            const reminderHtml = `
+                                <div style="font-family: sans-serif; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0;">
+                                    <h2 style="color: #ef4444;">FiscalX Outstanding Invoice</h2>
+                                    <p>Hello ${customerName},</p>
+                                    <p>You have an outstanding balance of <strong>$${balance.toFixed(2)} CAD</strong> for Invoice #${docNumber}.</p>
+                                    <p>Please send an Interac e-Transfer to <strong>payments@fiscalx.ca</strong>.</p>
+                                </div>
+                            `;
+
+                            await ses.send(new SendEmailCommand({
+                                Source: SENDER_EMAIL, Destination: { ToAddresses: [customerEmail], BccAddresses: [OFFICE_EMAIL] },
+                                Message: { Subject: { Charset: "UTF-8", Data: `Outstanding Balance Reminder - FiscalX` }, Body: { Html: { Charset: "UTF-8", Data: reminderHtml } } }
+                            }));
+
+                            await ddbDocClient.send(new UpdateCommand({
+                                TableName: TABLE_NAME,
+                                Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
+                                UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date",
+                                ExpressionAttributeValues: { ":lvl": 1, ":date": todayStr }
+                            }));
+                            
+                            sentCount++;
+                            continue; // Skip the Level 2 check for this invoice today
+                        }
+                    }
+
+                    // LEVEL 2: Check if >= 7 days since Level 1
+                    if (escalationLevel === 1 && customerPhone && ledger && ledger.lastContactDate && ledger.lastContactDate !== "Never") {
+                        const lastContact = new Date(ledger.lastContactDate);
+                        const daysDiff = (today.getTime() - lastContact.getTime()) / (1000 * 3600 * 24);
+
+                        if (daysDiff >= 7) {
+                            console.log(`Sending Level 2 SMS to ${customerName} (Inv #${docNumber}). Days since Level 1: ${Math.floor(daysDiff)}`);
+                            
+                            // 1. Scrub Phone Number
+                            let rawDigits = String(customerPhone).toLowerCase().split('x')[0].split('ext')[0].replace(/\D/g, '');
+                            let cleanPhone = "";
+                            if (rawDigits.length === 10) cleanPhone = "+1" + rawDigits;
+                            else if (rawDigits.length === 11 && rawDigits.startsWith("1")) cleanPhone = "+" + rawDigits;
+                            else continue; // Invalid format
+                            
+                            // 2. Format SMS
+                            const smsMessage = `FiscalX Alert: Hi ${customerName}, your invoice #${docNumber} has an outstanding balance of $${balance.toFixed(2)} CAD. Please remit via Interac e-Transfer to payments@fiscalx.ca to avoid service interruption.`;
+                            
+                            // 3. Send SMS via SNS
+                            await sns.send(new PublishCommand({
+                                PhoneNumber: cleanPhone,
+                                Message: smsMessage,
+                                MessageAttributes: { 'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: 'Transactional' } }
+                            }));
+
+                            // Send SMS Receipt via Email
+                            const receiptHtml = `<div style="font-family: sans-serif; padding: 20px;"><h2 style="color: #4f46e5;">SMS Delivery Receipt</h2><p><strong>Customer:</strong> ${customerName}</p><p><strong>Invoice:</strong> #${docNumber}</p><p><strong>Phone Number:</strong> ${cleanPhone}</p><p><strong>Status:</strong> Sent to carrier successfully.</p><br><p><strong>Message Sent:</strong></p><blockquote style="background: #f1f5f9; padding: 10px; border-left: 4px solid #94a3b8;">${smsMessage}</blockquote></div>`;
+                            await ses.send(new SendEmailCommand({
+                                Source: SENDER_EMAIL, Destination: { ToAddresses: [OFFICE_EMAIL] },
+                                Message: { Subject: { Charset: "UTF-8", Data: `📱 SMS Sent: ${customerName} (Inv #${docNumber})` }, Body: { Html: { Charset: "UTF-8", Data: receiptHtml } } }
+                            }));
+
+                            // 4. Update Ledger
+                            await ddbDocClient.send(new UpdateCommand({
+                                TableName: TABLE_NAME,
+                                Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
+                                UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date",
+                                ExpressionAttributeValues: { ":lvl": 2, ":date": todayStr }
+                            }));
+                            
+                            sentCount++;
+                        }
+                    }
+                }
+                
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: `Automated sweep complete. Sent ${sentCount} Level 2 SMS reminders.` }) };
+
+            } catch (err) {
+                console.error("Cron Daily Sweep Error:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        if (data.action === "forceSmsBlastToday") {
+            try {
+                if (data.cronSecret !== "fiscalx_auto_8899") {
+                    return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized blast trigger" }) };
+                }
+                
+                console.log("Starting FORCED SMS BLAST for all outstanding invoices...");
+                const qboAuth = await getQboAccessToken();
+                if (!qboAuth) throw new Error("No QBO Token available for automation");
+
+                const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
+                const phoneDirectory = await getQboPhoneDirectory(baseUrl, qboAuth);
+                
+                const query = encodeURIComponent(`select * from Invoice where Balance > '0'`);
+                const invoiceRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`, {
+                    method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
+                });
+                
+                const invoiceData = await invoiceRes.json();
+                const invoices = invoiceData.QueryResponse.Invoice || [];
+                
+                invoices.forEach(inv => {
+                    const customerId = inv.CustomerRef ? inv.CustomerRef.value : null;
+                    if (!inv.PrimaryPhone && customerId && phoneDirectory[customerId]) {
+                        inv.PrimaryPhone = { FreeFormNumber: phoneDirectory[customerId] };
+                    }
+                });
+                
+                let sentCount = 0;
+                const todayStr = new Date().toISOString().split('T')[0];
+
+                for (const inv of invoices) {
+                    const balance = parseFloat(inv.Balance || 0);
+                    const docNumber = inv.DocNumber || "N/A";
+                    const customerName = inv.CustomerRef ? inv.CustomerRef.name : "Unknown Client";
+                    const customerPhone = inv.PrimaryPhone ? inv.PrimaryPhone.FreeFormNumber : null;
+
+                    if (!customerPhone) continue;
+
+                    let ledger;
+                    try {
+                        const ledgerRes = await ddbDocClient.send(new GetCommand({ TableName: TABLE_NAME, Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" } }));
+                        ledger = ledgerRes.Item || null;
+                    } catch (e) {
+                        continue;
+                    }
+
+                    const isPaused = ledger && ledger.isPaused === true;
+                    if (isPaused) continue;
+
+                    console.log(`FORCED BLAST: Sending Level 2 SMS to ${customerName} (Inv #${docNumber}).`);
+                    
+                    let rawDigits = String(customerPhone).toLowerCase().split('x')[0].split('ext')[0].replace(/\D/g, '');
+                    let cleanPhone = "";
+                    if (rawDigits.length === 10) cleanPhone = "+1" + rawDigits;
+                    else if (rawDigits.length === 11 && rawDigits.startsWith("1")) cleanPhone = "+" + rawDigits;
+                    else continue;
+                    
+                    const smsMessage = `FiscalX Alert: Hi ${customerName}, your invoice #${docNumber} has an outstanding balance of $${balance.toFixed(2)} CAD. Please remit via Interac e-Transfer to payments@fiscalx.ca to avoid service interruption.`;
+                    
+                    await sns.send(new PublishCommand({
+                        PhoneNumber: cleanPhone,
+                        Message: smsMessage,
+                        MessageAttributes: { 'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: 'Transactional' } }
+                    }));
+
+                    // Send SMS Receipt via Email
+                    const receiptHtml = `<div style="font-family: sans-serif; padding: 20px;"><h2 style="color: #4f46e5;">SMS Delivery Receipt (Forced Blast)</h2><p><strong>Customer:</strong> ${customerName}</p><p><strong>Invoice:</strong> #${docNumber}</p><p><strong>Phone Number:</strong> ${cleanPhone}</p><p><strong>Status:</strong> Sent to carrier successfully.</p><br><p><strong>Message Sent:</strong></p><blockquote style="background: #f1f5f9; padding: 10px; border-left: 4px solid #94a3b8;">${smsMessage}</blockquote></div>`;
+                    await ses.send(new SendEmailCommand({
+                        Source: SENDER_EMAIL, Destination: { ToAddresses: [OFFICE_EMAIL] },
+                        Message: { Subject: { Charset: "UTF-8", Data: `📱 SMS Sent: ${customerName} (Inv #${docNumber})` }, Body: { Html: { Charset: "UTF-8", Data: receiptHtml } } }
+                    }));
+
+                    await ddbDocClient.send(new UpdateCommand({
+                        TableName: TABLE_NAME,
+                        Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
+                        UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date",
+                        ExpressionAttributeValues: { ":lvl": 2, ":date": todayStr }
+                    }));
+                    
+                    sentCount++;
+                }
+                
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: `Forced SMS blast complete. Sent ${sentCount} messages.` }) };
+
+            } catch (err) {
+                console.error("Forced SMS Blast Error:", err);
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
