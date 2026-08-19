@@ -4,7 +4,7 @@ import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, ScanCommand, UpdateCommand, DeleteCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
-import { CognitoIdentityProviderClient, AdminListGroupsForUserCommand } from "@aws-sdk/client-cognito-identity-provider";
+import { CognitoIdentityProviderClient, AdminListGroupsForUserCommand, GetUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
 const s3 = new S3Client({ region: "ca-central-1" });
@@ -38,7 +38,7 @@ const AUTHORIZED_STAFF = [
     "arfa786.sa@gmail.com"
 ];
 
-async function isStaff(email) {
+async function isStaff(email, accessToken) {
     if (!email) return false;
     try {
         const command = new AdminListGroupsForUserCommand({
@@ -337,7 +337,7 @@ export const handler = async (event) => {
         if (data.action === "getCrmData") {
             const adminEmail = data.adminEmail;
 
-            const isAuthorized = await isStaff(adminEmail);
+            const isAuthorized = await isStaff(adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
             const scanResult = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME }));
@@ -356,7 +356,7 @@ export const handler = async (event) => {
             const clientTimestamp = data.timestamp;
             const newStatus = data.newStatus;
 
-            const isAuthorized = await isStaff(adminEmail);
+            const isAuthorized = await isStaff(adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
             try {
@@ -378,7 +378,7 @@ export const handler = async (event) => {
             const clientTimestamp = data.timestamp;
             const assignedTo = data.assignedTo;
 
-            const isAuthorized = await isStaff(adminEmail);
+            const isAuthorized = await isStaff(adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
             try {
@@ -395,7 +395,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "getDownloadUrl") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -430,7 +430,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "sendDocumentReminder") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -446,7 +446,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "updateBillingStatus") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -466,7 +466,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "exchangeMsCode") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -487,7 +487,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "exchangeQboCode") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Staff Access." }) };
 
             try {
@@ -536,7 +536,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "fetchQboInvoices") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -578,7 +578,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "sendQboReminder") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -609,7 +609,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "toggleInvoicePause") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -627,7 +627,7 @@ export const handler = async (event) => {
         if (data.action === "sendQboSmsReminder") {
             const { adminEmail, customerPhone, customerName, balance, docNumber } = data;
 
-            const isAuthorized = await isStaff(adminEmail);
+            const isAuthorized = await isStaff(adminEmail, accessToken);
             if (!isAuthorized) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
             }
@@ -1003,7 +1003,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
         }
 
         if (data.action === "rescheduleBooking") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -1034,7 +1034,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
         }
 
         if (data.action === "cancelBooking") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -1054,7 +1054,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
         }
 
         if (data.action === "deleteClient") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -1084,7 +1084,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
         // ACTION: GENERATE MONTH-END 5% COMMISSION REPORT
         // ==============================================================
         if (data.action === "generateCommissionReport") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
             try {
@@ -1142,7 +1142,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
         // ACTION: MARK COMMISSION AS PAID (RESET METER)
         // ==============================================================
         if (data.action === "markCommissionPaid") {
-            const isAuthorized = await isStaff(data.adminEmail);
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
             try {

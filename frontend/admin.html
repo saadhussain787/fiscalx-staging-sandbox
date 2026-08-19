@@ -394,7 +394,7 @@ const urlParams = new URLSearchParams(window.location.search);
             try {
               const qboRes = await fetch(API_URL, {
                 method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
                 body: JSON.stringify({ 
                   action: "exchangeQboCode", 
                   adminEmail: email, 
@@ -419,7 +419,7 @@ const urlParams = new URLSearchParams(window.location.search);
             document.getElementById('kanban-status').innerText = "Exchanging Microsoft Token securely...";
             try {
               const msRes = await fetch(API_URL, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
                 body: JSON.stringify({ action: "exchangeMsCode", adminEmail: email, code: authCode })
               });
               const msData = await msRes.json();
@@ -438,7 +438,7 @@ const urlParams = new URLSearchParams(window.location.search);
       }
 
       try {
-        const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "getCrmData", adminEmail: email }) });
+        const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') }, body: JSON.stringify({ action: "getCrmData", adminEmail: email }) });
         const result = await response.json();
         if (response.ok && result.status === 'SUCCESS') {
           const deduplicatedClients = deduplicateClients(result.clients);
@@ -710,7 +710,7 @@ const cardHtml = `
           const fileObj = newFinalFilesQueue[i];
           btn.innerText = `Encrypting File ${i+1}/${newFinalFilesQueue.length}...`;
           
-          const authRes = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "getUploadUrl", fileName: "FINAL-" + fileObj.name, fileType: fileObj.type, userEmail: activeClientEmail }) });
+          const authRes = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') }, body: JSON.stringify({ action: "getUploadUrl", fileName: "FINAL-" + fileObj.name, fileType: fileObj.type, userEmail: activeClientEmail }) });
           const authResult = await authRes.json();
           if (!authRes.ok || authResult.status !== 'SUCCESS') throw new Error("S3 Auth Failed");
 
@@ -720,7 +720,7 @@ const cardHtml = `
 
         btn.innerText = "Locking Database & Syncing Client...";
         const dbRes = await fetch(API_URL, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
           body: JSON.stringify({ action: "updateBillingStatus", adminEmail: adminEmail, clientEmail: activeClientEmail, timestamp: activeClientTimestamp, finalFiles: allFinalKeys, paymentConfirmed: isPaid })
         });
         const dbResult = await dbRes.json();
@@ -741,7 +741,7 @@ const cardHtml = `
       if (!adminEmail || !activeClientEmail || !requestedDocName) return;
       buttonElement.disabled = true; spinner.classList.remove('hidden');
       try {
-        const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "sendDocumentReminder", adminEmail: adminEmail, clientEmail: activeClientEmail, clientName: clientName, requestedDocName: requestedDocName }) });
+        const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') }, body: JSON.stringify({ action: "sendDocumentReminder", adminEmail: adminEmail, clientEmail: activeClientEmail, clientName: clientName, requestedDocName: requestedDocName }) });
         const result = await response.json();
         if (response.ok && result.status === 'SUCCESS') { alert(`Success! Email reminder sent to ${activeClientEmail}`); } else { alert("Reminder failed."); }
       } catch (err) { alert("Network error."); } finally { buttonElement.disabled = false; spinner.classList.add('hidden'); }
@@ -760,7 +760,7 @@ const cardHtml = `
       const adminEmail = localStorage.getItem('admin_email'); if (!adminEmail || !fileKey) return;
       const originalText = buttonElement.innerText; buttonElement.disabled = true; buttonElement.innerText = "Decrypting...";
       try {
-        const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "getDownloadUrl", adminEmail: adminEmail, fileKey: fileKey }) });
+        const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') }, body: JSON.stringify({ action: "getDownloadUrl", adminEmail: adminEmail, fileKey: fileKey }) });
         const result = await response.json();
         if (response.ok && result.status === 'SUCCESS') {
           const fileResponse = await fetch(result.secureUrl); const blob = await fileResponse.blob();
@@ -774,7 +774,7 @@ const cardHtml = `
       if (!activeClientEmail || !activeClientTimestamp || !adminEmail) return;
       spinner.classList.remove('hidden'); dropdown.disabled = true;
       try {
-        const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "updateClientStatus", adminEmail: adminEmail, clientEmail: activeClientEmail, timestamp: activeClientTimestamp, newStatus: newStatus }) });
+        const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') }, body: JSON.stringify({ action: "updateClientStatus", adminEmail: adminEmail, clientEmail: activeClientEmail, timestamp: activeClientTimestamp, newStatus: newStatus }) });
         const result = await response.json();
         if (response.ok && result.status === 'SUCCESS') { await showCRM(adminEmail); } else { alert("Error updating status."); }
       } catch (err) { alert("Network error updating status."); } finally { spinner.classList.add('hidden'); dropdown.disabled = false; }
@@ -791,7 +791,7 @@ const cardHtml = `
       try {
         const response = await fetch(API_URL, { 
           method: 'POST', 
-          headers: { 'Content-Type': 'application/json' }, 
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') }, 
           body: JSON.stringify({ 
             action: "updateClientAssignment", 
             adminEmail: adminEmail, 
@@ -864,7 +864,7 @@ const cardHtml = `
       try {
         const response = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
           body: JSON.stringify({ action: "rescheduleBooking", adminEmail: adminEmail, clientEmail: activeClientEmail, timestamp: activeClientTimestamp, newDate: newDate, newTime: newTime })
         });
         const result = await response.json();
@@ -885,7 +885,7 @@ const cardHtml = `
       try {
         const response = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
           body: JSON.stringify({ action: "cancelBooking", adminEmail: adminEmail, clientEmail: activeClientEmail, timestamp: activeClientTimestamp })
         });
         const result = await response.json();
@@ -910,7 +910,7 @@ window.deleteClientCard = async function(btnElement) {
       try {
         const response = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
           body: JSON.stringify({
             action: "deleteClient",
             adminEmail: adminEmail,
@@ -951,7 +951,7 @@ window.deleteClientCard = async function(btnElement) {
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
                 body: JSON.stringify({ action: "fetchQboInvoices", adminEmail: adminEmail })
             });
             const result = await response.json();
@@ -1067,7 +1067,7 @@ window.deleteClientCard = async function(btnElement) {
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
                 body: JSON.stringify({ action: "generateCommissionReport", adminEmail: adminEmail })
             });
             const result = await response.json();
@@ -1079,7 +1079,7 @@ window.deleteClientCard = async function(btnElement) {
                     if (confirmReset) {
                         btnElement.innerHTML = "🧹 Resetting Meter...";
                         await fetch(API_URL, {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
                             body: JSON.stringify({ action: "markCommissionPaid", adminEmail: adminEmail, paidDocNumbers: result.paidDocNumbers })
                         });
                         alert("✅ Commission meter successfully reset! Next month's tracking begins now.");
@@ -1117,7 +1117,7 @@ window.deleteClientCard = async function(btnElement) {
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
                 body: JSON.stringify({
                     action: "sendQboReminder",
                     adminEmail: adminEmail,
@@ -1165,7 +1165,7 @@ window.deleteClientCard = async function(btnElement) {
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
                 body: JSON.stringify({
                     action: "sendQboSmsReminder",
                     adminEmail: adminEmail,
@@ -1207,7 +1207,7 @@ window.deleteClientCard = async function(btnElement) {
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
                 body: JSON.stringify({
                     action: "toggleInvoicePause",
                     adminEmail: adminEmail,
