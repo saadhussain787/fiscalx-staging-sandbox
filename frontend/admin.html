@@ -966,9 +966,10 @@ window.deleteClientCard = async function(btnElement) {
                 }
 
                 let totalUnpaid = 0;
+                let commissionableUnpaid = 0;
                 listDiv.innerHTML = "";
 
-invoices.forEach(inv => {
+                invoices.forEach(inv => {
                     const balance = parseFloat(inv.Balance || 0);
                     totalUnpaid += balance;
                     
@@ -983,6 +984,18 @@ invoices.forEach(inv => {
                     // THE MEMORY: Read the ledger data injected by our backend
                     const ledger = inv._ledger || { escalationLevel: 0, lastContactDate: "Never", isPaused: false };
                     
+                    // Check if eligible for commission (Level 1: >= 30 days past due OR already escalated)
+                    let isCommissionable = ledger.escalationLevel > 0;
+                    if (!isCommissionable && dueDate !== "N/A") {
+                        const today = new Date();
+                        const due = new Date(dueDate);
+                        const daysSinceDue = (today.getTime() - due.getTime()) / (1000 * 3600 * 24);
+                        if (daysSinceDue >= 30) isCommissionable = true;
+                    }
+                    if (isCommissionable) {
+                        commissionableUnpaid += balance;
+                    }
+
                     const pauseText = ledger.isPaused ? "▶️ Resume Auto" : "⏸️ Pause Auto";
                     const pauseBtnClass = ledger.isPaused ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500 hover:text-slate-900" : "bg-slate-500/10 text-slate-400 border-slate-500/30 hover:bg-slate-500 hover:text-white";
                     const rowOpacity = ledger.isPaused ? "opacity-50 grayscale" : ""; 
@@ -1019,7 +1032,7 @@ invoices.forEach(inv => {
                 });
 
                 totalDiv.innerText = "$" + totalUnpaid.toFixed(2) + " CAD";
-                commDiv.innerText = "$" + (totalUnpaid * 0.05).toFixed(2) + " CAD";
+                commDiv.innerText = "$" + (commissionableUnpaid * 0.05).toFixed(2) + " CAD";
 
             } else {
                 if (result.message && result.message.includes("not connected")) {
