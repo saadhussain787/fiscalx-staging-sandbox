@@ -699,6 +699,29 @@ layout: layout.html
 
     </div>
   </div>
+
+  <!-- CHANGE PASSWORD MODAL -->
+  <div id="change-password-modal" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-lg w-full max-w-sm">
+      <h2 class="text-xl font-extrabold text-slate-900 mb-2">Change Password</h2>
+      <p class="text-xs text-slate-500 mb-6">Update your secure portal password.</p>
+      
+      <div class="space-y-4">
+        <div>
+          <label for="modal-current-password" class="block text-xs font-bold text-slate-700 uppercase mb-2">Current Password</label>
+          <input type="password" id="modal-current-password" required placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" />
+        </div>
+        <div>
+          <label for="modal-new-password" class="block text-xs font-bold text-slate-700 uppercase mb-2">New Password</label>
+          <input type="password" id="modal-new-password" required placeholder="Minimum 8 characters" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50" />
+        </div>
+        <div class="flex gap-3 mt-6">
+          <button type="button" id="btn-cancel-modal" class="flex-1 py-3 rounded-xl text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all">Cancel</button>
+          <button type="button" id="btn-submit-modal" class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-brand-500 hover:bg-brand-400 transition-all shadow-md">Update</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script>
@@ -908,13 +931,17 @@ layout: layout.html
   // Progressive Password Checklist
   const registerPasswordInput = document.getElementById('register-password');
   if (registerPasswordInput) {
+    let debounceTimer;
     registerPasswordInput.addEventListener('input', () => {
-      const val = registerPasswordInput.value;
-      updateChecklistRow('req-length', val.length >= 8);
-      updateChecklistRow('req-upper', /[A-Z]/.test(val));
-      updateChecklistRow('req-lower', /[a-z]/.test(val));
-      updateChecklistRow('req-number', /\d/.test(val));
-      updateChecklistRow('req-special', /[\!\@\#\$\%\^\&\*\(\)\_\+\-\=\[\]\{\}\;\:\'\"\,\<\.\>\/\?~`]/.test(val));
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const val = registerPasswordInput.value;
+        updateChecklistRow('req-length', val.length >= 8);
+        updateChecklistRow('req-upper', /[A-Z]/.test(val));
+        updateChecklistRow('req-lower', /[a-z]/.test(val));
+        updateChecklistRow('req-number', /\d/.test(val));
+        updateChecklistRow('req-special', /[\!\@\#\$\%\^\&\*\(\)\_\+\-\=\[\]\{\}\;\:\'\"\,\<\.\>\/\?~`]/.test(val));
+      }, 150);
     });
   }
   function updateChecklistRow(id, isPassed) {
@@ -1024,20 +1051,54 @@ layout: layout.html
   }
 
   if (btnChangePass) {
-    btnChangePass.addEventListener('click', async () => {
-      const currentPassword = prompt("Change Password: Enter your CURRENT password:"); if (!currentPassword) return;
-      const newPassword = prompt("Change Password: Enter your NEW secure password:"); if (!newPassword) return;
+    const modal = document.getElementById('change-password-modal');
+    const inputCurrent = document.getElementById('modal-current-password');
+    const inputNew = document.getElementById('modal-new-password');
+    const btnCancel = document.getElementById('btn-cancel-modal');
+    const btnSubmit = document.getElementById('btn-submit-modal');
+
+    btnChangePass.addEventListener('click', () => {
+      inputCurrent.value = '';
+      inputNew.value = '';
+      modal.classList.remove('hidden');
+    });
+
+    const closeModal = () => modal.classList.add('hidden');
+    btnCancel.addEventListener('click', closeModal);
+
+    btnSubmit.addEventListener('click', async () => {
+      const currentPassword = inputCurrent.value;
+      const newPassword = inputNew.value;
+      if (!currentPassword || !newPassword) {
+        alert("Please enter both current and new passwords.");
+        return;
+      }
+      
       const accessToken = localStorage.getItem('access_token');
-      if (!accessToken) { alert("Session expired. Please log in again."); showLogin(); return; }
+      if (!accessToken) { alert("Session expired. Please log in again."); closeModal(); showLogin(); return; }
+      
+      const originalText = btnSubmit.innerText;
+      btnSubmit.disabled = true;
+      btnSubmit.innerText = "Updating...";
+
       try {
         const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
           method: 'POST', headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': 'AWSCognitoIdentityProviderService.ChangePassword' },
           body: JSON.stringify({ PreviousPassword: currentPassword, ProposedPassword: newPassword, AccessToken: accessToken })
         });
         const result = await response.json();
-        if (response.ok) alert("Password updated successfully inside your secure AWS profile!");
-        else alert('Failed to update password: ' + (result.message || 'Current password incorrect.'));
-      } catch (err) { alert('Network error connecting to password update server.'); }
+        if (response.ok) {
+          alert("Password updated successfully inside your secure AWS profile!");
+          closeModal();
+        } else {
+          alert('Failed to update password: ' + (result.message || 'Current password incorrect.'));
+        }
+      } catch (err) { 
+        alert('Network error connecting to password update server.'); 
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.innerText = originalText;
+      }
     });
   }
 
