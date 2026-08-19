@@ -162,6 +162,8 @@ export const handler = async (event) => {
 
     try {
         const data = event.body ? JSON.parse(event.body) : event;
+        const authHeader = (event.headers && (event.headers['authorization'] || event.headers['Authorization'])) || "";
+        const accessToken = authHeader.replace("Bearer ", "").trim();
 
         if (data.action === "getUploadUrl") {
             const fileName = data.fileName;
