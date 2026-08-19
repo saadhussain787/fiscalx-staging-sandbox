@@ -871,31 +871,28 @@ layout: layout.html
     const stepProcessing = document.getElementById('step-processing');
     const stepCompleted = document.getElementById('step-completed');
 
-    stepOnboarding.style.backgroundColor = "#e2e8f0";
-    stepProcessing.style.backgroundColor = "#e2e8f0";
-    stepCompleted.style.backgroundColor = "#e2e8f0";
-
-    stepOnboarding.classList.remove('animate-pulse');
-    stepProcessing.classList.remove('animate-pulse');
-    stepCompleted.classList.remove('animate-pulse');
+    [stepOnboarding, stepProcessing, stepCompleted].forEach(el => {
+      el.classList.remove('bg-amber-500', 'bg-emerald-500', 'animate-pulse');
+      el.classList.add('bg-slate-200');
+    });
 
     if (status === "Unsubmitted") {
       trackerText.innerText = "Action Required: Please complete and transmit your Onboarding Organizer.";
-      stepOnboarding.style.backgroundColor = "#f59e0b";
+      stepOnboarding.classList.replace('bg-slate-200', 'bg-amber-500');
       stepOnboarding.classList.add('animate-pulse');
     } else if (status === "Pending") {
       trackerText.innerText = "Onboarding Complete! Your tax file has been received and is queued for review.";
-      stepOnboarding.style.backgroundColor = "#10b981";
+      stepOnboarding.classList.replace('bg-slate-200', 'bg-emerald-500');
     } else if (status === "In Progress") {
       trackerText.innerText = "Advisors Processing: Wasim Kadri is actively preparing your tax return.";
-      stepOnboarding.style.backgroundColor = "#10b981";
-      stepProcessing.style.backgroundColor = "#f59e0b";
+      stepOnboarding.classList.replace('bg-slate-200', 'bg-emerald-500');
+      stepProcessing.classList.replace('bg-slate-200', 'bg-amber-500');
       stepProcessing.classList.add('animate-pulse');
     } else if (status === "Completed") {
       trackerText.innerText = "Completed & Ready! Your tax return has been finalized.";
-      stepOnboarding.style.backgroundColor = "#10b981";
-      stepProcessing.style.backgroundColor = "#10b981";
-      stepCompleted.style.backgroundColor = "#10b981";
+      stepOnboarding.classList.replace('bg-slate-200', 'bg-emerald-500');
+      stepProcessing.classList.replace('bg-slate-200', 'bg-emerald-500');
+      stepCompleted.classList.replace('bg-slate-200', 'bg-emerald-500');
     }
   }
 
@@ -1292,7 +1289,16 @@ layout: layout.html
 
           vaultUploadStatus.innerText = `[${i + 1}/${totalFiles}] Transmitting ${file.name} to Vault...`;
           const uploadResponse = await fetch(authResult.uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
-          if (!uploadResponse.ok) throw new Error("S3 rejected the file transmission.");
+          if (!uploadResponse.ok) {
+            const errTxt = await uploadResponse.text();
+            let errMsg = "S3 rejected the file transmission.";
+            try {
+              const doc = new DOMParser().parseFromString(errTxt, "text/xml");
+              const msg = doc.getElementsByTagName("Message")[0];
+              if (msg) errMsg = "S3 Error: " + msg.textContent;
+            } catch (e) {}
+            throw new Error(errMsg);
+          }
 
           vaultUploadStatus.innerText = `[${i + 1}/${totalFiles}] Notifying advisors...`;
           await fetch('https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact', {
@@ -1379,7 +1385,8 @@ layout: layout.html
   function addFamilyRow() {
     const emptyRow = document.getElementById('family-empty-row'); if (emptyRow) emptyRow.remove();
     const row = document.createElement('tr'); row.className = "family-row border-b border-slate-100 hover:bg-slate-50/50 transition-colors bg-white";
-    row.innerHTML = `<td class="p-3"><input type="text" required placeholder="Dependent Name" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-slate-50/20 focus:ring-1 focus:ring-brand-500 outline-none" /></td><td class="p-3"><input type="text" maxlength="9" pattern="\\d{9}" required placeholder="000111222" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-slate-50/20 focus:ring-1 focus:ring-brand-500 outline-none font-mono" /></td><td class="p-3"><input type="date" required max="2026-12-31" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-brand-500 outline-none" /></td><td class="p-3"><select required class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-brand-500 outline-none"><option value="son">Son</option><option value="daughter">Daughter</option><option value="spouse">Spouse</option><option value="parent">Parent</option><option value="other">Other</option></select></td><td class="p-3"><select required class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-brand-500 outline-none"><option value="no">No</option><option value="yes">Yes</option></select></td><td class="p-3 text-center"><button type="button" class="text-red-500 hover:text-red-700 hover:underline text-xs" onclick="this.closest('tr').remove(); checkFamilyEmpty();">Remove</button></td>`;
+    row.innerHTML = `<td class="p-3"><input type="text" required placeholder="Dependent Name" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-slate-50/20 focus:ring-1 focus:ring-brand-500 outline-none" /></td><td class="p-3"><input type="text" maxlength="9" pattern="\\d{9}" required placeholder="000111222" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-slate-50/20 focus:ring-1 focus:ring-brand-500 outline-none font-mono" /></td><td class="p-3"><input type="date" required max="2026-12-31" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-brand-500 outline-none" /></td><td class="p-3"><select required class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-brand-500 outline-none"><option value="son">Son</option><option value="daughter">Daughter</option><option value="spouse">Spouse</option><option value="parent">Parent</option><option value="other">Other</option></select></td><td class="p-3"><select required class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-brand-500 outline-none"><option value="no">No</option><option value="yes">Yes</option></select></td><td class="p-3 text-center"><button type="button" class="btn-remove-row text-red-500 hover:text-red-700 hover:underline text-xs">Remove</button></td>`;
+    row.querySelector('.btn-remove-row').addEventListener('click', () => { row.remove(); checkFamilyEmpty(); });
     familyTableBody.appendChild(row);
   }
   function checkFamilyEmpty() { if (familyTableBody.querySelectorAll('.family-row').length === 0) { familyTableBody.innerHTML = `<tr id="family-empty-row"><td colspan="6" class="p-4 text-center text-slate-400 italic">No dependents declared. Click "+ Add Dependent" to include one.</td></tr>`; } }
@@ -1387,7 +1394,8 @@ layout: layout.html
   function addResidencyRow() {
     const emptyRow = document.getElementById('residency-empty-row'); if (emptyRow) emptyRow.remove();
     const row = document.createElement('tr'); row.className = "residency-row border-b border-slate-100 hover:bg-slate-50/50 transition-colors bg-white";
-    row.innerHTML = `<td class="p-3"><input type="number" min="1" max="12" required placeholder="Months" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-brand-500 outline-none font-bold" /></td><td class="p-3"><input type="text" required placeholder="Property Address" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-brand-500 outline-none" /></td><td class="p-3"><input type="text" required placeholder="Municipality / Landlord" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-brand-500 outline-none" /></td><td class="p-3 text-center"><button type="button" class="text-red-500 hover:text-red-700 hover:underline text-xs" onclick="this.closest('tr').remove(); checkResidencyEmpty();">Remove</button></td>`;
+    row.innerHTML = `<td class="p-3"><input type="number" min="1" max="12" required placeholder="Months" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-brand-500 outline-none font-bold" /></td><td class="p-3"><input type="text" required placeholder="Property Address" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-brand-500 outline-none" /></td><td class="p-3"><input type="text" required placeholder="Municipality / Landlord" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-brand-500 outline-none" /></td><td class="p-3 text-center"><button type="button" class="btn-remove-row text-red-500 hover:text-red-700 hover:underline text-xs">Remove</button></td>`;
+    row.querySelector('.btn-remove-row').addEventListener('click', () => { row.remove(); checkResidencyEmpty(); });
     residencyTableBody.appendChild(row);
   }
   function checkResidencyEmpty() { if (residencyTableBody.querySelectorAll('.residency-row').length === 0) { residencyTableBody.innerHTML = `<tr id="residency-empty-row"><td colspan="4" class="p-4 text-center text-slate-400 italic">No residency rows declared. Click "+ Add Address Row" to add a ledger row.</td></tr>`; } }
@@ -1395,7 +1403,8 @@ layout: layout.html
   function addOwnerRow() {
     const emptyRow = document.getElementById('owner-empty-row'); if (emptyRow) emptyRow.remove();
     const row = document.createElement('tr'); row.className = "owner-row border-b border-slate-100 hover:bg-slate-50/50 transition-colors bg-white";
-    row.innerHTML = `<td class="p-2.5"><input type="text" required placeholder="Investor Name" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" /></td><td class="p-2.5"><input type="text" required maxlength="9" pattern="\\d{9}" placeholder="000111222" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-indigo-500 outline-none font-mono" /></td><td class="p-2.5"><input type="number" min="1" max="100" required placeholder="%" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-indigo-500 outline-none font-bold" /></td><td class="p-2.5"><input type="text" required placeholder="Investor Mailing Address" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" /></td><td class="p-2.5 text-center"><button type="button" class="text-red-500 hover:text-red-700 hover:underline text-xs" onclick="this.closest('tr').remove(); checkOwnerEmpty();">Remove</button></td>`;
+    row.innerHTML = `<td class="p-2.5"><input type="text" required placeholder="Investor Name" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" /></td><td class="p-2.5"><input type="text" required maxlength="9" pattern="\\d{9}" placeholder="000111222" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-indigo-500 outline-none font-mono" /></td><td class="p-2.5"><input type="number" min="1" max="100" required placeholder="%" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-indigo-500 outline-none font-bold" /></td><td class="p-2.5"><input type="text" required placeholder="Investor Mailing Address" class="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" /></td><td class="p-2.5 text-center"><button type="button" class="btn-remove-row text-red-500 hover:text-red-700 hover:underline text-xs">Remove</button></td>`;
+    row.querySelector('.btn-remove-row').addEventListener('click', () => { row.remove(); checkOwnerEmpty(); });
     ownerTableBody.appendChild(row);
   }
   function checkOwnerEmpty() { if (ownerTableBody && ownerTableBody.querySelectorAll('.owner-row').length === 0) { ownerTableBody.innerHTML = `<tr id="owner-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No co-investors declared. Defaults to 100% sole owner.</td></tr>`; } }
@@ -1403,7 +1412,8 @@ layout: layout.html
   function addDirectorRow() {
     const emptyRow = document.getElementById('director-empty-row'); if (emptyRow) emptyRow.remove();
     const row = document.createElement('tr'); row.className = "director-row border-b border-slate-100 hover:bg-slate-50/50 transition-colors bg-white";
-    row.innerHTML = `<td class="p-3"><input type="text" required placeholder="Director Name" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-slate-800 outline-none" /></td><td class="p-3"><input type="text" maxlength="9" pattern="\\d{9}" required placeholder="000111222" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-slate-800 outline-none font-mono" /></td><td class="p-3"><input type="number" min="0" max="100" required placeholder="%" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-slate-800 outline-none" /></td><td class="p-3"><input type="text" required placeholder="President, Sec..." class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-slate-800 outline-none" /></td><td class="p-3 text-center"><button type="button" class="text-red-500 hover:text-red-700 hover:underline text-xs" onclick="this.closest('tr').remove(); checkDirectorEmpty();">Remove</button></td>`;
+    row.innerHTML = `<td class="p-3"><input type="text" required placeholder="Director Name" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-slate-800 outline-none" /></td><td class="p-3"><input type="text" maxlength="9" pattern="\\d{9}" required placeholder="000111222" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-slate-800 outline-none font-mono" /></td><td class="p-3"><input type="number" min="0" max="100" required placeholder="%" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-slate-800 outline-none" /></td><td class="p-3"><input type="text" required placeholder="President, Sec..." class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-white focus:ring-1 focus:ring-slate-800 outline-none" /></td><td class="p-3 text-center"><button type="button" class="btn-remove-row text-red-500 hover:text-red-700 hover:underline text-xs">Remove</button></td>`;
+    row.querySelector('.btn-remove-row').addEventListener('click', () => { row.remove(); checkDirectorEmpty(); });
     directorTableBody.appendChild(row);
   }
   function checkDirectorEmpty() { if (directorTableBody && directorTableBody.querySelectorAll('.director-row').length === 0) { directorTableBody.innerHTML = `<tr id="director-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No directors declared. Click "+ Add Director".</td></tr>`; } }
@@ -1467,7 +1477,16 @@ layout: layout.html
             const authResult = await authRes.json();
             if (!authRes.ok || authResult.status !== 'SUCCESS') throw new Error(authResult.message);
             const uploadRes = await fetch(authResult.uploadUrl, { method: 'PUT', headers: { 'Content-Type': fileObj.type }, body: fileObj });
-            if (!uploadRes.ok) throw new Error("S3 rejected the file.");
+            if (!uploadRes.ok) {
+              const errTxt = await uploadRes.text();
+              let errMsg = "S3 rejected the file.";
+              try {
+                const doc = new DOMParser().parseFromString(errTxt, "text/xml");
+                const msg = doc.getElementsByTagName("Message")[0];
+                if (msg) errMsg = "S3 Error: " + msg.textContent;
+              } catch (e) {}
+              throw new Error(errMsg);
+            }
             relevantFilesToUpload[i].fileKey = authResult.fileKey;
           }
         }
