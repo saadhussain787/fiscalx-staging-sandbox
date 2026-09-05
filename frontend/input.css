@@ -4,6 +4,8 @@
 @source "./**/*.html";
 
 @theme {
+  --color-logo-blue: #0465a5;
+  --color-logo-green: #51ab34;
   --color-brand-50: #f0f4f8;
   --color-brand-100: #dbe3ed;
   --color-brand-200: #bdcbde;
