@@ -965,13 +965,19 @@ window.deleteClientCard = async function(btnElement) {
                     return;
                 }
 
+                // Sort invoices from oldest to youngest (ascending by DueDate)
+                invoices.sort((a, b) => {
+                    const dateA = a.DueDate ? new Date(a.DueDate).getTime() : Date.now();
+                    const dateB = b.DueDate ? new Date(b.DueDate).getTime() : Date.now();
+                    return dateA - dateB;
+                });
+
                 let totalUnpaid = 0;
                 let commissionableUnpaid = 0;
                 listDiv.innerHTML = "";
 
                 invoices.forEach(inv => {
                     const balance = parseFloat(inv.Balance || 0);
-                    totalUnpaid += balance;
                     
                     const customerName = inv.CustomerRef ? inv.CustomerRef.name : "Unknown Client";
                     const docNumber = inv.DocNumber || "N/A";
@@ -992,9 +998,12 @@ window.deleteClientCard = async function(btnElement) {
                         const daysSinceDue = (today.getTime() - due.getTime()) / (1000 * 3600 * 24);
                         if (daysSinceDue >= 30) isCommissionable = true;
                     }
-                    if (isCommissionable) {
-                        commissionableUnpaid += balance;
-                    }
+                    
+                    // ONLY SHOW INVOICES >= 30 DAYS PAST DUE
+                    if (!isCommissionable) return;
+
+                    totalUnpaid += balance;
+                    commissionableUnpaid += balance;
 
                     const pauseText = ledger.isPaused ? "▶️ Resume Auto" : "⏸️ Pause Auto";
                     const pauseBtnClass = ledger.isPaused ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500 hover:text-slate-900" : "bg-slate-500/10 text-slate-400 border-slate-500/30 hover:bg-slate-500 hover:text-white";
