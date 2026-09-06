@@ -6,9 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- LEVEL 1: Dynamic SEO Titles & Meta Descriptions -->
-  <title>{{ title | default: "FiscalX Professional Corporation | Wasim Kadri, CPA" }}</title>
+  <title>{{ title | default: "FiscalX | Expert Tax Advisors & Professional Accounting" }}</title>
   <meta name="description"
-    content="{{ description | default: 'Expert corporate tax planning, personal tax filing, and accounting services by Wasim Kadri, CPA in North York, ON.' }}">
+    content="{{ description | default: 'Maximize your returns and stay compliant with FiscalX. Expert tax advisors and accountants offering strategic wealth solutions for individuals and businesses in North York, ON.' }}">
   <meta name="keywords"
     content="Wasim Kadri CPA, FiscalX, Corporate Tax Accountant North York, Personal Tax Filing Toronto, Small Business Bookkeeping, T2 Corporate Tax, T1 Personal Tax, Comptable Toronto, Tax Advisor, CPA near me">
   <meta name="author" content="Wasim Kadri, CPA">
@@ -17,9 +17,9 @@
   <link rel="canonical" href="https://www.fiscalx.ca{{ page.url | default: '/' }}" />
 
   <!-- LEVEL 1: Open Graph (OG) Tags for beautiful iMessage/LinkedIn/Facebook Link Previews -->
-  <meta property="og:title" content="{{ title | default: 'FiscalX Professional Corporation | Wasim Kadri, CPA' }}" />
+  <meta property="og:title" content="{{ title | default: 'FiscalX | Expert Tax Advisors & Professional Accounting' }}" />
   <meta property="og:description"
-    content="{{ description | default: 'Expert corporate tax planning, personal tax filing, and accounting services by Wasim Kadri, CPA.' }}" />
+    content="{{ description | default: 'Maximize your returns and stay compliant with FiscalX. Expert tax advisors and accountants offering strategic wealth solutions for individuals and businesses in North York, ON.' }}" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.fiscalx.ca{{ page.url | default: '/' }}" />
   <meta property="og:image" content="https://www.fiscalx.ca/logo.svg" />
@@ -45,7 +45,8 @@
       "founder": {
         "@type": "Person",
         "name": "Wasim Kadri",
-        "jobTitle": "Chartered Professional Accountant (CPA)"
+        "jobTitle": "Chartered Professional Accountant (CPA)",
+        "knowsAbout": ["Corporate Tax", "Personal Tax", "Bookkeeping", "Strategic Wealth Planning"]
       },
       "address": {
         "@type": "PostalAddress",
@@ -60,6 +61,12 @@
         "latitude": 43.7573,
         "longitude": -79.3512
       },
+      "areaServed": [
+        { "@type": "City", "name": "North York" },
+        { "@type": "City", "name": "Toronto" },
+        { "@type": "State", "name": "Ontario" }
+      ],
+      "description": "Expert tax advisors and accountants helping individuals and businesses maximize their returns, stay compliant, and grow with confidence.",
       "openingHoursSpecification": {
         "@type": "OpeningHoursSpecification",
         "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
@@ -109,7 +116,7 @@
         <div class="flex items-center gap-3">
           <a href="/" class="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-brand-500 rounded"
             aria-label="FiscalX Home">
-            <img src="/logo.svg" alt="FiscalX Logo" class="h-12 w-auto object-contain max-h-14" />
+            <img src="/logo.svg" alt="FiscalX Professional Corporation - Tax and Accounting" class="h-12 w-auto object-contain max-h-14" />
           </a>
         </div>
 
