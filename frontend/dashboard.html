@@ -654,14 +654,36 @@ layout: layout.html
             <textarea id="org-notes" rows="4" placeholder="Detail any other sources of income, medical receipts, tuition summaries, foreign assets, or specific files uploaded to S3..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all bg-white"></textarea>
           </div>
           
-          <!-- CRA AUTH-A-REP CONSENT -->
-          <div class="bg-amber-50/50 border border-amber-200 p-4 rounded-xl mt-4 mb-4">
-            <label class="flex items-start gap-3 cursor-pointer">
-              <input type="checkbox" id="org-cra-consent" required class="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded cursor-pointer" />
-              <span class="text-xs text-amber-900 leading-relaxed font-semibold">
-                I authorize Wasim Kadri, CPA (FiscalX Professional Corporation) to act as my representative with the Canada Revenue Agency (CRA) for the purpose of accessing my tax data and filing my returns.
-              </span>
-            </label>
+          <!-- CRA AUTH-A-REP INSTRUCTIONS -->
+          <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl mt-4 mb-4 shadow-sm">
+            
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-800">CRA Authorization Required</h3>
+            </div>
+
+            <p class="text-sm text-slate-600 mb-4">
+              To allow us to access your tax data and file your returns, please grant us authorization on the CRA portal:
+            </p>
+
+            <ol class="list-decimal list-inside space-y-3 text-sm text-slate-700 mb-5 ml-1">
+              <li>Log into your CRA account, then click <strong>Profile</strong> on the top left.</li>
+              <li>Scroll down until you see <strong>Authorization</strong>, click the <strong>+</strong> sign, and click start.</li>
+              <li>Enter the RepID <span class="bg-slate-200 text-slate-900 px-2 py-0.5 rounded font-mono font-bold tracking-wider">6SB456C</span>, click search, and <strong>Wasim Kadri</strong> should appear. Click Next.</li>
+              <li>Select <strong>Access the online account</strong>, set the access level to <strong>Level 2</strong>, and click <strong>Does not expire</strong>.</li>
+              <li>Click Next. Review the summary, check the confirmation box, and click submit.</li>
+              <li><strong>For your HST account:</strong> First, add your business account. Follow the same process, but in step 4, please give us <strong>Level 3 access</strong> instead of Level 2.</li>
+            </ol>
+
+            <!-- Keeps the required form validation intact -->
+            <div class="pt-4 border-t border-slate-200">
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" id="org-cra-consent" required class="mt-1 h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded cursor-pointer" />
+                <span class="text-xs text-slate-700 leading-relaxed font-semibold">
+                  I confirm that I have completed (or will complete) the CRA authorization steps for both personal and HST accounts.
+                </span>
+              </label>
+            </div>
           </div>
 
           <!-- Transmission Submission -->
