@@ -206,13 +206,25 @@ export const handler = async (event) => {
                             ExpressionAttributeValues: { ":f": existingFiles }
                         }));
                     }
+                } else {
+                    await ddbDocClient.send(new PutCommand({
+                        TableName: TABLE_NAME,
+                        Item: {
+                            userEmail: userEmail,
+                            timestamp: new Date().toISOString(),
+                            clientName: "Pending Client",
+                            taxType: "Document Upload Only",
+                            campaignStatus: "Pending",
+                            uploadedFiles: [{ fileName: cleanFileName, fileKey: fileKey }]
+                        }
+                    }));
                 }
             } catch (dbError) {
                 console.error("Failed to automatically link S3 upload to DynamoDB record:", dbError);
             }
 
             const downloadCommand = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileKey });
-            const downloadUrl = await getSignedUrl(s3, downloadCommand, { expiresIn: 86400 });
+            const downloadUrl = await getSignedUrl(s3, downloadCommand, { expiresIn: 604800 });
 
             const emailHtml = `
                 <div style="font-family: sans-serif; padding: 20px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
