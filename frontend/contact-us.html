@@ -197,8 +197,10 @@ layout: layout.html
     }
     const dateInput = document.getElementById('booking-date');
     if (dateInput) {
-      const today = new Date().toISOString().split('T')[0];
-      dateInput.setAttribute('min', today);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      dateInput.setAttribute('min', tomorrowStr);
     }
   });
 

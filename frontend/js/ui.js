@@ -14,8 +14,10 @@ const dashSelectedDisplay = document.getElementById("dash-selected-display");
 const dashConfirmBtn = document.getElementById("dash-confirm-btn");
 
 if (dashDatePicker) {
-  const today = new Date().toISOString().split("T")[0];
-  dashDatePicker.setAttribute("min", today);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split("T")[0];
+  dashDatePicker.setAttribute("min", tomorrowStr);
 }
 
 function updateDashMeetingType(type, activeBtn, inactiveBtn) {
