@@ -1138,9 +1138,21 @@ export const handler = async (event) => {
                     const amountPaid = totalAmt - balance;
 
                     if (amountPaid > 0) {
-                        recoveredCount++;
-                        recoveredCash += amountPaid;
-                        paidDocNumbers.push(inv.DocNumber); // Track exactly which ones paid
+                        const dueDateStr = inv.DueDate;
+                        const updatedDateStr = inv.MetaData ? inv.MetaData.LastUpdatedTime : null;
+                        
+                        if (dueDateStr && updatedDateStr) {
+                            const dueDate = new Date(dueDateStr);
+                            const updatedDate = new Date(updatedDateStr);
+                            const diffTime = Math.abs(updatedDate - dueDate);
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            
+                            if (updatedDate > dueDate && diffDays > 30) {
+                                recoveredCount++;
+                                recoveredCash += amountPaid;
+                                paidDocNumbers.push(inv.DocNumber); // Track exactly which ones paid
+                            }
+                        }
                     }
                 });
 
@@ -1168,10 +1180,22 @@ export const handler = async (event) => {
                 const allItems = scanResult.Items || [];
 
                 let earliestDateStr = "2099-12-31";
+                const clearedInvoiceNumbers = new Set();
+                const escalatedUnclearedInvoices = new Set();
+                
                 for (const item of allItems) {
                     if (item.timestamp && item.timestamp !== "LEDGER" && !item.timestamp.includes("AUTH") && item.timestamp !== "SYSTEM_CONFIG") {
                         if (item.timestamp < earliestDateStr) {
                             earliestDateStr = item.timestamp;
+                        }
+                    }
+                    
+                    if (item.userEmail && item.userEmail.startsWith("QBO_INVOICE#")) {
+                        const invoiceNum = item.userEmail.replace("QBO_INVOICE#", "");
+                        if (item.commissionCollected === true) {
+                            clearedInvoiceNumbers.add(invoiceNum);
+                        } else if (item.escalationLevel > 0) {
+                            escalatedUnclearedInvoices.add(invoiceNum);
                         }
                     }
                 }
@@ -1188,9 +1212,14 @@ export const handler = async (event) => {
                 const qboInvoices = invoiceData.QueryResponse.Invoice || [];
 
                 const reportData = [];
+                const openReportData = [];
+                const today = new Date();
 
                 // 3. Filter and Calculate
                 qboInvoices.forEach(inv => {
+                    if (clearedInvoiceNumbers.has(inv.DocNumber)) return; // Skip if already cleared
+                    if (!escalatedUnclearedInvoices.has(inv.DocNumber)) return; // Skip if never escalated by FiscalBot
+                    
                     const balance = parseFloat(inv.Balance || 0);
                     const totalAmt = parseFloat(inv.TotalAmt || 0);
 
@@ -1200,42 +1229,65 @@ export const handler = async (event) => {
                             const closedDate = new Date(closedDateStr);
 
                             if (closedDate > implementationDate) {
-                                let commission = 0;
                                 const dueDateStr = inv.DueDate;
-
+                                
                                 if (dueDateStr) {
                                     const dueDate = new Date(dueDateStr);
                                     const diffTime = Math.abs(closedDate - dueDate);
                                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
+                                    
                                     if (closedDate > dueDate && diffDays > 30) {
-                                        commission = totalAmt * 0.05;
+                                        // Match 5% button exactly: Flat 5% on collected total amount
+                                        let commission = totalAmt * 0.05;
+
+                                        const generatedDateStr = inv.TxnDate || (inv.MetaData ? inv.MetaData.CreateTime : null);
+                                        let daysToClose = 'N/A';
+                                        if (generatedDateStr) {
+                                            const generatedDate = new Date(generatedDateStr);
+                                            const diffLife = Math.abs(closedDate - generatedDate);
+                                            daysToClose = Math.ceil(diffLife / (1000 * 60 * 60 * 24));
+                                        }
+
+                                        reportData.push({
+                                            invoiceNumber: inv.DocNumber,
+                                            customerName: inv.CustomerRef ? inv.CustomerRef.name : 'Unknown',
+                                            amount: totalAmt.toFixed(2),
+                                            commission: commission.toFixed(2),
+                                            dateGenerated: generatedDateStr ? new Date(generatedDateStr).toISOString().split('T')[0] : 'Unknown',
+                                            dateClosed: closedDate.toISOString().split('T')[0],
+                                            daysToClose: daysToClose
+                                        });
                                     }
                                 }
-
+                            }
+                        }
+                    } else if (balance > 0) {
+                        // Open invoices that are > 30 days late
+                        const dueDateStr = inv.DueDate;
+                        if (dueDateStr) {
+                            const dueDate = new Date(dueDateStr);
+                            const diffTime = Math.abs(today - dueDate);
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            
+                            if (today > dueDate && diffDays > 30) {
+                                let estimatedCommission = balance * 0.05;
                                 const generatedDateStr = inv.TxnDate || (inv.MetaData ? inv.MetaData.CreateTime : null);
-                                let daysToClose = 'N/A';
-                                if (generatedDateStr) {
-                                    const generatedDate = new Date(generatedDateStr);
-                                    const diffLife = Math.abs(closedDate - generatedDate);
-                                    daysToClose = Math.ceil(diffLife / (1000 * 60 * 60 * 24));
-                                }
-
-                                reportData.push({
+                                
+                                openReportData.push({
                                     invoiceNumber: inv.DocNumber,
                                     customerName: inv.CustomerRef ? inv.CustomerRef.name : 'Unknown',
-                                    amount: totalAmt.toFixed(2),
-                                    commission: commission.toFixed(2),
+                                    amountRemaining: balance.toFixed(2),
+                                    estimatedCommission: estimatedCommission.toFixed(2),
                                     dateGenerated: generatedDateStr ? new Date(generatedDateStr).toISOString().split('T')[0] : 'Unknown',
-                                    dateClosed: closedDate.toISOString().split('T')[0],
-                                    daysToClose: daysToClose
+                                    dueDate: dueDate.toISOString().split('T')[0],
+                                    daysOverdue: diffDays
                                 });
                             }
                         }
                     }
                 });
 
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", reportData }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", reportData, openReportData }) };
             } catch (err) {
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }

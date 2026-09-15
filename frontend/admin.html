@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FiscalX | Staff Admin Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS for Excel Export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-[#0B0F19] text-white min-h-screen relative font-sans">
   
@@ -306,12 +308,56 @@
     </div>
   </div>
 
+  <!-- Master PIN Modal -->
+  <div id="master-pin-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-sm">
+    <div class="bg-gray-900 border border-white/10 p-6 rounded-2xl shadow-2xl max-w-sm w-full mx-4 text-center">
+      <div class="text-4xl mb-4">🔐</div>
+      <h3 class="text-white text-lg font-bold mb-2">SECURE ACCESS</h3>
+      <p class="text-gray-400 text-sm mb-6" id="master-pin-message">Please enter the Master Admin PIN.</p>
+      <input type="password" id="master-pin-input" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white text-center text-xl tracking-widest focus:outline-none focus:border-blue-500 transition-colors mb-6" placeholder="****">
+      <div class="flex space-x-3">
+        <button id="master-pin-cancel" class="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium border border-white/10">Cancel</button>
+        <button id="master-pin-submit" class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-colors font-medium">Unlock</button>
+      </div>
+    </div>
+  </div>
+
   <style>
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 
   <script>
+    function askForMasterPin(message) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('master-pin-modal');
+            const input = document.getElementById('master-pin-input');
+            const msgEl = document.getElementById('master-pin-message');
+            const cancelBtn = document.getElementById('master-pin-cancel');
+            const submitBtn = document.getElementById('master-pin-submit');
+
+            msgEl.innerText = message;
+            input.value = '';
+            modal.classList.remove('hidden');
+            input.focus();
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                cancelBtn.removeEventListener('click', onCancel);
+                submitBtn.removeEventListener('click', onSubmit);
+                input.removeEventListener('keydown', onKeydown);
+            };
+
+            const onCancel = () => { cleanup(); resolve(null); };
+            const onSubmit = () => { cleanup(); resolve(input.value); };
+            const onKeydown = (e) => { if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); };
+
+            cancelBtn.addEventListener('click', onCancel);
+            submitBtn.addEventListener('click', onSubmit);
+            input.addEventListener('keydown', onKeydown);
+        });
+    }
+
     const COGNITO_CLIENT_ID = "79d4qhnedttr14qh6gakkh5hk0";
     const COGNITO_REGION = "ca-central-1";
     const API_URL = "https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact"; 
@@ -1065,15 +1111,15 @@ window.deleteClientCard = async function(btnElement) {
         const adminEmail = localStorage.getItem('admin_email');
         if (!adminEmail) return;
 
-        const passcode = prompt("🔐 SECURE ACCESS: Please enter the Master Admin PIN to download this report:");
+        const passcode = await askForMasterPin("Please enter the Master Admin PIN to download this report:");
         if (passcode !== "0224") { 
-            alert("❌ Access Denied: Incorrect PIN.");
+            if (passcode !== null) alert("❌ Access Denied: Incorrect PIN.");
             return;
         } 
         
         const originalText = btnElement.innerHTML;
         btnElement.disabled = true;
-        btnElement.innerHTML = "⏳ Generating CSV...";
+        btnElement.innerHTML = "⏳ Generating Excel...";
 
         try {
             const response = await fetch(API_URL, {
@@ -1085,26 +1131,39 @@ window.deleteClientCard = async function(btnElement) {
 
             if (response.ok && result.status === 'SUCCESS') {
                 const reportData = result.reportData || [];
-                if (reportData.length === 0) {
-                    alert("No closed invoices found after the system implementation date.");
+                const openReportData = result.openReportData || [];
+                
+                if (reportData.length === 0 && openReportData.length === 0) {
+                    alert("No escalated invoices found (neither open nor closed) meeting the >30 days criteria.");
                 } else {
-                    const headers = ["Invoice Number", "Customer Name", "Date Generated", "Date Closed", "Days to Close", "Total Amount (CAD)", "Commission Earned (CAD)"];
-                    const csvRows = [headers.join(",")];
+                    // Create a new Excel Workbook
+                    const wb = XLSX.utils.book_new();
+
+                    // Tab 1: Closed Invoices
+                    if (reportData.length > 0) {
+                        const closedHeaders = ["Invoice Number", "Customer Name", "Date Generated", "Date Closed", "Days to Close", "Total Amount (CAD)", "Commission Earned (CAD)"];
+                        const closedRows = [closedHeaders];
+                        reportData.forEach(row => {
+                            closedRows.push([row.invoiceNumber, row.customerName, row.dateGenerated, row.dateClosed, row.daysToClose, parseFloat(row.amount), parseFloat(row.commission)]);
+                        });
+                        const wsClosed = XLSX.utils.aoa_to_sheet(closedRows);
+                        XLSX.utils.book_append_sheet(wb, wsClosed, "Closed Invoices");
+                    }
+
+                    // Tab 2: Open Invoices (>30 Days Late)
+                    if (openReportData.length > 0) {
+                        const openHeaders = ["Invoice Number", "Customer Name", "Date Generated", "Due Date", "Days Overdue", "Amount Remaining (CAD)", "Estimated Commission (CAD)"];
+                        const openRows = [openHeaders];
+                        openReportData.forEach(row => {
+                            openRows.push([row.invoiceNumber, row.customerName, row.dateGenerated, row.dueDate, row.daysOverdue, parseFloat(row.amountRemaining), parseFloat(row.estimatedCommission)]);
+                        });
+                        const wsOpen = XLSX.utils.aoa_to_sheet(openRows);
+                        XLSX.utils.book_append_sheet(wb, wsOpen, "Open (>30 Days Late)");
+                    }
                     
-                    reportData.forEach(row => {
-                        csvRows.push(`"${row.invoiceNumber}","${row.customerName}","${row.dateGenerated}","${row.dateClosed}","${row.daysToClose}","${row.amount}","${row.commission}"`);
-                    });
-                    
-                    const csvString = csvRows.join("\n");
-                    const blob = new Blob([csvString], { type: 'text/csv' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.setAttribute('hidden', '');
-                    a.setAttribute('href', url);
-                    a.setAttribute('download', `FiscalX_Detailed_Commission_Report_${new Date().toISOString().split('T')[0]}.csv`);
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
+                    // Generate and Download Excel File
+                    const fileName = `FiscalX_Detailed_Commission_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    XLSX.writeFile(wb, fileName);
                 }
             } else {
                 alert("Error generating report: " + (result.message || "Server error"));
@@ -1125,9 +1184,9 @@ window.deleteClientCard = async function(btnElement) {
         if (!adminEmail) return;
 
         // --- MASTER SECURITY LOCK ---
-        const passcode = prompt("🔐 SECURE ACCESS: Please enter the Master Admin PIN to view commissions:");
+        const passcode = await askForMasterPin("Please enter the Master Admin PIN to view commissions:");
         if (passcode !== "0224") { 
-            alert("❌ Access Denied: Incorrect PIN.");
+            if (passcode !== null) alert("❌ Access Denied: Incorrect PIN.");
             return;
             } // --- END MASTER SECURITY LOCK ---
 
