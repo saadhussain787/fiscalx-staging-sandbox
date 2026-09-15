@@ -86,6 +86,9 @@
             <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">Live Outstanding Invoice Sync</p>
           </div>
           <div class="flex gap-2 flex-wrap justify-end">
+            <button onclick="downloadDetailedReport(this)" class="text-xs px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/30 font-bold rounded-xl hover:bg-blue-500 hover:text-slate-900 transition-all shadow-md shadow-blue-500/10 flex items-center gap-2">
+              📊 Download Detailed Report
+            </button>
             <button onclick="generateCommissionReport(this)" class="text-xs px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold rounded-xl hover:bg-emerald-500 hover:text-slate-900 transition-all shadow-md shadow-emerald-500/10 flex items-center gap-2">
               🧾 5% Commission Report
             </button>
@@ -1052,6 +1055,65 @@ window.deleteClientCard = async function(btnElement) {
             }
         } catch (err) {
             listDiv.innerHTML = "<p class='text-xs text-red-500 font-bold'>Network error fetching QuickBooks data.</p>";
+        }
+    }
+
+// ==============================================================
+    // ACTION: DOWNLOAD DETAILED COMMISSION REPORT
+    // ==============================================================
+    window.downloadDetailedReport = async function(btnElement) {
+        const adminEmail = localStorage.getItem('admin_email');
+        if (!adminEmail) return;
+
+        const passcode = prompt("🔐 SECURE ACCESS: Please enter the Master Admin PIN to download this report:");
+        if (passcode !== "0224") { 
+            alert("❌ Access Denied: Incorrect PIN.");
+            return;
+        } 
+        
+        const originalText = btnElement.innerHTML;
+        btnElement.disabled = true;
+        btnElement.innerHTML = "⏳ Generating CSV...";
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
+                body: JSON.stringify({ action: "generateDetailedCommissionReport", adminEmail: adminEmail })
+            });
+            const result = await response.json();
+
+            if (response.ok && result.status === 'SUCCESS') {
+                const reportData = result.reportData || [];
+                if (reportData.length === 0) {
+                    alert("No closed invoices found after the system implementation date.");
+                } else {
+                    const headers = ["Invoice Number", "Customer Name", "Date Generated", "Date Closed", "Days to Close", "Total Amount (CAD)", "Commission Earned (CAD)"];
+                    const csvRows = [headers.join(",")];
+                    
+                    reportData.forEach(row => {
+                        csvRows.push(`"${row.invoiceNumber}","${row.customerName}","${row.dateGenerated}","${row.dateClosed}","${row.daysToClose}","${row.amount}","${row.commission}"`);
+                    });
+                    
+                    const csvString = csvRows.join("\n");
+                    const blob = new Blob([csvString], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.setAttribute('hidden', '');
+                    a.setAttribute('href', url);
+                    a.setAttribute('download', `FiscalX_Detailed_Commission_Report_${new Date().toISOString().split('T')[0]}.csv`);
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }
+            } else {
+                alert("Error generating report: " + (result.message || "Server error"));
+            }
+        } catch (err) {
+            alert("Network error generating report.");
+        } finally {
+            btnElement.disabled = false;
+            btnElement.innerHTML = originalText;
         }
     }
 

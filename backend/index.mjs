@@ -17,17 +17,17 @@ const bedrock = new BedrockRuntimeClient({ region: "ca-central-1" });
 
 const BUCKET_NAME = "fiscalx-document-vault-673098723249";
 const TABLE_NAME = "fiscalx-client-onboarding";
-const USER_POOL_ID = "ca-central-1_omKzLVfdI"; 
-const SENDER_EMAIL = "info@fiscalx.ca"; 
-const OFFICE_EMAIL = "info@fiscalx.ca"; 
+const USER_POOL_ID = "ca-central-1_omKzLVfdI";
+const SENDER_EMAIL = "info@fiscalx.ca";
+const OFFICE_EMAIL = "info@fiscalx.ca";
 const MS_CLIENT_ID = "359dc7f8-359d-47ab-abcf-c0129559aacb";
 const MS_TENANT_ID = "8793dd74-ad92-4663-a197-95c9e0955c5e";
-const MS_CLIENT_SECRET = process.env.MS_CLIENT_SECRET; 
+const MS_CLIENT_SECRET = process.env.MS_CLIENT_SECRET;
 const MS_REDIRECT_URI = "https://www.fiscalx.ca/admin/";
 
-const QBO_CLIENT_ID = "ABpC4zd9xPXxZkN9AgXd8mGM2EvvT1Uiw1bt9BvUJHBRxvoXex"; 
-const QBO_CLIENT_SECRET = process.env.QBO_CLIENT_SECRET; 
-const QBO_REDIRECT_URI = "https://fiscalx.ca/admin/"; 
+const QBO_CLIENT_ID = "ABpC4zd9xPXxZkN9AgXd8mGM2EvvT1Uiw1bt9BvUJHBRxvoXex";
+const QBO_CLIENT_SECRET = process.env.QBO_CLIENT_SECRET;
+const QBO_REDIRECT_URI = "https://fiscalx.ca/admin/";
 const QBO_ENVIRONMENT = "production";
 
 const AUTHORIZED_STAFF = [
@@ -98,7 +98,7 @@ async function getQboAccessToken() {
 
         const tokenRes = await fetch(`https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Authorization': `Basic ${authHeader}`
@@ -108,7 +108,7 @@ async function getQboAccessToken() {
                 refresh_token: configItem.qboRefreshToken
             })
         });
-        
+
         const tokenData = await tokenRes.json();
         if (!tokenData.access_token) throw new Error("QBO Token Refresh Failed");
 
@@ -180,8 +180,8 @@ export const handler = async (event) => {
         if (data.action === "notifyUploadComplete") {
             const fileKey = data.fileKey;
             const userEmail = data.userEmail;
-            const fileName = fileKey.split("/").pop(); 
-            const cleanFileName = fileName.substring(13); 
+            const fileName = fileKey.split("/").pop();
+            const cleanFileName = fileName.substring(13);
 
             try {
                 const scanParams = {
@@ -196,7 +196,7 @@ export const handler = async (event) => {
                     userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     const latestRecord = userRecords[0];
                     const existingFiles = latestRecord.uploadedFiles || [];
-                    
+
                     if (!existingFiles.some(f => f.fileKey === fileKey)) {
                         existingFiles.push({ fileName: cleanFileName, fileKey: fileKey });
                         await ddbDocClient.send(new UpdateCommand({
@@ -255,7 +255,7 @@ export const handler = async (event) => {
             const {
                 userEmail = "Unknown", taxType = "T1 Personal", craConsent = "Not Provided", howHeard = "Not Specified",
                 personalInfo = {}, familyMembers = [], statusInCanada = {}, ontarioResidency = [], milestones = {},
-                selfEmployed = {}, rentalIncome = {}, childCareBenefit = {}, corporateInfo = {}, notes = "None provided.", uploadedFiles = [] 
+                selfEmployed = {}, rentalIncome = {}, childCareBenefit = {}, corporateInfo = {}, notes = "None provided.", uploadedFiles = []
             } = data;
 
             const isT2 = taxType.includes("T2");
@@ -263,7 +263,7 @@ export const handler = async (event) => {
             const timestamp = new Date().toISOString();
 
             // 1. BUILD THE EXCEL/CSV DATA
-            const csvRows = [ ["Section", "Field", "Value"] ];
+            const csvRows = [["Section", "Field", "Value"]];
             csvRows.push(["System", "Tax Type", taxType], ["System", "CRA Consent", craConsent], ["System", "Client Email", userEmail], ["System", "Client Notes", notes], ["System", "How Heard", howHeard]);
 
             if (isT2) {
@@ -282,12 +282,12 @@ export const handler = async (event) => {
                     ["T1 Status", "Immigration Status", statusInCanada.status || "N/A"], ["T1 Status", "Entry Date", statusInCanada.entryDate || "N/A"]
                 );
             }
-            
+
             // 2. SAVE CSV DIRECTLY TO S3
-            const csvString = csvRows.map(row => row.map(cell => `"${(cell||'').toString().replace(/"/g, '""')}"`).join(',')).join('\n');
-            const csvKey = `clients/${userEmail}/${Date.now()}-${taxType.substring(0,2)}-Organizer.csv`;
+            const csvString = csvRows.map(row => row.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(',')).join('\n');
+            const csvKey = `clients/${userEmail}/${Date.now()}-${taxType.substring(0, 2)}-Organizer.csv`;
             await s3.send(new PutObjectCommand({ Bucket: BUCKET_NAME, Key: csvKey, Body: csvString, ContentType: "text/csv" }));
-            
+
             // 3. INJECT THE CSV INTO THE KANBAN VAULT
             const allFiles = [...uploadedFiles];
             allFiles.push({ fileName: `[Data] ${taxType} Organizer.csv`, fileKey: csvKey });
@@ -508,23 +508,23 @@ export const handler = async (event) => {
                 // Dynamically use the redirectUri sent by the frontend, fallback to hardcoded if empty
                 const redirectUri = data.redirectUri || QBO_REDIRECT_URI;
                 console.log("QBO Exchange. ClientID present:", Boolean(QBO_CLIENT_ID), "Secret present:", Boolean(QBO_CLIENT_SECRET), "Using Redirect:", redirectUri);
-                
+
                 const authHeader = Buffer.from(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`).toString('base64');
-                
+
                 const tokenResponse = await fetch(`https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer`, {
-                    method: 'POST', 
-                    headers: { 
-                        'Accept': 'application/json', 
-                        'Content-Type': 'application/x-www-form-urlencoded', 
-                        'Authorization': `Basic ${authHeader}` 
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Authorization': `Basic ${authHeader}`
                     },
-                    body: new URLSearchParams({ 
-                        code: data.code, 
+                    body: new URLSearchParams({
+                        code: data.code,
                         redirect_uri: redirectUri, // <-- Using the dynamic matching URI!
-                        grant_type: 'authorization_code' 
+                        grant_type: 'authorization_code'
                     })
                 });
-                
+
                 const tokenData = await tokenResponse.json();
                 console.log("Intuit API Raw Response:", JSON.stringify(tokenData));
 
@@ -533,13 +533,13 @@ export const handler = async (event) => {
                 }
 
                 await ddbDocClient.send(new PutCommand({
-                    TableName: TABLE_NAME, 
-                    Item: { 
-                        userEmail: "SYSTEM_CONFIG", 
-                        timestamp: "QUICKBOOKS_AUTH", 
-                        qboRefreshToken: tokenData.refresh_token, 
-                        qboRealmId: data.realmId || "UNKNOWN", 
-                        updatedAt: new Date().toISOString() 
+                    TableName: TABLE_NAME,
+                    Item: {
+                        userEmail: "SYSTEM_CONFIG",
+                        timestamp: "QUICKBOOKS_AUTH",
+                        qboRefreshToken: tokenData.refresh_token,
+                        qboRealmId: data.realmId || "UNKNOWN",
+                        updatedAt: new Date().toISOString()
                     }
                 }));
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "QuickBooks connected successfully!" }) };
@@ -559,7 +559,7 @@ export const handler = async (event) => {
 
                 const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
                 const phoneDirectory = await getQboPhoneDirectory(baseUrl, qboAuth);
-                
+
                 const query = encodeURIComponent(`select * from Invoice where Balance > '0'`);
                 const invoiceRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`, {
                     method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
@@ -654,7 +654,7 @@ export const handler = async (event) => {
                 // 1. The Phone Scrubber: Clean dirty QBO numbers to strict E.164 format
                 // Strip extensions (ext or x) and remove all non-numeric characters
                 let rawDigits = String(customerPhone).toLowerCase().split('x')[0].split('ext')[0].replace(/\D/g, '');
-                
+
                 let cleanPhone = "";
                 if (rawDigits.length === 10) {
                     cleanPhone = "+1" + rawDigits; // Standard Canadian/US number
@@ -705,30 +705,30 @@ export const handler = async (event) => {
                 if (data.cronSecret !== "fiscalx_auto_8899") {
                     return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized cron trigger" }) };
                 }
-                
+
                 console.log("Starting Automated Daily Sweep for Level 1 & Level 2 Reminders...");
                 const qboAuth = await getQboAccessToken();
                 if (!qboAuth) throw new Error("No QBO Token available for automation");
 
                 const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
                 const phoneDirectory = await getQboPhoneDirectory(baseUrl, qboAuth);
-                
+
                 const query = encodeURIComponent(`select * from Invoice where Balance > '0'`);
                 const invoiceRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`, {
                     method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
                 });
-                
+
                 const invoiceData = await invoiceRes.json();
                 let invoices = invoiceData.QueryResponse.Invoice || [];
                 invoices = invoices.filter(inv => inv.EmailStatus === 'EmailSent');
-                
+
                 invoices.forEach(inv => {
                     const customerId = inv.CustomerRef ? inv.CustomerRef.value : null;
                     if (!inv.PrimaryPhone && customerId && phoneDirectory[customerId]) {
                         inv.PrimaryPhone = { FreeFormNumber: phoneDirectory[customerId] };
                     }
                 });
-                
+
                 const today = new Date();
                 let sentCount = 0;
 
@@ -760,7 +760,7 @@ export const handler = async (event) => {
 
                         if (daysSinceDue >= 30) {
                             console.log(`Sending Level 1 Email to ${customerName} (Inv #${docNumber}). Days past due: ${Math.floor(daysSinceDue)}`);
-                            
+
                             const reminderHtml = `
                                 <div style="font-family: sans-serif; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0;">
                                     <h2 style="color: #ef4444;">FiscalX Outstanding Invoice</h2>
@@ -781,7 +781,7 @@ export const handler = async (event) => {
                                 UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date",
                                 ExpressionAttributeValues: { ":lvl": 1, ":date": todayStr }
                             }));
-                            
+
                             sentCount++;
                             continue; // Skip the Level 2 check for this invoice today
                         }
@@ -794,17 +794,17 @@ export const handler = async (event) => {
 
                         if (daysDiff >= 7) {
                             console.log(`Sending Level 2 SMS to ${customerName} (Inv #${docNumber}). Days since Level 1: ${Math.floor(daysDiff)}`);
-                            
+
                             // 1. Scrub Phone Number
                             let rawDigits = String(customerPhone).toLowerCase().split('x')[0].split('ext')[0].replace(/\D/g, '');
                             let cleanPhone = "";
                             if (rawDigits.length === 10) cleanPhone = "+1" + rawDigits;
                             else if (rawDigits.length === 11 && rawDigits.startsWith("1")) cleanPhone = "+" + rawDigits;
                             else continue; // Invalid format
-                            
+
                             // 2. Format SMS
                             const smsMessage = `FiscalX Alert: Hi ${customerName}, your invoice #${docNumber} has an outstanding balance of $${balance.toFixed(2)} CAD. Please remit via Interac e-Transfer to payments@fiscalx.ca to avoid service interruption.`;
-                            
+
                             // 3. Send SMS via SNS
                             await sns.send(new PublishCommand({
                                 PhoneNumber: cleanPhone,
@@ -826,12 +826,12 @@ export const handler = async (event) => {
                                 UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date",
                                 ExpressionAttributeValues: { ":lvl": 2, ":date": todayStr }
                             }));
-                            
+
                             sentCount++;
                         }
                     }
                 }
-                
+
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: `Automated sweep complete. Sent ${sentCount} Level 2 SMS reminders.` }) };
 
             } catch (err) {
@@ -845,30 +845,30 @@ export const handler = async (event) => {
                 if (data.cronSecret !== "fiscalx_auto_8899") {
                     return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized blast trigger" }) };
                 }
-                
+
                 console.log("Starting FORCED SMS BLAST for all outstanding invoices...");
                 const qboAuth = await getQboAccessToken();
                 if (!qboAuth) throw new Error("No QBO Token available for automation");
 
                 const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
                 const phoneDirectory = await getQboPhoneDirectory(baseUrl, qboAuth);
-                
+
                 const query = encodeURIComponent(`select * from Invoice where Balance > '0'`);
                 const invoiceRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`, {
                     method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
                 });
-                
+
                 const invoiceData = await invoiceRes.json();
                 let invoices = invoiceData.QueryResponse.Invoice || [];
                 invoices = invoices.filter(inv => inv.EmailStatus === 'EmailSent');
-                
+
                 invoices.forEach(inv => {
                     const customerId = inv.CustomerRef ? inv.CustomerRef.value : null;
                     if (!inv.PrimaryPhone && customerId && phoneDirectory[customerId]) {
                         inv.PrimaryPhone = { FreeFormNumber: phoneDirectory[customerId] };
                     }
                 });
-                
+
                 let sentCount = 0;
                 const todayStr = new Date().toISOString().split('T')[0];
 
@@ -892,15 +892,15 @@ export const handler = async (event) => {
                     if (isPaused) continue;
 
                     console.log(`FORCED BLAST: Sending Level 2 SMS to ${customerName} (Inv #${docNumber}).`);
-                    
+
                     let rawDigits = String(customerPhone).toLowerCase().split('x')[0].split('ext')[0].replace(/\D/g, '');
                     let cleanPhone = "";
                     if (rawDigits.length === 10) cleanPhone = "+1" + rawDigits;
                     else if (rawDigits.length === 11 && rawDigits.startsWith("1")) cleanPhone = "+" + rawDigits;
                     else continue;
-                    
+
                     const smsMessage = `FiscalX Alert: Hi ${customerName}, your invoice #${docNumber} has an outstanding balance of $${balance.toFixed(2)} CAD. Please remit via Interac e-Transfer to payments@fiscalx.ca to avoid service interruption.`;
-                    
+
                     await sns.send(new PublishCommand({
                         PhoneNumber: cleanPhone,
                         Message: smsMessage,
@@ -920,10 +920,10 @@ export const handler = async (event) => {
                         UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date",
                         ExpressionAttributeValues: { ":lvl": 2, ":date": todayStr }
                     }));
-                    
+
                     sentCount++;
                 }
-                
+
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: `Forced SMS blast complete. Sent ${sentCount} messages.` }) };
 
             } catch (err) {
@@ -961,8 +961,8 @@ export const handler = async (event) => {
                             try {
                                 const startParts = (busy.start.dateTime.includes("T") ? busy.start.dateTime.split("T")[1] : busy.start.dateTime).split(":");
                                 const endParts = (busy.end.dateTime.includes("T") ? busy.end.dateTime.split("T")[1] : busy.end.dateTime).split(":");
-                                if (slotDecimal >= (parseInt(startParts[0]) + (parseInt(startParts[1])/60)) && slotDecimal < (parseInt(endParts[0]) + (parseInt(endParts[1])/60))) isBusy = true;
-                            } catch (e) {}
+                                if (slotDecimal >= (parseInt(startParts[0]) + (parseInt(startParts[1]) / 60)) && slotDecimal < (parseInt(endParts[0]) + (parseInt(endParts[1]) / 60))) isBusy = true;
+                            } catch (e) { }
                         }
                     });
                     return { time: timeStr, isAvailable: !isBusy };
@@ -973,7 +973,7 @@ export const handler = async (event) => {
             }
         }
 
-if (data.action === "createBooking" || data.action === "submitBooking") {
+        if (data.action === "createBooking" || data.action === "submitBooking") {
             try {
                 let msEventId = null;
                 const accessToken = await getMsAccessToken();
@@ -986,12 +986,12 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
 
                         // Check if client selected MS Teams
                         const isTeams = (data.meetingType || "").includes("Teams");
-                        
+
                         const eventPayload = {
                             subject: `FiscalX Consultation: ${data.fullName}`,
                             body: { contentType: "HTML", content: `<p>Client Email: ${data.email}</p><p>Format: ${data.meetingType || 'In-Office'}</p>` },
-                            start: { dateTime: `${data.bookingDate}T${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:00`, timeZone: "Eastern Standard Time" },
-                            end: { dateTime: `${data.bookingDate}T${endHours.toString().padStart(2,'0')}:${(endMinutes%60).toString().padStart(2,'0')}:00`, timeZone: "Eastern Standard Time" },
+                            start: { dateTime: `${data.bookingDate}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`, timeZone: "Eastern Standard Time" },
+                            end: { dateTime: `${data.bookingDate}T${endHours.toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}:00`, timeZone: "Eastern Standard Time" },
                             attendees: [{ emailAddress: { address: data.email }, type: "required" }]
                         };
 
@@ -1006,7 +1006,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
                             body: JSON.stringify(eventPayload)
                         });
                         if (graphRes.ok) { msEventId = (await graphRes.json()).id; }
-                    } catch (e) {}
+                    } catch (e) { }
                 }
 
                 await ddbDocClient.send(new PutCommand({ TableName: TABLE_NAME, Item: { userEmail: data.email, timestamp: new Date().toISOString(), clientName: data.fullName, bookingDate: data.bookingDate, bookingTime: data.bookingTime, msEventId: msEventId, campaignStatus: "Pending", paymentConfirmed: false } }));
@@ -1034,12 +1034,12 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
                     await fetch(`https://graph.microsoft.com/v1.0/me/events/${msEventId}`, {
                         method: "PATCH", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            start: { dateTime: `${data.newDate}T${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:00`, timeZone: "Eastern Standard Time" },
-                            end: { dateTime: `${data.newDate}T${endHours.toString().padStart(2,'0')}:${(endMinutes%60).toString().padStart(2,'0')}:00`, timeZone: "Eastern Standard Time" }
+                            start: { dateTime: `${data.newDate}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`, timeZone: "Eastern Standard Time" },
+                            end: { dateTime: `${data.newDate}T${endHours.toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}:00`, timeZone: "Eastern Standard Time" }
                         })
                     });
                 }
-                
+
                 await ddbDocClient.send(new UpdateCommand({ TableName: TABLE_NAME, Key: { "userEmail": String(data.clientEmail), "timestamp": String(data.timestamp) }, UpdateExpression: "set bookingDate = :d, bookingTime = :t", ExpressionAttributeValues: { ":d": String(data.newDate), ":t": String(data.newTime) } }));
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
             } catch (err) {
@@ -1076,7 +1076,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
                 const accessToken = await getMsAccessToken();
 
                 if (data.timestamp) {
-                    try { await ddbDocClient.send(new DeleteCommand({ TableName: TABLE_NAME, Key: { "userEmail": String(data.clientEmail), "timestamp": String(data.timestamp) } })); } catch (e) {}
+                    try { await ddbDocClient.send(new DeleteCommand({ TableName: TABLE_NAME, Key: { "userEmail": String(data.clientEmail), "timestamp": String(data.timestamp) } })); } catch (e) { }
                 }
 
                 const scanRes = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME }));
@@ -1084,7 +1084,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
 
                 for (const item of matchingItems) {
                     if (item.msEventId && accessToken) {
-                        try { await fetch(`https://graph.microsoft.com/v1.0/me/events/${item.msEventId}`, { method: "DELETE", headers: { "Authorization": `Bearer ${accessToken}` } }); } catch (e) {}
+                        try { await fetch(`https://graph.microsoft.com/v1.0/me/events/${item.msEventId}`, { method: "DELETE", headers: { "Authorization": `Bearer ${accessToken}` } }); } catch (e) { }
                     }
                     await ddbDocClient.send(new DeleteCommand({ TableName: TABLE_NAME, Key: { "userEmail": item.userEmail, "timestamp": item.timestamp } }));
                 }
@@ -1094,7 +1094,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
             }
         }
 
-// ==============================================================
+        // ==============================================================
         // ACTION: GENERATE MONTH-END 5% COMMISSION REPORT
         // ==============================================================
         if (data.action === "generateCommissionReport") {
@@ -1107,7 +1107,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
 
                 // 1. Get ledgers, ignoring ones where commission was already collected
                 const scanResult = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME }));
-                const ledgers = (scanResult.Items || []).filter(item => 
+                const ledgers = (scanResult.Items || []).filter(item =>
                     item.userEmail && item.userEmail.startsWith("QBO_INVOICE#") && item.escalationLevel > 0 && !item.commissionCollected
                 );
 
@@ -1117,10 +1117,10 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
 
                 const docNumbers = ledgers.map(l => l.userEmail.replace("QBO_INVOICE#", ""));
                 const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
-                
+
                 const docList = docNumbers.map(n => `'${n}'`).join(",");
                 const query = encodeURIComponent(`select * from Invoice where DocNumber in (${docList})`);
-                
+
                 const invoiceRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`, {
                     method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
                 });
@@ -1135,8 +1135,8 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
                 qboInvoices.forEach(inv => {
                     const balance = parseFloat(inv.Balance || 0);
                     const totalAmt = parseFloat(inv.TotalAmt || 0);
-                    const amountPaid = totalAmt - balance; 
-                    
+                    const amountPaid = totalAmt - balance;
+
                     if (amountPaid > 0) {
                         recoveredCount++;
                         recoveredCash += amountPaid;
@@ -1147,6 +1147,95 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
                 const yourCommission = recoveredCash * 0.05;
 
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", recoveredCount, recoveredCash, yourCommission, paidDocNumbers }) };
+            } catch (err) {
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
+            }
+        }
+
+        // ==============================================================
+        // ACTION: GENERATE DETAILED CLOSED INVOICES COMMISSION REPORT
+        // ==============================================================
+        if (data.action === "generateDetailedCommissionReport") {
+            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+
+            try {
+                const qboAuth = await getQboAccessToken();
+                if (!qboAuth) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "QuickBooks not connected." }) };
+
+                // 1. Find implementation date from earliest record in DB
+                const scanResult = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME }));
+                const allItems = scanResult.Items || [];
+
+                let earliestDateStr = "2099-12-31";
+                for (const item of allItems) {
+                    if (item.timestamp && item.timestamp !== "LEDGER" && !item.timestamp.includes("AUTH") && item.timestamp !== "SYSTEM_CONFIG") {
+                        if (item.timestamp < earliestDateStr) {
+                            earliestDateStr = item.timestamp;
+                        }
+                    }
+                }
+                const implementationDate = earliestDateStr === "2099-12-31" ? new Date(0) : new Date(earliestDateStr);
+
+                // 2. Fetch all invoices from QBO
+                const baseUrl = QBO_ENVIRONMENT === "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com";
+                const query = encodeURIComponent(`select * from Invoice MAXRESULTS 1000`);
+                const invoiceRes = await fetch(`${baseUrl}/v3/company/${qboAuth.realmId}/query?query=${query}&minorversion=65`, {
+                    method: 'GET', headers: { 'Authorization': `Bearer ${qboAuth.accessToken}`, 'Accept': 'application/json' }
+                });
+
+                const invoiceData = await invoiceRes.json();
+                const qboInvoices = invoiceData.QueryResponse.Invoice || [];
+
+                const reportData = [];
+
+                // 3. Filter and Calculate
+                qboInvoices.forEach(inv => {
+                    const balance = parseFloat(inv.Balance || 0);
+                    const totalAmt = parseFloat(inv.TotalAmt || 0);
+
+                    if (balance === 0) {
+                        const closedDateStr = inv.MetaData ? inv.MetaData.LastUpdatedTime : null;
+                        if (closedDateStr) {
+                            const closedDate = new Date(closedDateStr);
+
+                            if (closedDate > implementationDate) {
+                                let commission = 0;
+                                const dueDateStr = inv.DueDate;
+
+                                if (dueDateStr) {
+                                    const dueDate = new Date(dueDateStr);
+                                    const diffTime = Math.abs(closedDate - dueDate);
+                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                    if (closedDate > dueDate && diffDays > 30) {
+                                        commission = totalAmt * 0.05;
+                                    }
+                                }
+
+                                const generatedDateStr = inv.TxnDate || (inv.MetaData ? inv.MetaData.CreateTime : null);
+                                let daysToClose = 'N/A';
+                                if (generatedDateStr) {
+                                    const generatedDate = new Date(generatedDateStr);
+                                    const diffLife = Math.abs(closedDate - generatedDate);
+                                    daysToClose = Math.ceil(diffLife / (1000 * 60 * 60 * 24));
+                                }
+
+                                reportData.push({
+                                    invoiceNumber: inv.DocNumber,
+                                    customerName: inv.CustomerRef ? inv.CustomerRef.name : 'Unknown',
+                                    amount: totalAmt.toFixed(2),
+                                    commission: commission.toFixed(2),
+                                    dateGenerated: generatedDateStr ? new Date(generatedDateStr).toISOString().split('T')[0] : 'Unknown',
+                                    dateClosed: closedDate.toISOString().split('T')[0],
+                                    daysToClose: daysToClose
+                                });
+                            }
+                        }
+                    }
+                });
+
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", reportData }) };
             } catch (err) {
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
@@ -1210,9 +1299,9 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
                     const customerName = inv.CustomerRef ? inv.CustomerRef.name : "Client";
                     const customerEmail = inv.BillEmail ? inv.BillEmail.Address : null;
                     const customerPhone = inv.PrimaryPhone ? inv.PrimaryPhone.FreeFormNumber : null;
-                    const dueDateStr = inv.DueDate; 
+                    const dueDateStr = inv.DueDate;
 
-                    if (!dueDateStr) continue; 
+                    if (!dueDateStr) continue;
 
                     const dueDateObj = new Date(dueDateStr);
                     const timeDiff = todayDate.getTime() - dueDateObj.getTime();
@@ -1239,12 +1328,12 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
                                     <p>Your account has an outstanding balance of <strong>$${balance.toFixed(2)} CAD</strong> for Invoice #${docNumber}.</p>
                                     <p>Please send an Interac e-Transfer to <strong>payments@fiscalx.ca</strong> to avoid service interruption.</p>
                                 </div>`;
-                            
+
                             await ses.send(new SendEmailCommand({
                                 Source: SENDER_EMAIL, Destination: { ToAddresses: [customerEmail], BccAddresses: [OFFICE_EMAIL] },
                                 Message: { Subject: { Charset: "UTF-8", Data: `Outstanding Balance Reminder - FiscalX` }, Body: { Html: { Charset: "UTF-8", Data: reminderHtml } } }
                             }));
-                            
+
                             await ddbDocClient.send(new UpdateCommand({
                                 TableName: TABLE_NAME, Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
                                 UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date, isPaused = if_not_exists(isPaused, :falseVal)",
@@ -1268,7 +1357,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
                                     PhoneNumber: cleanPhone, Message: smsMessage,
                                     MessageAttributes: { 'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: 'Transactional' } }
                                 }));
-                                
+
                                 await ddbDocClient.send(new UpdateCommand({
                                     TableName: TABLE_NAME, Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
                                     UpdateExpression: "set escalationLevel = :lvl, lastContactDate = :date",
@@ -1298,7 +1387,7 @@ if (data.action === "createBooking" || data.action === "submitBooking") {
         if (data.action === "chatWithFiscalBot") {
             const userMessage = data.message || "";
             const conversationHistory = data.history || []; // Array of { role: "user" | "assistant", content: [{ text: "..." }] }
-            
+
             if (!userMessage) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "No message provided." }) };
 
             try {
@@ -1364,11 +1453,11 @@ Always close your responses by asking if they would like the link to book a cons
                 });
 
                 const bedrockResponse = await bedrock.send(command);
-                
+
                 // Decode the response (Bedrock returns a Uint8Array)
                 const decodedResponseBody = new TextDecoder().decode(bedrockResponse.body);
                 const responseJson = JSON.parse(decodedResponseBody);
-                
+
                 // Nova messages API returns output in responseJson.output.message.content[0].text
                 const aiReply = responseJson.output.message.content[0].text;
 
@@ -1383,9 +1472,9 @@ Always close your responses by asking if they would like the link to book a cons
         // ==============================================================
         // ACTION D: PROCESS THE STANDARD CONTACT INTAKE FORM
         // ==============================================================
-        const fullName = data.fullName || "Valued Client"; 
-        const email = data.email || data.userEmail || "Unknown Email"; 
-        const service = data.service || "General Inquiry"; 
+        const fullName = data.fullName || "Valued Client";
+        const email = data.email || data.userEmail || "Unknown Email";
+        const service = data.service || "General Inquiry";
         const message = data.message || "None provided";
 
         // SECURE CHECK: Only fire this if it's explicitly a contact form!
