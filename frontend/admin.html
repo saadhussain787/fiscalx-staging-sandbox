@@ -119,8 +119,21 @@
         </div>
       </div>
 
-      <p id="kanban-status" class="text-sm text-slate-400 mb-6 italic"></p>
-
+      <div class="flex items-center justify-between mb-6">
+        <p id="kanban-status" class="text-sm text-slate-400 italic m-0"></p>
+        <div class="flex items-center gap-2">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Filter Assignee:</label>
+          <select id="board-assignee-filter" onchange="applyBoardFilter()" class="bg-black/40 border border-white/10 text-white text-xs font-bold rounded-lg focus:ring-teal-500 focus:border-teal-500 p-2 outline-none">
+            <option value="ALL">All Staff</option>
+            <option value="MY_TASKS" selected>My Tasks</option>
+            <option value="Unassigned">Unassigned</option>
+            <option value="wasim@fiscalx.ca">Wasim Kadri</option>
+            <option value="cooldude014317@gmail.com">Cool Dude</option>
+            <option value="arfa786.sa@gmail.com">Arfa</option>
+            <option value="ahmade.muhyedin@gmail.com">Ahmed</option>
+          </select>
+        </div>
+      </div>
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col h-[600px]">
           <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
@@ -496,7 +509,9 @@ const urlParams = new URLSearchParams(window.location.search);
           const completed = deduplicatedClients.filter(c => c.campaignStatus === 'Completed').length;
           document.getElementById('stat-total').innerText = total; document.getElementById('stat-progress').innerText = inProgress; document.getElementById('stat-completed').innerText = completed;
           if (!authCode) document.getElementById('kanban-status').innerText = ""; 
-          window.allClients = deduplicatedClients; renderKanbanBoard(deduplicatedClients);
+          window.allClients = deduplicatedClients;
+          document.getElementById('board-assignee-filter').value = "MY_TASKS";
+          applyBoardFilter();
         } else { document.getElementById('kanban-status').innerText = "Error fetching data."; }
       } catch (error) { document.getElementById('kanban-status').innerText = "Network Error connecting to Database."; }
     }
@@ -551,6 +566,20 @@ const urlParams = new URLSearchParams(window.location.search);
         }
       });
       return Object.values(uniqueClients);
+    }
+
+    function applyBoardFilter() {
+      const filterValue = document.getElementById('board-assignee-filter').value;
+      const adminEmail = localStorage.getItem('admin_email');
+      
+      let filteredClients = window.allClients;
+      if (filterValue === 'MY_TASKS' && adminEmail) {
+        filteredClients = window.allClients.filter(c => c.assignedTo === adminEmail);
+      } else if (filterValue !== 'ALL') {
+        filteredClients = window.allClients.filter(c => c.assignedTo === filterValue);
+      }
+      
+      renderKanbanBoard(filteredClients);
     }
 
     function renderKanbanBoard(clients) {
