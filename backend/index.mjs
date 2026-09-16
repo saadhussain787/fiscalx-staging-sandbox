@@ -1009,7 +1009,7 @@ export const handler = async (event) => {
                     } catch (e) { }
                 }
 
-                await ddbDocClient.send(new PutCommand({ TableName: TABLE_NAME, Item: { userEmail: data.email, timestamp: new Date().toISOString(), clientName: data.fullName, bookingDate: data.bookingDate, bookingTime: data.bookingTime, msEventId: msEventId, campaignStatus: "Pending", paymentConfirmed: false } }));
+                await ddbDocClient.send(new PutCommand({ TableName: TABLE_NAME, Item: { userEmail: data.email, timestamp: new Date().toISOString(), clientName: data.fullName, bookingDate: data.bookingDate, bookingTime: data.bookingTime, msEventId: msEventId, campaignStatus: "Pending", paymentConfirmed: false, phone: data.phone || "Not Provided", taxType: data.taxType || data.service || "General Inquiry" } }));
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
             } catch (err) {
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };

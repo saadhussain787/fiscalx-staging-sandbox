@@ -99,10 +99,16 @@ layout: layout.html
                   <p id="selected-time-display" class="text-sm font-extrabold text-brand-700 mt-0.5"></p>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input type="text" id="booking-name" required placeholder="Your Full Name *" class="px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 outline-none" />
                   <input type="email" id="booking-email" required placeholder="Your Email Address *" class="px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 outline-none" />
-                  <input type="tel" id="booking-phone" placeholder="Phone (Optional)" maxlength="10" class="px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 outline-none font-mono" />
+                  <input type="tel" id="booking-phone" required pattern="\d{10}" maxlength="10" placeholder="Phone Number (10 Digits) *" class="px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 outline-none font-mono" />
+                  <select id="booking-tax-type" required class="px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 outline-none bg-white cursor-pointer">
+                    <option value="" disabled selected>Select Tax Service *</option>
+                    <option value="T1 Personal Tax">T1 Personal Tax</option>
+                    <option value="T2 Corporate Tax">T2 Corporate Tax</option>
+                    <option value="Other / Consultation">Other / Consultation</option>
+                  </select>
                 </div>
 
                 <button type="button" id="confirm-booking-btn" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-2xl text-sm font-extrabold text-white bg-brand-600 hover:bg-brand-500 transition-all shadow-lg shadow-brand-500/20">
@@ -334,11 +340,24 @@ layout: layout.html
     confirmBtn.addEventListener('click', async () => {
       const name = document.getElementById('booking-name').value.trim();
       const email = document.getElementById('booking-email').value.trim();
-      const phone = document.getElementById('booking-phone').value.trim() || "Not Provided";
+      const phone = document.getElementById('booking-phone').value.trim();
+      const taxTypeSelect = document.getElementById('booking-tax-type');
+      const taxType = taxTypeSelect ? taxTypeSelect.value : "";
 
       if (!name || !email) { 
         alert("Please enter your Full Name and Email Address before confirming!"); 
         return; 
+      }
+      
+      const phoneRegex = /^\d{10}$/;
+      if (!phoneRegex.test(phone)) {
+        alert("Please enter a valid 10-digit phone number.");
+        return;
+      }
+      
+      if (!taxType) {
+        alert("Please select the tax service you need help with.");
+        return;
       }
 
       confirmBtn.disabled = true; 
@@ -352,6 +371,7 @@ layout: layout.html
         fullName: name,
         email: email,
         phone: phone,
+        taxType: taxType,
         service: "Direct Calendar Booking"
       };
 
@@ -372,6 +392,8 @@ layout: layout.html
           document.getElementById('booking-name').value = "";
           document.getElementById('booking-email').value = "";
           document.getElementById('booking-phone').value = "";
+          const taxTypeSelect = document.getElementById('booking-tax-type');
+          if (taxTypeSelect) taxTypeSelect.value = "";
         } else {
           alert("Booking error: " + (result.message || "Failed to secure slot."));
         }
