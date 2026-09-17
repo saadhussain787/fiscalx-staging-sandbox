@@ -17,6 +17,24 @@
   --color-brand-800: #223450;
   --color-brand-900: #202e43;
   --color-brand-950: #141c2b;
+
+  /* FinTech Design System Tokens */
+  --color-primary-emerald: #10b981;
+  --color-primary-hover: #059669;
+  --color-primary-neon: #34d399;
+  --color-vector-cyan: #06b6d4;
+  --color-corporate-blue: #3b82f6;
+  --color-advisory-indigo: #6366f1;
+  --color-alert-amber: #f59e0b;
+  --color-alert-rose: #f43f5e;
+  
+  --color-surface-light: #f8f9ff;
+  --color-surface-dark: #0b1329;
+  --color-surface-darker: #0f172a;
+
+  /* Physics-Based Transitions */
+  --ease-physics: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-physics-out: cubic-bezier(0.2, 0, 0, 1);
 }
 
 @layer utilities {
@@ -29,6 +47,19 @@
   .delay-300 { animation-delay: 300ms; }
   .delay-400 { animation-delay: 400ms; }
   .animate-breathe { animation: breathe 8s ease-in-out infinite; }
+
+  /* Glassmorphic Shimmer Utilities */
+  .animate-shimmer-light {
+    animation: shimmer-light 1.6s infinite linear;
+    background: linear-gradient(90deg, rgba(226, 232, 240, 0.4) 0%, rgba(255, 255, 255, 0.85) 50%, rgba(226, 232, 240, 0.4) 100%);
+    background-size: 200% 100%;
+  }
+
+  .animate-shimmer-dark {
+    animation: shimmer-dark 1.6s infinite linear;
+    background: linear-gradient(90deg, rgba(30, 41, 59, 0.5) 0%, rgba(51, 65, 85, 0.8) 50%, rgba(30, 41, 59, 0.5) 100%);
+    background-size: 200% 100%;
+  }
 }
 
 @keyframes fade-up {
@@ -49,4 +80,14 @@
   50% {
     opacity: 1;
   }
+}
+
+@keyframes shimmer-light {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes shimmer-dark {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }

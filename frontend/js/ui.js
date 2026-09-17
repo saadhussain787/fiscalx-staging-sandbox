@@ -60,8 +60,13 @@ if (dashDatePicker) {
 
     dashBookingDate = e.target.value;
     dashConfirmation.classList.add("hidden");
-    dashTimeSlots.innerHTML =
-      "<p class='text-xs text-slate-400 col-span-2 sm:col-span-4 italic animate-pulse py-2'>Checking Wasim's Live Outlook Calendar...</p>";
+    // Glassmorphic Skeleton Shimmer for loading slots
+    dashTimeSlots.innerHTML = `
+      <div class="col-span-2 sm:col-span-4 flex flex-col gap-3 py-4 opacity-0 transition-opacity duration-150 ease-physics" style="opacity: 1;">
+        <div class="h-3 bg-slate-200/50 rounded-full w-3/4 animate-shimmer-light"></div>
+        <div class="h-3 bg-slate-200/50 rounded-full w-1/2 animate-shimmer-light"></div>
+      </div>
+    `;
     dashSlotContainer.classList.remove("hidden");
 
     try {
@@ -95,11 +100,11 @@ if (dashDatePicker) {
 
         if (!slot.isAvailable) {
           btn.className =
-            "dash-slot-btn border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed font-semibold py-2 px-3 rounded-xl text-xs line-through";
+            "dash-slot-btn border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed font-semibold py-2 px-3 rounded-xl text-xs line-through opacity-0 transition-opacity duration-150 ease-physics";
           btn.disabled = true;
         } else {
           btn.className =
-            "dash-slot-btn border border-slate-300 text-slate-700 bg-white hover:border-brand-500 hover:text-brand-600 font-semibold py-2 px-3 rounded-xl text-xs transition-all shadow-sm";
+            "dash-slot-btn border border-slate-300 text-slate-700 bg-white hover:border-brand-500 hover:text-brand-600 font-semibold py-2 px-3 rounded-xl text-xs transition-all shadow-sm opacity-0 transition-opacity duration-150 ease-physics";
           btn.onclick = () => {
             document
               .querySelectorAll(".dash-slot-btn:not(:disabled)")
@@ -128,6 +133,12 @@ if (dashDatePicker) {
           };
         }
         dashTimeSlots.appendChild(btn);
+        
+        // Trigger fade in after a brief delay
+        setTimeout(() => {
+          btn.classList.remove("opacity-0");
+          btn.classList.add("opacity-100");
+        }, 10);
       });
     } catch (err) {
       console.error("Dashboard Calendar Error:", err);
@@ -328,7 +339,7 @@ function addFamilyRow() {
 }
 function checkFamilyEmpty() {
   if (familyTableBody.querySelectorAll(".family-row").length === 0) {
-    familyTableBody.innerHTML = `<tr id="family-empty-row"><td colspan="6" class="p-4 text-center text-slate-400 italic">No dependents declared. Click "+ Add Dependent" to include one.</td></tr>`;
+    familyTableBody.innerHTML = `<tr id="family-empty-row"><td colspan="6" class="p-8"><div class="w-full flex flex-col items-center justify-center p-8 bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-2xl transition-all duration-300 hover:bg-slate-100 hover:border-slate-300"><div class="w-12 h-12 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center text-slate-400 mb-3"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"></path></svg></div><h4 class="text-sm font-bold text-slate-700 mb-1">No Dependents Declared</h4><p class="text-xs text-slate-500 text-center">Click the "+ Add Dependent" button above to add children or relatives.</p></div></td></tr>`;
   }
 }
 
@@ -347,7 +358,7 @@ function addResidencyRow() {
 }
 function checkResidencyEmpty() {
   if (residencyTableBody.querySelectorAll(".residency-row").length === 0) {
-    residencyTableBody.innerHTML = `<tr id="residency-empty-row"><td colspan="4" class="p-4 text-center text-slate-400 italic">No residency rows declared. Click "+ Add Address Row" to add a ledger row.</td></tr>`;
+    residencyTableBody.innerHTML = `<tr id="residency-empty-row"><td colspan="4" class="p-8"><div class="w-full flex flex-col items-center justify-center p-8 bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-2xl transition-all duration-300 hover:bg-slate-100 hover:border-slate-300"><div class="w-12 h-12 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center text-slate-400 mb-3"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg></div><h4 class="text-sm font-bold text-slate-700 mb-1">No Residency Ledger</h4><p class="text-xs text-slate-500 text-center">Click "+ Add Address Row" to declare Ontario addresses.</p></div></td></tr>`;
   }
 }
 
@@ -721,8 +732,8 @@ if (organizerForm) {
         document
           .getElementById("spousal-income-container")
           .classList.add("hidden");
-        familyTableBody.innerHTML = `<tr id="family-empty-row"><td colspan="6" class="p-4 text-center text-slate-400 italic">No dependents declared. Click "+ Add Dependent" to include one.</td></tr>`;
-        residencyTableBody.innerHTML = `<tr id="residency-empty-row"><td colspan="4" class="p-4 text-center text-slate-400 italic">No residency rows declared. Click "+ Add Address Row" to add a ledger row.</td></tr>`;
+        familyTableBody.innerHTML = `<tr id="family-empty-row"><td colspan="6" class="p-8"><div class="w-full flex flex-col items-center justify-center p-8 bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-2xl transition-all duration-300 hover:bg-slate-100 hover:border-slate-300"><div class="w-12 h-12 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center text-slate-400 mb-3"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"></path></svg></div><h4 class="text-sm font-bold text-slate-700 mb-1">No Dependents Declared</h4><p class="text-xs text-slate-500 text-center">Click the "+ Add Dependent" button above to add children or relatives.</p></div></td></tr>`;
+        residencyTableBody.innerHTML = `<tr id="residency-empty-row"><td colspan="4" class="p-8"><div class="w-full flex flex-col items-center justify-center p-8 bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-2xl transition-all duration-300 hover:bg-slate-100 hover:border-slate-300"><div class="w-12 h-12 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center text-slate-400 mb-3"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg></div><h4 class="text-sm font-bold text-slate-700 mb-1">No Residency Ledger</h4><p class="text-xs text-slate-500 text-center">Click "+ Add Address Row" to declare Ontario addresses.</p></div></td></tr>`;
         ownerTableBody.innerHTML = `<tr id="owner-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No co-investors declared. Defaults to 100% sole owner.</td></tr>`;
         directorTableBody.innerHTML = `<tr id="director-empty-row"><td colspan="5" class="p-4 text-center text-slate-400 italic">No directors declared. Click "+ Add Director".</td></tr>`;
         updateConditionalSections();

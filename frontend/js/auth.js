@@ -146,31 +146,28 @@ function updateProgressBar(status) {
   const stepCompleted = document.getElementById("step-completed");
 
   [stepOnboarding, stepProcessing, stepCompleted].forEach((el) => {
-    el.classList.remove("bg-amber-500", "bg-emerald-500", "animate-pulse");
-    el.classList.add("bg-slate-200");
+    el.className = "w-full h-2.5 rounded-full transition-colors duration-500 shadow-inner bg-slate-800";
   });
 
   if (status === "Unsubmitted") {
     trackerText.innerText =
       "Action Required: Please complete and transmit your Onboarding Organizer.";
-    stepOnboarding.classList.replace("bg-slate-200", "bg-amber-500");
-    stepOnboarding.classList.add("animate-pulse");
+    stepOnboarding.classList.replace("bg-slate-800", "animate-shimmer-dark");
   } else if (status === "Pending") {
     trackerText.innerText =
       "Onboarding Complete! Your tax file has been received and is queued for review.";
-    stepOnboarding.classList.replace("bg-slate-200", "bg-emerald-500");
+    stepOnboarding.classList.replace("bg-slate-800", "bg-primary-emerald");
   } else if (status === "In Progress") {
     trackerText.innerText =
       "Advisors Processing: Wasim Kadri is actively preparing your tax return.";
-    stepOnboarding.classList.replace("bg-slate-200", "bg-emerald-500");
-    stepProcessing.classList.replace("bg-slate-200", "bg-amber-500");
-    stepProcessing.classList.add("animate-pulse");
+    stepOnboarding.classList.replace("bg-slate-800", "bg-primary-emerald");
+    stepProcessing.classList.replace("bg-slate-800", "animate-shimmer-dark");
   } else if (status === "Completed") {
     trackerText.innerText =
       "Completed & Ready! Your tax return has been finalized.";
-    stepOnboarding.classList.replace("bg-slate-200", "bg-emerald-500");
-    stepProcessing.classList.replace("bg-slate-200", "bg-emerald-500");
-    stepCompleted.classList.replace("bg-slate-200", "bg-emerald-500");
+    stepOnboarding.classList.replace("bg-slate-800", "bg-primary-emerald");
+    stepProcessing.classList.replace("bg-slate-800", "bg-primary-emerald");
+    stepCompleted.classList.replace("bg-slate-800", "bg-primary-emerald");
   }
 }
 
