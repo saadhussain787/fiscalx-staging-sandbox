@@ -100,10 +100,10 @@ layout: layout.html
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input type="text" id="booking-name" required placeholder="Your Full Name *" class="px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 outline-none" />
-                  <input type="email" id="booking-email" required placeholder="Your Email Address *" class="px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 outline-none" />
-                  <input type="tel" id="booking-phone" required pattern="\d{10}" maxlength="10" placeholder="Phone Number (10 Digits) *" class="px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 outline-none font-mono" />
-                  <select id="booking-tax-type" required class="px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 outline-none bg-white cursor-pointer">
+                  <input type="text" id="booking-name" required placeholder="Your Full Name *" class="px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:ring-2 focus:ring-primary-neon outline-none transition-all ease-physics" />
+                  <input type="email" id="booking-email" required placeholder="Your Email Address *" class="px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:ring-2 focus:ring-primary-neon outline-none transition-all ease-physics" />
+                  <input type="tel" id="booking-phone" required pattern="\d{10}" maxlength="10" placeholder="Phone Number (10 Digits) *" class="px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:ring-2 focus:ring-primary-neon outline-none font-mono transition-all ease-physics" />
+                  <select id="booking-tax-type" required class="px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:ring-2 focus:ring-primary-neon outline-none cursor-pointer transition-all ease-physics">
                     <option value="" disabled selected>Select Tax Service *</option>
                     <option value="T1 Personal Tax">T1 Personal Tax</option>
                     <option value="T2 Corporate Tax">T2 Corporate Tax</option>
@@ -111,7 +111,7 @@ layout: layout.html
                   </select>
                 </div>
 
-                <button type="button" id="confirm-booking-btn" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-2xl text-sm font-extrabold text-white bg-brand-600 hover:bg-brand-500 transition-all shadow-lg shadow-brand-500/20">
+                <button type="button" id="confirm-booking-btn" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-2xl text-sm font-extrabold text-primary-dark bg-primary-neon hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:-translate-y-[1px] transition-all ease-physics shadow-md">
                   Confirm & Reserve Appointment
                 </button>
               </div>
@@ -129,20 +129,20 @@ layout: layout.html
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label for="full-name" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Full Name</label>
-                  <input type="text" id="full-name" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+                  <input type="text" id="full-name" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-neon transition-all ease-physics" />
                 </div>
                 <div>
                   <label for="business-email" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Email Address</label>
-                  <input type="email" id="business-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+                  <input type="email" id="business-email" required placeholder="name@company.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-neon transition-all ease-physics" />
                 </div>
                 <div class="sm:col-span-2">
                   <label for="phone-number" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Phone Number (10 Digits)</label>
-                  <input type="tel" id="phone-number" required maxlength="10" pattern="\d{10}" placeholder="4165550199" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all font-mono" />
+                  <input type="tel" id="phone-number" required maxlength="10" pattern="\d{10}" placeholder="4165550199" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-neon transition-all ease-physics font-mono" />
                 </div>
                 
                 <div class="sm:col-span-2">
                   <label for="service-target" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Requested Financial Service</label>
-                  <select id="service-target" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all cursor-pointer">
+                  <select id="service-target" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-neon transition-all ease-physics cursor-pointer">
                     <option value="" disabled selected>Select an option...</option>
                     <optgroup label="--- PERSONAL TAX SERVICES ---">
                       <option value="Self-Employed Taxes">Self-Employed Taxes</option>
@@ -168,10 +168,10 @@ layout: layout.html
 
                 <div class="sm:col-span-2">
                   <label for="message-body" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Message Context</label>
-                  <textarea id="message-body" rows="4" placeholder="Briefly detail your business scope..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all"></textarea>
+                  <textarea id="message-body" rows="4" placeholder="Briefly detail your business scope..." class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-neon transition-all ease-physics"></textarea>
                 </div>
               </div>
-              <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-xl text-sm font-bold text-white bg-slate-800 hover:bg-slate-700 transition-all shadow-md">
+              <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-xl text-sm font-bold text-primary-dark bg-primary-neon hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:-translate-y-[1px] transition-all ease-physics shadow-md">
                 Send Message
               </button>
             </form>

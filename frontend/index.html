@@ -16,8 +16,8 @@ layout: layout.html
   .animate-aurora-green { animation: aurora-float-2 20s ease-in-out infinite; }
   .aurora-container { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
   .aurora-blob { position: absolute; border-radius: 50%; filter: blur(80px); will-change: transform; }
-  .aurora-blue { top: -10%; right: -10%; width: 450px; height: 450px; background-color: #1e40af; }
-  .aurora-green { bottom: -10%; left: -10%; width: 500px; height: 500px; background-color: #4CAF50; }
+  .aurora-blue { top: -10%; right: -10%; width: 450px; height: 450px; background-color: rgba(16, 185, 129, 0.15); }
+  .aurora-green { bottom: -10%; left: -10%; width: 500px; height: 500px; background-color: rgba(15, 23, 42, 0.4); }
 
   /* Breathing Edge Glow Animation for Dual Panels */
   @keyframes sweep {
@@ -55,29 +55,31 @@ layout: layout.html
   .icon-box svg { transition: all 0.3s ease; }
   .service-text { transition: all 0.3s ease; }
 
-  /* Personal Hover Theme (Emerald) */
+  /* Personal Hover Theme (Neon/Glass) */
   .card-personal:hover {
     transform: translateY(-4px);
-    border-color: #6ee7b7;
-    box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.15);
+    border-color: #10b981;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+    background-color: rgba(15, 23, 42, 0.02);
   }
   .card-personal:hover .icon-box {
-    background-color: #ecfdf5; border-color: #a7f3d0; color: #059669;
+    background-color: #10b981; border-color: #10b981; color: #ffffff;
   }
   .card-personal:hover .icon-box svg { transform: scale(1.15); }
-  .card-personal:hover .service-text { color: #065f46; }
+  .card-personal:hover .service-text { color: #0f172a; }
 
-  /* Corporate Hover Theme (Blue) */
+  /* Corporate Hover Theme (Neon/Glass) */
   .card-corporate:hover {
     transform: translateY(-4px);
-    border-color: #93c5fd;
-    box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.15);
+    border-color: #10b981;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+    background-color: rgba(15, 23, 42, 0.02);
   }
   .card-corporate:hover .icon-box {
-    background-color: #eff6ff; border-color: #bfdbfe; color: #2563eb;
+    background-color: #10b981; border-color: #10b981; color: #ffffff;
   }
   .card-corporate:hover .icon-box svg { transform: scale(1.15); }
-  .card-corporate:hover .service-text { color: #1e40af; }
+  .card-corporate:hover .service-text { color: #0f172a; }
 </style>
 
 <main class="flex-grow overflow-hidden">
@@ -115,11 +117,11 @@ layout: layout.html
             </p>
             
             <div class="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 animate-fade-up delay-400">
-              <a href="/contact-us/" class="group inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold text-white bg-brand-500 hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-300 transition-all duration-300 shadow-lg shadow-brand-500/20 hover:shadow-xl hover:shadow-brand-500/40 hover:scale-[1.02]">
+              <a href="/contact-us/" class="group inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold transition-all ease-physics text-primary-dark bg-primary-neon shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:-translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-primary-neon">
                 Book Appointment
-                <svg class="ml-2 -mr-1 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2V7a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <svg class="ml-2 -mr-1 w-5 h-5 transition-transform ease-physics group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2V7a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
               </a>
-              <a href="#services" class="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold text-slate-200 bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-white/5">
+              <a href="#services" class="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-semibold text-slate-200 bg-white/5 hover:bg-white/10 border border-white/10 transition-all ease-physics hover:-translate-y-[1px] hover:shadow-lg hover:shadow-white/5">
                 Explore Services
               </a>
             </div>
@@ -143,9 +145,9 @@ layout: layout.html
                 </svg>
                 <svg class="w-full h-full relative z-20" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="FiscalX Tax Savings and Growth Graph">
                   <path d="M 0 95 Q 25 80, 50 45 T 100 5 L 100 100 L 0 100 Z" fill="url(#hero-gradient)" opacity="0.15" />
-                  <path id="hero-curve-line" d="M 0 95 Q 25 80, 50 45 T 100 5" fill="none" stroke="#4CAF50" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="250" stroke-dashoffset="250" class="transition-all duration-1000 ease-out" />
+                  <path id="hero-curve-line" d="M 0 95 Q 25 80, 50 45 T 100 5" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="250" stroke-dashoffset="250" class="transition-all duration-1000 ease-out" />
                 </svg>
-                <svg width="0" height="0"><defs><linearGradient id="hero-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4CAF50" /><stop offset="100%" stop-color="#4CAF50" stop-opacity="0" /></linearGradient></defs></svg>
+                <svg width="0" height="0"><defs><linearGradient id="hero-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10b981" /><stop offset="100%" stop-color="#10b981" stop-opacity="0" /></linearGradient></defs></svg>
               </div>
               
               <div class="grid grid-cols-2 gap-4">
