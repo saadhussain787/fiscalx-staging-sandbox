@@ -3,7 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand, ScanCommand, UpdateCommand, DeleteCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, ScanCommand, UpdateCommand, DeleteCommand, GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { CognitoIdentityProviderClient, AdminListGroupsForUserCommand, GetUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
@@ -38,18 +38,38 @@ const AUTHORIZED_STAFF = [
     "arfa786.sa@gmail.com"
 ];
 
-async function isStaff(email, accessToken) {
-    if (!email) return false;
+async function getAuthenticatedUser(accessToken) {
+    if (!accessToken) {
+        const error = new Error("Unauthorized");
+        error.statusCode = 401;
+        throw error;
+    }
     try {
+        const user = await cognito.send(new GetUserCommand({ AccessToken: accessToken }));
+        const emailAttr = user.UserAttributes.find(a => a.Name === "email");
+        const userEmail = emailAttr ? emailAttr.Value : null;
+
         const command = new AdminListGroupsForUserCommand({
             UserPoolId: USER_POOL_ID,
-            Username: email.trim()
+            Username: user.Username
         });
         const result = await cognito.send(command);
         const groups = (result.Groups || []).map(g => g.GroupName);
-        return groups.includes("Staff");
+
+        return { userEmail, groups, isValid: true };
     } catch (err) {
-        console.error(`Cognito group check failed for ${email}:`, err);
+        console.error("Token authentication failed:", err.message);
+        const error = new Error("Unauthorized");
+        error.statusCode = 401;
+        throw error;
+    }
+}
+
+async function isStaff(accessToken) {
+    try {
+        const authData = await getAuthenticatedUser(accessToken);
+        return authData.groups.includes("Staff");
+    } catch (err) {
         return false;
     }
 }
@@ -150,10 +170,15 @@ export const handler = async (event) => {
     console.log("Incoming Event Payload:", JSON.stringify(event));
     console.log("DIAGNOSTIC - QBO ID:", QBO_CLIENT_ID, "QBO SECRET Length:", QBO_CLIENT_SECRET ? QBO_CLIENT_SECRET.length : "MISSING/UNDEFINED");
 
+    // Define VIP Origins
+    const requestOrigin = event.headers?.origin || event.headers?.Origin || "";
+    const allowedOrigins = ["https://fiscalx.ca", "https://www.fiscalx.ca", "http://localhost:8080"];
+    const originToAllow = allowedOrigins.includes(requestOrigin) ? requestOrigin : "https://fiscalx.ca";
+
     const headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "OPTIONS,POST"
+        "Access-Control-Allow-Origin": originToAllow,
+        "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Amz-Date, X-Api-Key, X-Amz-Security-Token",
+        "Access-Control-Allow-Methods": "OPTIONS,POST,GET"
     };
 
     if (event.requestContext && event.requestContext.httpMethod === "OPTIONS") {
@@ -166,6 +191,14 @@ export const handler = async (event) => {
         const accessToken = authHeader.replace("Bearer ", "").trim();
 
         if (data.action === "getUploadUrl") {
+            try {
+                const authData = await getAuthenticatedUser(accessToken);
+                if (data.userEmail !== authData.userEmail) {
+                    return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+                }
+            } catch (err) {
+                return { statusCode: 401, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+            }
             const fileName = data.fileName;
             const fileType = data.fileType;
             const userEmail = data.userEmail;
@@ -351,11 +384,28 @@ export const handler = async (event) => {
         if (data.action === "getCrmData") {
             const adminEmail = data.adminEmail;
 
-            const isAuthorized = await isStaff(adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
-            const scanResult = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME }));
-            const clients = (scanResult.Items || []).filter(c => c.userEmail !== "SYSTEM_CONFIG" && !c.userEmail.includes("QBO_INVOICE#"));
+            let clients = [];
+            try {
+                // Optimized GSI Queries: Fetch only CRM leads by status, completely bypassing QBO Invoices and Configs (O(1) lookups)
+                const statuses = ['Pending', 'In Progress', 'Completed'];
+                for (const status of statuses) {
+                    const queryResult = await ddbDocClient.send(new QueryCommand({
+                        TableName: TABLE_NAME,
+                        IndexName: "campaignStatus-index",
+                        KeyConditionExpression: "campaignStatus = :status",
+                        ExpressionAttributeValues: { ":status": status }
+                    }));
+                    if (queryResult.Items) clients = clients.concat(queryResult.Items);
+                }
+            } catch (error) {
+                // Graceful fallback to ScanCommand if the AWS GSI is still in "CREATING" status
+                console.warn("GSI not ready, falling back to Scan:", error.message);
+                const scanResult = await ddbDocClient.send(new ScanCommand({ TableName: TABLE_NAME }));
+                clients = (scanResult.Items || []).filter(c => c.userEmail !== "SYSTEM_CONFIG" && !c.userEmail.includes("QBO_INVOICE#"));
+            }
 
             const total = clients.length;
             const inProgress = clients.filter(c => c.campaignStatus === 'Pending' || c.campaignStatus === 'In Progress').length;
@@ -370,7 +420,7 @@ export const handler = async (event) => {
             const clientTimestamp = data.timestamp;
             const newStatus = data.newStatus;
 
-            const isAuthorized = await isStaff(adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
             try {
@@ -392,7 +442,7 @@ export const handler = async (event) => {
             const clientTimestamp = data.timestamp;
             const assignedTo = data.assignedTo;
 
-            const isAuthorized = await isStaff(adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
             try {
@@ -409,7 +459,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "getDownloadUrl") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -444,7 +494,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "sendDocumentReminder") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -460,7 +510,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "updateBillingStatus") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -480,7 +530,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "exchangeMsCode") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -501,11 +551,15 @@ export const handler = async (event) => {
         }
 
         if (data.action === "exchangeQboCode") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Staff Access." }) };
 
             try {
                 // Dynamically use the redirectUri sent by the frontend, fallback to hardcoded if empty
+                const ALLOWED_REDIRECTS = ['https://fiscalx.ca/admin', 'https://fiscalx.ca/dashboard'];
+                if (data.redirectUri && !ALLOWED_REDIRECTS.includes(data.redirectUri)) {
+                    return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Invalid redirect URI" }) };
+                }
                 const redirectUri = data.redirectUri || QBO_REDIRECT_URI;
                 console.log("QBO Exchange. ClientID present:", Boolean(QBO_CLIENT_ID), "Secret present:", Boolean(QBO_CLIENT_SECRET), "Using Redirect:", redirectUri);
 
@@ -550,7 +604,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "fetchQboInvoices") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -592,7 +646,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "sendQboReminder") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -623,7 +677,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "toggleInvoicePause") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -641,7 +695,7 @@ export const handler = async (event) => {
         if (data.action === "sendQboSmsReminder") {
             const { adminEmail, customerPhone, customerName, balance, docNumber } = data;
 
-            const isAuthorized = await isStaff(adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) {
                 return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized Backend Access." }) };
             }
@@ -1017,7 +1071,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "rescheduleBooking") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -1048,7 +1102,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "cancelBooking") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -1068,7 +1122,7 @@ export const handler = async (event) => {
         }
 
         if (data.action === "deleteClient") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -1098,7 +1152,7 @@ export const handler = async (event) => {
         // ACTION: GENERATE MONTH-END 5% COMMISSION REPORT
         // ==============================================================
         if (data.action === "generateCommissionReport") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
             try {
@@ -1140,13 +1194,13 @@ export const handler = async (event) => {
                     if (amountPaid > 0) {
                         const dueDateStr = inv.DueDate;
                         const updatedDateStr = inv.MetaData ? inv.MetaData.LastUpdatedTime : null;
-                        
+
                         if (dueDateStr && updatedDateStr) {
                             const dueDate = new Date(dueDateStr);
                             const updatedDate = new Date(updatedDateStr);
                             const diffTime = Math.abs(updatedDate - dueDate);
                             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            
+
                             if (updatedDate > dueDate && diffDays > 30) {
                                 recoveredCount++;
                                 recoveredCash += amountPaid;
@@ -1168,7 +1222,7 @@ export const handler = async (event) => {
         // ACTION: GENERATE DETAILED CLOSED INVOICES COMMISSION REPORT
         // ==============================================================
         if (data.action === "generateDetailedCommissionReport") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
             try {
@@ -1182,14 +1236,14 @@ export const handler = async (event) => {
                 let earliestDateStr = "2099-12-31";
                 const clearedInvoiceNumbers = new Set();
                 const escalatedUnclearedInvoices = new Set();
-                
+
                 for (const item of allItems) {
                     if (item.timestamp && item.timestamp !== "LEDGER" && !item.timestamp.includes("AUTH") && item.timestamp !== "SYSTEM_CONFIG") {
                         if (item.timestamp < earliestDateStr) {
                             earliestDateStr = item.timestamp;
                         }
                     }
-                    
+
                     if (item.userEmail && item.userEmail.startsWith("QBO_INVOICE#")) {
                         const invoiceNum = item.userEmail.replace("QBO_INVOICE#", "");
                         if (item.commissionCollected === true) {
@@ -1219,7 +1273,7 @@ export const handler = async (event) => {
                 qboInvoices.forEach(inv => {
                     if (clearedInvoiceNumbers.has(inv.DocNumber)) return; // Skip if already cleared
                     if (!escalatedUnclearedInvoices.has(inv.DocNumber)) return; // Skip if never escalated by FiscalBot
-                    
+
                     const balance = parseFloat(inv.Balance || 0);
                     const totalAmt = parseFloat(inv.TotalAmt || 0);
 
@@ -1230,12 +1284,12 @@ export const handler = async (event) => {
 
                             if (closedDate > implementationDate) {
                                 const dueDateStr = inv.DueDate;
-                                
+
                                 if (dueDateStr) {
                                     const dueDate = new Date(dueDateStr);
                                     const diffTime = Math.abs(closedDate - dueDate);
                                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                    
+
                                     if (closedDate > dueDate && diffDays > 30) {
                                         // Match 5% button exactly: Flat 5% on collected total amount
                                         let commission = totalAmt * 0.05;
@@ -1268,11 +1322,11 @@ export const handler = async (event) => {
                             const dueDate = new Date(dueDateStr);
                             const diffTime = Math.abs(today - dueDate);
                             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            
+
                             if (today > dueDate && diffDays > 30) {
                                 let estimatedCommission = balance * 0.05;
                                 const generatedDateStr = inv.TxnDate || (inv.MetaData ? inv.MetaData.CreateTime : null);
-                                
+
                                 openReportData.push({
                                     invoiceNumber: inv.DocNumber,
                                     customerName: inv.CustomerRef ? inv.CustomerRef.name : 'Unknown',
@@ -1297,7 +1351,7 @@ export const handler = async (event) => {
         // ACTION: MARK COMMISSION AS PAID (RESET METER)
         // ==============================================================
         if (data.action === "markCommissionPaid") {
-            const isAuthorized = await isStaff(data.adminEmail, accessToken);
+            const isAuthorized = await isStaff(accessToken);
             if (!isAuthorized) return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
 
             try {
@@ -1438,7 +1492,7 @@ export const handler = async (event) => {
         // ==============================================================
         if (data.action === "chatWithFiscalBot") {
             const userMessage = data.message || "";
-            const conversationHistory = data.history || []; // Array of { role: "user" | "assistant", content: [{ text: "..." }] }
+            const conversationHistory = (data.history || []).slice(-6); // Array of { role: "user" | "assistant", content: [{ text: "..." }] }
 
             if (!userMessage) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR", message: "No message provided." }) };
 

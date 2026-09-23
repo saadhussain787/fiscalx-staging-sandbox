@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,31 +9,39 @@
   <!-- SheetJS for Excel Export -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
+
 <body class="bg-[#0B0F19] text-white min-h-screen relative font-sans">
-  
-  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-gradient-to-b from-teal-500/10 via-emerald-500/5 to-transparent rounded-full blur-3xl pointer-events-none"></div>
+
+  <div
+    class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-gradient-to-b from-teal-500/10 via-emerald-500/5 to-transparent rounded-full blur-3xl pointer-events-none">
+  </div>
 
   <div class="max-w-7xl mx-auto relative z-10 pt-20 px-6 pb-12">
-    
+
     <!-- STAFF LOGIN SCREEN -->
-    <div id="admin-login-screen" class="max-w-md mx-auto bg-white/5 border border-white/10 p-8 rounded-3xl backdrop-blur-xl mt-12">
+    <div id="admin-login-screen"
+      class="max-w-md mx-auto bg-white/5 border border-white/10 p-8 rounded-3xl backdrop-blur-xl mt-12">
       <div class="text-center mb-8">
-        <h1 class="text-2xl font-bold tracking-tight bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent">
+        <h1
+          class="text-2xl font-bold tracking-tight bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent">
           FiscalX Staff Portal
         </h1>
         <p class="text-sm text-slate-400 mt-2">Authorized personnel only.</p>
       </div>
-      
+
       <form id="admin-login-form" class="space-y-5">
         <div>
           <label class="block text-xs font-bold text-slate-300 uppercase mb-2">Staff Email</label>
-          <input type="email" id="admin-email-input" required class="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/20 text-white focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          <input type="email" id="admin-email-input" required
+            class="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/20 text-white focus:outline-none focus:ring-2 focus:ring-teal-500" />
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-300 uppercase mb-2">Password</label>
-          <input type="password" id="admin-password-input" required class="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/20 text-white focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          <input type="password" id="admin-password-input" required
+            class="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/20 text-white focus:outline-none focus:ring-2 focus:ring-teal-500" />
         </div>
-        <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-bold text-slate-900 bg-teal-500 hover:bg-teal-400 transition-all">
+        <button type="submit"
+          class="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-bold text-slate-900 bg-teal-500 hover:bg-teal-400 transition-all">
           Secure Login
         </button>
       </form>
@@ -42,19 +51,24 @@
     <div id="admin-crm-screen" class="hidden">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-white/10 pb-6 mb-8">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent">
+          <h1
+            class="text-3xl font-bold tracking-tight bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent">
             Practice Management CRM
           </h1>
-          <p class="text-sm text-slate-400 mt-1">Logged in as: <span id="active-admin-email" class="text-teal-300 font-medium"></span></p>
+          <p class="text-sm text-slate-400 mt-1">Logged in as: <span id="active-admin-email"
+              class="text-teal-300 font-medium"></span></p>
         </div>
         <div class="mt-4 md:mt-0 flex gap-3">
-          <button id="btn-qbo-connect" onclick="connectQuickBooks()" class="hidden px-4 py-2 rounded-lg bg-[#2CA01C] border border-[#238016] text-white text-sm font-bold hover:bg-[#238016] transition shadow-md shadow-green-500/20">
+          <button id="btn-qbo-connect" onclick="connectQuickBooks()"
+            class="hidden px-4 py-2 rounded-lg bg-[#2CA01C] border border-[#238016] text-white text-sm font-bold hover:bg-[#238016] transition shadow-md shadow-green-500/20">
             🟢 Connect QBO
           </button>
-          <button id="btn-ms-connect" onclick="connectMicrosoft()" class="hidden px-4 py-2 rounded-lg bg-[#0078D4] border border-[#005A9E] text-white text-sm font-bold hover:bg-[#005A9E] transition shadow-md shadow-blue-500/20">
+          <button id="btn-ms-connect" onclick="connectMicrosoft()"
+            class="hidden px-4 py-2 rounded-lg bg-[#0078D4] border border-[#005A9E] text-white text-sm font-bold hover:bg-[#005A9E] transition shadow-md shadow-blue-500/20">
             🔗 Connect Outlook
           </button>
-          <button id="admin-logout-btn" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition">
+          <button id="admin-logout-btn"
+            class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition">
             Sign Out
           </button>
         </div>
@@ -75,11 +89,14 @@
         </div>
       </div>
 
-<!-- QBO CASH RECOVERY WIDGET -->
-      <div id="qbo-recovery-widget" class="mb-8 border border-green-500/20 bg-gradient-to-br from-[#0B0F19] to-[#0A1A12] rounded-3xl p-6 shadow-xl relative overflow-hidden">
+      <!-- QBO CASH RECOVERY WIDGET -->
+      <div id="qbo-recovery-widget"
+        class="mb-8 border border-green-500/20 bg-gradient-to-br from-[#0B0F19] to-[#0A1A12] rounded-3xl p-6 shadow-xl relative overflow-hidden">
         <!-- Glow effect -->
-        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-green-500/20 blur-2xl rounded-full pointer-events-none"></div>
-        
+        <div
+          class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-green-500/20 blur-2xl rounded-full pointer-events-none">
+        </div>
+
         <div class="flex justify-between items-center mb-6 relative z-10">
           <div>
             <h2 class="text-lg font-extrabold text-green-400 tracking-wide flex items-center gap-2">
@@ -88,31 +105,36 @@
             <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">Live Outstanding Invoice Sync</p>
           </div>
           <div class="flex gap-2 flex-wrap justify-end">
-            <button onclick="downloadDetailedReport(this)" class="text-xs px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/30 font-bold rounded-xl hover:bg-blue-500 hover:text-slate-900 transition-all shadow-md shadow-blue-500/10 flex items-center gap-2">
+            <button onclick="downloadDetailedReport(this)"
+              class="text-xs px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/30 font-bold rounded-xl hover:bg-blue-500 hover:text-slate-900 transition-all shadow-md shadow-blue-500/10 flex items-center gap-2">
               📊 Download Detailed Report
             </button>
-            <button onclick="generateCommissionReport(this)" class="text-xs px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold rounded-xl hover:bg-emerald-500 hover:text-slate-900 transition-all shadow-md shadow-emerald-500/10 flex items-center gap-2">
+            <button onclick="generateCommissionReport(this)"
+              class="text-xs px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold rounded-xl hover:bg-emerald-500 hover:text-slate-900 transition-all shadow-md shadow-emerald-500/10 flex items-center gap-2">
               🧾 5% Commission Report
             </button>
-            <button onclick="fetchAndRenderInvoices()" class="text-xs px-4 py-2 bg-green-500/10 text-green-400 border border-green-500/30 font-bold rounded-xl hover:bg-green-500 hover:text-slate-900 transition-all shadow-md shadow-green-500/10 flex items-center gap-2">
+            <button onclick="fetchAndRenderInvoices()"
+              class="text-xs px-4 py-2 bg-green-500/10 text-green-400 border border-green-500/30 font-bold rounded-xl hover:bg-green-500 hover:text-slate-900 transition-all shadow-md shadow-green-500/10 flex items-center gap-2">
               🔄 Sync QuickBooks
             </button>
           </div>
         </div>
-        
+
         <div class="grid grid-cols-2 gap-4 mb-6 relative z-10">
           <div class="bg-black/30 p-4 rounded-2xl border border-white/5">
             <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Outstanding</p>
             <p class="text-2xl font-black text-slate-100" id="qbo-total-unpaid">$0.00</p>
           </div>
-          <div class="bg-black/30 p-4 rounded-2xl border border-green-500/20 shadow-[inset_0_0_15px_rgba(34,197,94,0.05)]">
+          <div
+            class="bg-black/30 p-4 rounded-2xl border border-green-500/20 shadow-[inset_0_0_15px_rgba(34,197,94,0.05)]">
             <p class="text-[10px] text-green-400 uppercase tracking-widest font-bold mb-1">Estimated 5% Commission</p>
             <p class="text-2xl font-black text-green-400" id="qbo-commission">$0.00</p>
           </div>
         </div>
-        
+
         <div class="relative z-10">
-          <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3 border-b border-white/5 pb-2">Overdue & Unpaid Invoices</p>
+          <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3 border-b border-white/5 pb-2">
+            Overdue & Unpaid Invoices</p>
           <div id="qbo-invoice-list" class="space-y-2 max-h-[200px] overflow-y-auto pr-2 scrollbar-hide">
             <p class="text-xs text-slate-500 italic">Click "Sync QuickBooks" to fetch active invoices.</p>
           </div>
@@ -123,7 +145,8 @@
         <p id="kanban-status" class="text-sm text-slate-400 italic m-0"></p>
         <div class="flex items-center gap-2">
           <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Filter Assignee:</label>
-          <select id="board-assignee-filter" onchange="applyBoardFilter()" class="bg-black/40 border border-white/10 text-white text-xs font-bold rounded-lg focus:ring-teal-500 focus:border-teal-500 p-2 outline-none">
+          <select id="board-assignee-filter" onchange="applyBoardFilter()"
+            class="bg-black/40 border border-white/10 text-white text-xs font-bold rounded-lg focus:ring-teal-500 focus:border-teal-500 p-2 outline-none">
             <option value="ALL">All Staff</option>
             <option value="MY_TASKS" selected>My Tasks</option>
             <option value="Unassigned">Unassigned</option>
@@ -138,21 +161,24 @@
         <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col h-[600px]">
           <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
             <h3 class="font-bold text-slate-200 tracking-wide">Pending / New</h3>
-            <span class="bg-teal-500/20 text-teal-400 text-xs font-bold px-2.5 py-1 rounded-full" id="count-pending">0</span>
+            <span class="bg-teal-500/20 text-teal-400 text-xs font-bold px-2.5 py-1 rounded-full"
+              id="count-pending">0</span>
           </div>
           <div id="col-pending" class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide"></div>
         </div>
         <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col h-[600px]">
           <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
             <h3 class="font-bold text-slate-200 tracking-wide">In Progress</h3>
-            <span class="bg-amber-500/20 text-amber-400 text-xs font-bold px-2.5 py-1 rounded-full" id="count-progress">0</span>
+            <span class="bg-amber-500/20 text-amber-400 text-xs font-bold px-2.5 py-1 rounded-full"
+              id="count-progress">0</span>
           </div>
           <div id="col-progress" class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide"></div>
         </div>
         <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col h-[600px]">
           <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
             <h3 class="font-bold text-slate-200 tracking-wide">Completed</h3>
-            <span class="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full" id="count-completed">0</span>
+            <span class="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full"
+              id="count-completed">0</span>
           </div>
           <div id="col-completed" class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide"></div>
         </div>
@@ -161,16 +187,20 @@
   </div>
 
   <!-- CLIENT DETAIL MODAL -->
-  <div id="client-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center px-4 bg-[#0B0F19]/80 backdrop-blur-sm">
-    <div class="bg-[#131A2B] border border-white/10 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-      
+  <div id="client-modal"
+    class="fixed inset-0 z-50 hidden flex items-center justify-center px-4 bg-[#0B0F19]/80 backdrop-blur-sm">
+    <div
+      class="bg-[#131A2B] border border-white/10 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
       <div class="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-white/5">
         <h3 class="text-lg font-bold text-slate-200" id="modal-client-name">Client Name</h3>
         <button onclick="closeModal()" class="text-slate-400 hover:text-white transition">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
         </button>
       </div>
-      
+
       <div class="p-6 overflow-y-auto flex-1 space-y-6">
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -184,33 +214,41 @@
         </div>
 
         <!-- NATIVE CALENDAR & CLOCK RESCHEDULER BOX -->
-        <div id="modal-appointment-box" class="hidden bg-purple-500/10 border border-purple-500/30 rounded-2xl p-4 space-y-3">
+        <div id="modal-appointment-box"
+          class="hidden bg-purple-500/10 border border-purple-500/30 rounded-2xl p-4 space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-[10px] uppercase font-extrabold text-purple-400 tracking-wider">📅 Requested Consultation</span>
-            <span id="modal-booking-format" class="text-[10px] font-bold text-white bg-purple-500/30 px-2.5 py-0.5 rounded-md">MS Teams</span>
+            <span class="text-[10px] uppercase font-extrabold text-purple-400 tracking-wider">📅 Requested
+              Consultation</span>
+            <span id="modal-booking-format"
+              class="text-[10px] font-bold text-white bg-purple-500/30 px-2.5 py-0.5 rounded-md">MS Teams</span>
           </div>
           <p id="modal-booking-slot" class="text-sm font-bold text-slate-100"></p>
 
           <div class="flex gap-2 pt-2 border-t border-purple-500/20">
-            <button type="button" onclick="toggleRescheduleForm(true)" class="text-xs font-bold text-purple-300 bg-purple-500/20 hover:bg-purple-500/30 px-3 py-1.5 rounded-lg transition-all border border-purple-500/30">
+            <button type="button" onclick="toggleRescheduleForm(true)"
+              class="text-xs font-bold text-purple-300 bg-purple-500/20 hover:bg-purple-500/30 px-3 py-1.5 rounded-lg transition-all border border-purple-500/30">
               📅 Fast Reschedule
             </button>
-            <button type="button" onclick="adminCancelAppointment()" class="text-xs font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transition-all border border-red-500/20">
+            <button type="button" onclick="adminCancelAppointment()"
+              class="text-xs font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transition-all border border-red-500/20">
               ❌ Cancel Appointment
             </button>
           </div>
 
           <!-- INLINE INTERACTIVE CALENDAR & CLOCK SELECTOR -->
           <div id="reschedule-form-container" class="hidden pt-3 mt-3 border-t border-purple-500/20 space-y-3">
-            <p class="text-[10px] font-extrabold uppercase text-purple-300 tracking-wider">Select New Date & Clock Time</p>
+            <p class="text-[10px] font-extrabold uppercase text-purple-300 tracking-wider">Select New Date & Clock Time
+            </p>
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">New Date</label>
-                <input type="date" id="admin-reschedule-date" class="w-full px-3 py-2 rounded-lg bg-black/40 border border-purple-500/30 text-white text-xs font-bold outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer" />
+                <input type="date" id="admin-reschedule-date"
+                  class="w-full px-3 py-2 rounded-lg bg-black/40 border border-purple-500/30 text-white text-xs font-bold outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer" />
               </div>
               <div>
                 <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">New Clock Time (EST)</label>
-                <select id="admin-reschedule-time" class="w-full px-3 py-2 rounded-lg bg-black/40 border border-purple-500/30 text-white text-xs font-bold outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer">
+                <select id="admin-reschedule-time"
+                  class="w-full px-3 py-2 rounded-lg bg-black/40 border border-purple-500/30 text-white text-xs font-bold outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer">
                   <option value="09:00 AM">09:00 AM EST</option>
                   <option value="10:30 AM" selected>10:30 AM EST</option>
                   <option value="11:30 AM">11:30 AM EST</option>
@@ -222,10 +260,12 @@
               </div>
             </div>
             <div class="flex gap-2 pt-1">
-              <button type="button" onclick="submitAdminReschedule(this)" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-950 bg-purple-400 hover:bg-purple-300 transition-all shadow-md">
+              <button type="button" onclick="submitAdminReschedule(this)"
+                class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-950 bg-purple-400 hover:bg-purple-300 transition-all shadow-md">
                 Save New Time & Email Client
               </button>
-              <button type="button" onclick="toggleRescheduleForm(false)" class="px-3 py-2 rounded-lg text-xs font-bold text-slate-400 bg-white/5 hover:bg-white/10 transition-all">
+              <button type="button" onclick="toggleRescheduleForm(false)"
+                class="px-3 py-2 rounded-lg text-xs font-bold text-slate-400 bg-white/5 hover:bg-white/10 transition-all">
                 Cancel
               </button>
             </div>
@@ -238,143 +278,183 @@
             <div>
               <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Workflow Status</p>
               <div class="flex items-center gap-3">
-                <select id="modal-status-dropdown" onchange="updateClientStatus(this.value)" class="w-full bg-black/40 border border-white/10 text-white text-sm font-bold rounded-lg focus:ring-teal-500 focus:border-teal-500 block p-2.5">
+                <select id="modal-status-dropdown" onchange="updateClientStatus(this.value)"
+                  class="w-full bg-black/40 border border-white/10 text-white text-sm font-bold rounded-lg focus:ring-teal-500 focus:border-teal-500 block p-2.5">
                   <option value="Pending">Pending / New</option>
                   <option value="In Progress">In Progress</option>
                   <option value="Completed">Completed</option>
                 </select>
-                <span id="status-update-spinner" class="text-xs text-teal-400 hidden animate-pulse absolute mt-12">Saving...</span>
+                <span id="status-update-spinner"
+                  class="text-xs text-teal-400 hidden animate-pulse absolute mt-12">Saving...</span>
               </div>
             </div>
             <!-- Assign To -->
             <div>
               <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Assigned Staff</p>
               <div class="flex items-center gap-3">
-                <select id="modal-assign-dropdown" onchange="updateClientAssignment(this.value)" class="w-full bg-black/40 border border-white/10 text-white text-sm font-bold rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-2.5">
+                <select id="modal-assign-dropdown" onchange="updateClientAssignment(this.value)"
+                  class="w-full bg-black/40 border border-white/10 text-white text-sm font-bold rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-2.5">
                   <option value="wasim@fiscalx.ca">Wasim Kadri</option>
                   <option value="cooldude014317@gmail.com">Cool Dude</option>
                   <option value="arfa786.sa@gmail.com">Arfa</option>
                   <option value="ahmade.muhyedin@gmail.com">Ahmed</option>
                 </select>
-                <span id="assign-update-spinner" class="text-xs text-purple-400 hidden animate-pulse absolute mt-12">Saving...</span>
+                <span id="assign-update-spinner"
+                  class="text-xs text-purple-400 hidden animate-pulse absolute mt-12">Saving...</span>
               </div>
             </div>
           </div>
         </div>
 
         <div class="pt-4 border-t border-white/10">
-          <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Request Missing Document / Nudge Client</p>
+          <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Request Missing Document / Nudge
+            Client</p>
           <div class="flex flex-col sm:flex-row gap-3">
-            <select id="modal-request-doc" class="flex-1 bg-black/40 border border-white/10 text-white text-xs font-bold rounded-lg p-2.5 outline-none"></select>
+            <select id="modal-request-doc"
+              class="flex-1 bg-black/40 border border-white/10 text-white text-xs font-bold rounded-lg p-2.5 outline-none"></select>
             <div class="flex gap-2">
-              <button onclick="sendEmailNudge(this)" class="text-xs font-bold text-teal-400 bg-teal-500/10 hover:bg-teal-500 hover:text-slate-950 px-3.5 py-2.5 rounded transition">
+              <button onclick="sendEmailNudge(this)"
+                class="text-xs font-bold text-teal-400 bg-teal-500/10 hover:bg-teal-500 hover:text-slate-950 px-3.5 py-2.5 rounded transition">
                 ✉️ Email Request
               </button>
-              <button onclick="sendWhatsAppNudge()" class="text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500 hover:text-slate-950 px-3.5 py-2.5 rounded transition">
+              <button onclick="sendWhatsAppNudge()"
+                class="text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500 hover:text-slate-950 px-3.5 py-2.5 rounded transition">
                 💬 WhatsApp Nudge
               </button>
             </div>
           </div>
-          <span id="nudge-spinner" class="text-[10px] text-teal-400 hidden animate-pulse mt-2 block">Transmitting request email...</span>
+          <span id="nudge-spinner" class="text-[10px] text-teal-400 hidden animate-pulse mt-2 block">Transmitting
+            request email...</span>
         </div>
 
         <div class="pt-4 border-t border-white/10">
-          <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2 font-bold" id="modal-file-title">Secure Document Vault</p>
+          <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2 font-bold" id="modal-file-title">
+            Secure Document Vault</p>
           <div id="modal-file-list" class="space-y-2"></div>
         </div>
 
         <!-- FINAL DELIVERABLES & BILLING LOCK -->
         <div id="final-deliverables-box" class="pt-4 border-t border-white/10 hidden">
-          <p class="text-[10px] text-emerald-400 uppercase tracking-wider font-extrabold mb-3">Final Deliverables & Cashflow Lock</p>
+          <p class="text-[10px] text-emerald-400 uppercase tracking-wider font-extrabold mb-3">Final Deliverables &
+            Cashflow Lock</p>
           <div class="bg-black/20 border border-emerald-500/20 rounded-xl p-4 space-y-4">
-            
+
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <p class="text-sm font-bold text-slate-200">Upload Final Tax Returns</p>
                 <p class="text-xs text-slate-500">Files here are securely locked behind payment.</p>
               </div>
               <input type="file" id="modal-final-upload" class="hidden" multiple />
-              <button onclick="document.getElementById('modal-final-upload').click()" class="text-xs font-bold text-white bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition">Choose Files</button>
+              <button onclick="document.getElementById('modal-final-upload').click()"
+                class="text-xs font-bold text-white bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition">Choose
+                Files</button>
             </div>
-            
+
             <div id="final-queue-list" class="space-y-2"></div>
 
             <div class="flex items-center gap-3 pt-3 border-t border-white/10">
-              <input type="checkbox" id="modal-payment-checkbox" class="w-5 h-5 text-emerald-500 rounded bg-slate-900 border-white/20 focus:ring-emerald-500 focus:ring-2">
-              <label for="modal-payment-checkbox" class="text-sm font-bold text-slate-300 cursor-pointer">Payment Received (Unlock Files for Client)</label>
+              <input type="checkbox" id="modal-payment-checkbox"
+                class="w-5 h-5 text-emerald-500 rounded bg-slate-900 border-white/20 focus:ring-emerald-500 focus:ring-2">
+              <label for="modal-payment-checkbox" class="text-sm font-bold text-slate-300 cursor-pointer">Payment
+                Received (Unlock Files for Client)</label>
             </div>
-            
-            <button onclick="saveBillingLock(this)" class="w-full py-3 mt-2 rounded-lg text-sm font-bold text-slate-900 bg-emerald-500 hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/10">
+
+            <button onclick="saveBillingLock(this)"
+              class="w-full py-3 mt-2 rounded-lg text-sm font-bold text-slate-900 bg-emerald-500 hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/10">
               Save Billing & Notify Client
             </button>
           </div>
         </div>
 
       </div>
-      
-<div class="px-6 py-4 border-t border-white/10 bg-black/20 flex justify-between items-center">
-        <button id="btn-delete-card" onclick="deleteClientCard(this)" class="px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold hover:bg-red-500/20 transition flex items-center gap-1.5">
+
+      <div class="px-6 py-4 border-t border-white/10 bg-black/20 flex justify-between items-center">
+        <button id="btn-delete-card" onclick="deleteClientCard(this)"
+          class="px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold hover:bg-red-500/20 transition flex items-center gap-1.5">
           🗑️ Delete Record
         </button>
-        <button onclick="closeModal()" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition">Close Window</button>
+        <button onclick="closeModal()"
+          class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition">Close
+          Window</button>
       </div>
     </div>
   </div>
 
   <!-- Master PIN Modal -->
-  <div id="master-pin-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-sm">
+  <div id="master-pin-modal"
+    class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-sm">
     <div class="bg-gray-900 border border-white/10 p-6 rounded-2xl shadow-2xl max-w-sm w-full mx-4 text-center">
       <div class="text-4xl mb-4">🔐</div>
       <h3 class="text-white text-lg font-bold mb-2">SECURE ACCESS</h3>
       <p class="text-gray-400 text-sm mb-6" id="master-pin-message">Please enter the Master Admin PIN.</p>
-      <input type="password" id="master-pin-input" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white text-center text-xl tracking-widest focus:outline-none focus:border-blue-500 transition-colors mb-6" placeholder="****">
+      <input type="password" id="master-pin-input"
+        class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white text-center text-xl tracking-widest focus:outline-none focus:border-blue-500 transition-colors mb-6"
+        placeholder="****">
       <div class="flex space-x-3">
-        <button id="master-pin-cancel" class="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium border border-white/10">Cancel</button>
-        <button id="master-pin-submit" class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-colors font-medium">Unlock</button>
+        <button id="master-pin-cancel"
+          class="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium border border-white/10">Cancel</button>
+        <button id="master-pin-submit"
+          class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-colors font-medium">Unlock</button>
       </div>
     </div>
   </div>
 
   <style>
-    .scrollbar-hide::-webkit-scrollbar { display: none; }
-    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
   </style>
 
   <script>
+    function escapeHTML(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     function askForMasterPin(message) {
-        return new Promise((resolve) => {
-            const modal = document.getElementById('master-pin-modal');
-            const input = document.getElementById('master-pin-input');
-            const msgEl = document.getElementById('master-pin-message');
-            const cancelBtn = document.getElementById('master-pin-cancel');
-            const submitBtn = document.getElementById('master-pin-submit');
+      return new Promise((resolve) => {
+        const modal = document.getElementById('master-pin-modal');
+        const input = document.getElementById('master-pin-input');
+        const msgEl = document.getElementById('master-pin-message');
+        const cancelBtn = document.getElementById('master-pin-cancel');
+        const submitBtn = document.getElementById('master-pin-submit');
 
-            msgEl.innerText = message;
-            input.value = '';
-            modal.classList.remove('hidden');
-            input.focus();
+        msgEl.innerText = message;
+        input.value = '';
+        modal.classList.remove('hidden');
+        input.focus();
 
-            const cleanup = () => {
-                modal.classList.add('hidden');
-                cancelBtn.removeEventListener('click', onCancel);
-                submitBtn.removeEventListener('click', onSubmit);
-                input.removeEventListener('keydown', onKeydown);
-            };
+        const cleanup = () => {
+          modal.classList.add('hidden');
+          cancelBtn.removeEventListener('click', onCancel);
+          submitBtn.removeEventListener('click', onSubmit);
+          input.removeEventListener('keydown', onKeydown);
+        };
 
-            const onCancel = () => { cleanup(); resolve(null); };
-            const onSubmit = () => { cleanup(); resolve(input.value); };
-            const onKeydown = (e) => { if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); };
+        const onCancel = () => { cleanup(); resolve(null); };
+        const onSubmit = () => { cleanup(); resolve(input.value); };
+        const onKeydown = (e) => { if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); };
 
-            cancelBtn.addEventListener('click', onCancel);
-            submitBtn.addEventListener('click', onSubmit);
-            input.addEventListener('keydown', onKeydown);
-        });
+        cancelBtn.addEventListener('click', onCancel);
+        submitBtn.addEventListener('click', onSubmit);
+        input.addEventListener('keydown', onKeydown);
+      });
     }
 
     const COGNITO_CLIENT_ID = "79d4qhnedttr14qh6gakkh5hk0";
     const COGNITO_REGION = "ca-central-1";
-    const API_URL = "https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact"; 
-    
+    const API_URL = "https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact";
+
     // Microsoft Client ID for OAuth
     const MS_CLIENT_ID = "359dc7f8-359d-47ab-abcf-c0129559aacb";
 
@@ -384,13 +464,13 @@
     const logoutBtn = document.getElementById('admin-logout-btn');
     const displayEmail = document.getElementById('active-admin-email');
     const modal = document.getElementById('client-modal');
-    
-    let activeClientEmail = ""; 
-    let activeClientTimestamp = ""; 
-    let activeClientPhone = ""; 
-    
+
+    let activeClientEmail = "";
+    let activeClientTimestamp = "";
+    let activeClientPhone = "";
+
     let existingFinalFiles = [];
-    let newFinalFilesQueue = []; 
+    let newFinalFilesQueue = [];
 
     window.allClients = [];
 
@@ -398,7 +478,7 @@
       try {
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
           return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
         return JSON.parse(jsonPayload);
@@ -421,79 +501,79 @@
       window.location.href = authUrl;
     }
 
-   // QuickBooks OAuth Redirection Logic
-function connectQuickBooks() {
-  const scope = encodeURIComponent("com.intuit.quickbooks.accounting");
-  const state = "fiscalx_qbo_auth";
-  
-  // Dynamically build redirectUri so it matches your active browser address perfectly!
-  const redirectUri = encodeURIComponent(window.location.origin + "/admin/");
-  
-  const authUrl = `https://appcenter.intuit.com/connect/oauth2?client_id=ABpC4zd9xPXxZkN9AgXd8mGM2EvvT1Uiw1bt9BvUJHBRxvoXex&response_type=code&scope=${scope}&redirect_uri=${redirectUri}&state=${state}`;
-  window.location.href = authUrl;
-}
+    // QuickBooks OAuth Redirection Logic
+    function connectQuickBooks() {
+      const scope = encodeURIComponent("com.intuit.quickbooks.accounting");
+      const state = "fiscalx_qbo_auth";
 
-async function showCRM(email) {
+      // Dynamically build redirectUri so it matches your active browser address perfectly!
+      const redirectUri = encodeURIComponent(window.location.origin + "/admin/");
+
+      const authUrl = `https://appcenter.intuit.com/connect/oauth2?client_id=ABpC4zd9xPXxZkN9AgXd8mGM2EvvT1Uiw1bt9BvUJHBRxvoXex&response_type=code&scope=${scope}&redirect_uri=${redirectUri}&state=${state}`;
+      window.location.href = authUrl;
+    }
+
+    async function showCRM(email) {
       loginScreen.classList.add('hidden'); crmScreen.classList.remove('hidden'); displayEmail.innerText = email;
-      
+
       const msBtn = document.getElementById('btn-ms-connect');
       if (msBtn) msBtn.classList.remove('hidden');
-      
+
       const qboBtn = document.getElementById('btn-qbo-connect');
       if (qboBtn) qboBtn.classList.remove('hidden');
-      
-const urlParams = new URLSearchParams(window.location.search);
+
+      const urlParams = new URLSearchParams(window.location.search);
       const authCode = urlParams.get('code');
       const authState = urlParams.get('state');
       const realmId = urlParams.get('realmId'); // Grab QBO Company ID
 
       if (authCode) {
         window.history.replaceState({}, document.title, window.location.pathname);
-        
-        if (authState === 'fiscalx_qbo_auth') {
-            // ROUTE TO QUICKBOOKS BACKEND
-            document.getElementById('kanban-status').innerText = "Exchanging QuickBooks Token securely...";
-            try {
-              const qboRes = await fetch(API_URL, {
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
-                body: JSON.stringify({ 
-                  action: "exchangeQboCode", 
-                  adminEmail: email, 
-                  code: authCode, 
-                  realmId: realmId,
-                  redirectUri: window.location.origin + "/admin/" // <-- Send the exact URL we used!
-                })
-              });
 
-              const qboData = await qboRes.json();
-              if (qboData.status === 'SUCCESS') {
-                alert("✅ QuickBooks Successfully Connected to AWS!");
-                document.getElementById('kanban-status').innerText = "QuickBooks Synced.";
-              } else {
-                alert("Failed to connect QuickBooks: " + qboData.message);
-              }
-            } catch(e) {
-              alert("Network error connecting QuickBooks to AWS.");
+        if (authState === 'fiscalx_qbo_auth') {
+          // ROUTE TO QUICKBOOKS BACKEND
+          document.getElementById('kanban-status').innerText = "Exchanging QuickBooks Token securely...";
+          try {
+            const qboRes = await fetch(API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
+              body: JSON.stringify({
+                action: "exchangeQboCode",
+                adminEmail: email,
+                code: authCode,
+                realmId: realmId,
+                redirectUri: window.location.origin + "/admin/" // <-- Send the exact URL we used!
+              })
+            });
+
+            const qboData = await qboRes.json();
+            if (qboData.status === 'SUCCESS') {
+              alert("✅ QuickBooks Successfully Connected to AWS!");
+              document.getElementById('kanban-status').innerText = "QuickBooks Synced.";
+            } else {
+              alert("Failed to connect QuickBooks: " + qboData.message);
             }
+          } catch (e) {
+            alert("Network error connecting QuickBooks to AWS.");
+          }
         } else {
-            // ROUTE TO MICROSOFT BACKEND
-            document.getElementById('kanban-status').innerText = "Exchanging Microsoft Token securely...";
-            try {
-              const msRes = await fetch(API_URL, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
-                body: JSON.stringify({ action: "exchangeMsCode", adminEmail: email, code: authCode })
-              });
-              const msData = await msRes.json();
-              if (msData.status === 'SUCCESS') {
-                alert("✅ Outlook Calendar Successfully Connected to AWS!");
-                document.getElementById('kanban-status').innerText = "Outlook Synced.";
-              } else {
-                alert("Failed to connect Outlook: " + msData.message);
-              }
-            } catch(e) {
-              alert("Network error connecting Outlook to AWS.");
+          // ROUTE TO MICROSOFT BACKEND
+          document.getElementById('kanban-status').innerText = "Exchanging Microsoft Token securely...";
+          try {
+            const msRes = await fetch(API_URL, {
+              method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
+              body: JSON.stringify({ action: "exchangeMsCode", adminEmail: email, code: authCode })
+            });
+            const msData = await msRes.json();
+            if (msData.status === 'SUCCESS') {
+              alert("✅ Outlook Calendar Successfully Connected to AWS!");
+              document.getElementById('kanban-status').innerText = "Outlook Synced.";
+            } else {
+              alert("Failed to connect Outlook: " + msData.message);
             }
+          } catch (e) {
+            alert("Network error connecting Outlook to AWS.");
+          }
         }
       } else {
         document.getElementById('kanban-status').innerText = "Syncing with secure AWS vault...";
@@ -508,7 +588,7 @@ const urlParams = new URLSearchParams(window.location.search);
           const inProgress = deduplicatedClients.filter(c => c.campaignStatus === 'Pending' || c.campaignStatus === 'In Progress').length;
           const completed = deduplicatedClients.filter(c => c.campaignStatus === 'Completed').length;
           document.getElementById('stat-total').innerText = total; document.getElementById('stat-progress').innerText = inProgress; document.getElementById('stat-completed').innerText = completed;
-          if (!authCode) document.getElementById('kanban-status').innerText = ""; 
+          if (!authCode) document.getElementById('kanban-status').innerText = "";
           window.allClients = deduplicatedClients;
           document.getElementById('board-assignee-filter').value = "MY_TASKS";
           applyBoardFilter();
@@ -522,29 +602,29 @@ const urlParams = new URLSearchParams(window.location.search);
       clients.forEach(client => {
         const email = client.userEmail.toLowerCase();
         const formTime = new Date(client.timestamp).getTime();
-        let hasStandaloneUploads = false; let newestFileTimestamp = 0; 
-        
+        let hasStandaloneUploads = false; let newestFileTimestamp = 0;
+
         if (client.uploadedFiles) {
           client.uploadedFiles.forEach(file => {
             const filenamePart = file.fileKey.split('/').pop();
             const fileTimestamp = parseInt(filenamePart.split('-')[0]);
             if (!isNaN(fileTimestamp)) {
-              if (fileTimestamp > newestFileTimestamp) newestFileTimestamp = fileTimestamp; 
+              if (fileTimestamp > newestFileTimestamp) newestFileTimestamp = fileTimestamp;
               if (fileTimestamp > (formTime + 10000)) hasStandaloneUploads = true;
             }
           });
         }
-        
+
         const lastViewed = localStorage.getItem('viewed_' + email);
         if (lastViewed && newestFileTimestamp <= parseInt(lastViewed)) hasStandaloneUploads = false;
-        
+
         if (!uniqueClients[email]) {
-          uniqueClients[email] = { 
-            ...client, 
-            uploadedFiles: [...(client.uploadedFiles || [])], 
-            hasNewActivity: hasStandaloneUploads, 
+          uniqueClients[email] = {
+            ...client,
+            uploadedFiles: [...(client.uploadedFiles || [])],
+            hasNewActivity: hasStandaloneUploads,
             finalFiles: [...(client.finalFiles || [])],
-            paymentConfirmed: client.paymentConfirmed || false 
+            paymentConfirmed: client.paymentConfirmed || false
           };
         } else {
           if (client.uploadedFiles && client.uploadedFiles.length > 0) {
@@ -571,14 +651,14 @@ const urlParams = new URLSearchParams(window.location.search);
     function applyBoardFilter() {
       const filterValue = document.getElementById('board-assignee-filter').value;
       const adminEmail = localStorage.getItem('admin_email');
-      
+
       let filteredClients = window.allClients;
       if (filterValue === 'MY_TASKS' && adminEmail) {
         filteredClients = window.allClients.filter(c => c.assignedTo === adminEmail);
       } else if (filterValue !== 'ALL') {
         filteredClients = window.allClients.filter(c => c.assignedTo === filterValue);
       }
-      
+
       renderKanbanBoard(filteredClients);
     }
 
@@ -589,15 +669,15 @@ const urlParams = new URLSearchParams(window.location.search);
 
       clients.forEach(client => {
         const dateObj = new Date(client.timestamp); const niceDate = dateObj.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
-        const safeEmail = client.userEmail.replace(/'/g, "\\'"); const safeTimestamp = client.timestamp.replace(/'/g, "\\'"); 
-        
-        const paymentBadge = client.paymentConfirmed 
+        const safeEmail = client.userEmail.replace(/'/g, "\\'"); const safeTimestamp = client.timestamp.replace(/'/g, "\\'");
+
+        const paymentBadge = client.paymentConfirmed
           ? `<span class="text-[9px] font-bold text-emerald-400 ml-2 border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 rounded">PAID</span>` : '';
 
-        const badgeHtml = client.hasNewActivity 
+        const badgeHtml = client.hasNewActivity
           ? `<span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded animate-pulse border border-amber-500/20">New Activity</span>`
           : `<span class="text-[10px] font-bold uppercase tracking-wider text-teal-400 bg-teal-400/10 px-2.5 py-1 rounded">${client.taxType || 'Consultation'}</span>`;
-        
+
         const appointmentBadge = (client.bookingDate && client.bookingTime && client.bookingDate !== "CANCELLED")
           ? `<div class="mt-2 text-[10px] font-bold text-purple-300 bg-purple-500/20 border border-purple-500/30 px-2.5 py-1 rounded-lg flex items-center justify-between">
                <span>📅 ${client.meetingType || 'Call'}: ${client.bookingDate} @ ${client.bookingTime}</span>
@@ -607,20 +687,20 @@ const urlParams = new URLSearchParams(window.location.search);
         const borderClass = client.hasNewActivity ? 'border-amber-500/40 shadow-lg shadow-amber-500/5 animate-pulse' : 'border-white/5 hover:border-teal-500/50';
 
         // NEW ASSIGNEE BADGE: Shows the staff member's name
-        const assigneeBadge = client.assignedTo && client.assignedTo !== "Unassigned" 
-          ? `<span class="text-[9px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded ml-2" title="${client.assignedTo}">👤 ${client.assignedTo.split('@')[0]}</span>` 
+        const assigneeBadge = client.assignedTo && client.assignedTo !== "Unassigned"
+          ? `<span class="text-[9px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded ml-2" title="${client.assignedTo}">👤 ${client.assignedTo.split('@')[0]}</span>`
           : '';
 
-const cardHtml = `
+        const cardHtml = `
           <div onclick="openModal('${safeEmail}', '${safeTimestamp}')" class="bg-[#131A2B] border ${borderClass} p-4 rounded-xl shadow-lg transition-colors cursor-pointer relative group">
             <div class="flex justify-between items-start mb-2">${badgeHtml}<span class="text-[10px] text-slate-500">${niceDate}</span></div>
             
             <div class="flex items-center gap-2 mb-1">
-               <h4 class="font-bold text-sm text-slate-200 truncate flex-1">${client.clientName || 'Unnamed Client'}</h4>
+               <h4 class="font-bold text-sm text-slate-200 truncate flex-1">${escapeHTML(client.clientName || 'Unnamed Client')}</h4>
                <div class="flex-shrink-0 flex gap-1">${paymentBadge} ${assigneeBadge}</div>
             </div>
             
-            <p class="text-xs text-slate-400 truncate mb-1">✉️ ${client.userEmail}</p>
+            <p class="text-xs text-slate-400 truncate mb-1">✉️ ${escapeHTML(client.userEmail)}</p>
             ${client.phone && client.phone !== "Not Provided" ? `<p class="text-xs text-slate-400 truncate mb-2">📞 <a href="tel:${client.phone}" class="hover:text-teal-400 transition-colors">${client.phone}</a></p>` : ''}
             ${appointmentBadge}
             <div class="pt-3 mt-3 border-t border-white/5 flex justify-between items-center">
@@ -639,20 +719,20 @@ const cardHtml = `
     function openModal(email, timestamp) {
       const client = window.allClients.find(c => c.userEmail === email && c.timestamp === timestamp);
       if (!client) return;
-      
-      activeClientEmail = email; activeClientTimestamp = timestamp; 
-      
+
+      activeClientEmail = email; activeClientTimestamp = timestamp;
+
       let rawPhone = client.phone || (client.personalInfo ? client.personalInfo.telephone : "") || "";
       if (!rawPhone && (client.notes || client.message)) {
         const textToSearch = (client.notes || "") + " " + (client.message || "");
         const phoneMatch = textToSearch.match(/\d{10}/);
         if (phoneMatch) rawPhone = phoneMatch[0];
       }
-      activeClientPhone = rawPhone; 
+      activeClientPhone = rawPhone;
 
-      document.getElementById('modal-client-name').innerText = client.clientName || 'Unnamed Client';
-      document.getElementById('modal-client-email').innerText = client.userEmail;
-      
+      document.getElementById('modal-client-name').innerText = escapeHTML(client.clientName || 'Unnamed Client');
+      document.getElementById('modal-client-email').innerText = escapeHTML(client.userEmail);
+
       const taxType = client.taxType || 'T1 Personal';
       document.getElementById('modal-tax-type').innerText = taxType;
 
@@ -669,19 +749,19 @@ const cardHtml = `
           modalAppointmentBox.classList.add('hidden');
         }
       }
-      
+
       const dropdown = document.getElementById('modal-status-dropdown');
       dropdown.value = client.campaignStatus || 'Pending';
       const assignDropdown = document.getElementById('modal-assign-dropdown');
-   if (assignDropdown) assignDropdown.value = client.assignedTo || 'Unassigned';
-      
+      if (assignDropdown) assignDropdown.value = client.assignedTo || 'Unassigned';
+
       const requestDropdown = document.getElementById('modal-request-doc');
-      requestDropdown.innerHTML = ""; 
+      requestDropdown.innerHTML = "";
       const t1Docs = ["Prior Year Notice of Assessment (NOA)", "T4 Employment Income Slip", "Void Cheque / Direct Deposit Form", "T2202 Tuition Fees Certificate", "RRSP Contribution Receipt", "Charitable Donation Slip", "T5008 Stock/Investment Ledger", "Daycare / Child Care Invoices", "T2200 Work From Home Form", "Rideshare/Uber T2125 Expense Log", "Rental Property T776 Income Matrix"];
       const t2Docs = ["Articles of Incorporation", "Corporate Trial Balance / General Ledger", "Corporate Financial Statements", "Corporate T2 Tax Disclosures"];
       const activeDocs = taxType.includes("T2") ? t2Docs : t1Docs;
       activeDocs.forEach(doc => { requestDropdown.innerHTML += `<option value="${doc}">${doc}</option>`; });
-      
+
       const totalFiles = client.uploadedFiles ? client.uploadedFiles.length : 0;
       document.getElementById('modal-file-title').innerText = `Secure Document Vault (${totalFiles} Merged Files)`;
 
@@ -692,7 +772,7 @@ const cardHtml = `
           const safeKey = file.fileKey.replace(/'/g, "\\'"); const safeName = file.fileName.replace(/'/g, "\\'");
           const fileTimestamp = parseInt(file.fileKey.split('/').pop().split('-')[0]);
           if (!isNaN(fileTimestamp) && fileTimestamp > newestFileTimestamp) newestFileTimestamp = fileTimestamp;
-          fileListDiv.innerHTML += `<div class="flex items-center justify-between bg-white/5 border border-white/10 p-3 rounded-lg"><span class="text-xs text-slate-300 truncate pr-4">📄 ${file.fileName}</span><button onclick="decryptAndDownload('${safeKey}', '${safeName}', this)" class="text-[10px] font-bold text-teal-400 bg-teal-500/10 hover:bg-teal-500 hover:text-slate-950 px-3 py-1.5 rounded transition">Decrypt & Download</button></div>`;
+          fileListDiv.innerHTML += `<div class="flex items-center justify-between bg-white/5 border border-white/10 p-3 rounded-lg"><span class="text-xs text-slate-300 truncate pr-4">📄 ${escapeHTML(file.fileName)}</span><button onclick="decryptAndDownload('${safeKey}', '${safeName}', this)" class="text-[10px] font-bold text-teal-400 bg-teal-500/10 hover:bg-teal-500 hover:text-slate-950 px-3 py-1.5 rounded transition">Decrypt & Download</button></div>`;
         });
       } else { fileListDiv.innerHTML = `<p class="text-xs text-slate-500 italic">No files uploaded by this client.</p>`; }
 
@@ -738,41 +818,41 @@ const cardHtml = `
     }
 
     function renderFinalQueue() {
-      const qDiv = document.getElementById('final-queue-list'); 
+      const qDiv = document.getElementById('final-queue-list');
       if (!qDiv) return;
       qDiv.innerHTML = "";
 
-      existingFinalFiles.forEach((file, idx) => { 
+      existingFinalFiles.forEach((file, idx) => {
         qDiv.innerHTML += `
           <div class="flex justify-between items-center text-xs text-slate-300 bg-black/40 px-3 py-2 rounded-lg border border-white/5">
-            <span class="truncate pr-2 font-medium">🔒 ${file.fileName}</span>
+            <span class="truncate pr-2 font-medium">🔒 ${escapeHTML(file.fileName)}</span>
             <button type="button" onclick="removeExistingFinalFile(${idx})" class="text-red-400 hover:text-red-300 font-bold transition-all px-2 py-0.5 rounded hover:bg-red-500/10">
               Delete
             </button>
-          </div>`; 
+          </div>`;
       });
 
-      newFinalFilesQueue.forEach((file, idx) => { 
+      newFinalFilesQueue.forEach((file, idx) => {
         qDiv.innerHTML += `
           <div class="flex justify-between items-center text-xs text-amber-400 bg-amber-500/10 px-3 py-2 rounded-lg border border-amber-500/20">
             <span class="truncate pr-2 font-medium">⏳ ${file.name} (Pending Save)</span>
             <button type="button" onclick="removeFinalFile(${idx})" class="text-amber-300 hover:underline font-bold">
               Remove
             </button>
-          </div>`; 
+          </div>`;
       });
     }
 
-    window.removeExistingFinalFile = function(idx) {
+    window.removeExistingFinalFile = function (idx) {
       if (confirm("Remove this deliverable file? Click 'Save Billing' to confirm.")) {
         existingFinalFiles.splice(idx, 1);
         renderFinalQueue();
       }
     };
 
-    window.removeFinalFile = function(idx) { 
-      newFinalFilesQueue.splice(idx, 1); 
-      renderFinalQueue(); 
+    window.removeFinalFile = function (idx) {
+      newFinalFilesQueue.splice(idx, 1);
+      renderFinalQueue();
     };
 
     async function saveBillingLock(btn) {
@@ -787,8 +867,8 @@ const cardHtml = `
 
         for (let i = 0; i < newFinalFilesQueue.length; i++) {
           const fileObj = newFinalFilesQueue[i];
-          btn.innerText = `Encrypting File ${i+1}/${newFinalFilesQueue.length}...`;
-          
+          btn.innerText = `Encrypting File ${i + 1}/${newFinalFilesQueue.length}...`;
+
           const authRes = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') }, body: JSON.stringify({ action: "getUploadUrl", fileName: "FINAL-" + fileObj.name, fileType: fileObj.type, userEmail: activeClientEmail }) });
           const authResult = await authRes.json();
           if (!authRes.ok || authResult.status !== 'SUCCESS') throw new Error("S3 Auth Failed");
@@ -806,10 +886,10 @@ const cardHtml = `
 
         if (dbRes.ok && dbResult.status === 'SUCCESS') {
           alert(isPaid ? "Payment confirmed! Client has been emailed and their files are unlocked." : "Billing status and files updated successfully!");
-          await showCRM(adminEmail); 
+          await showCRM(adminEmail);
         } else { alert("Failed to update billing lock."); }
 
-      } catch(err) { alert("Network error during billing lock."); } finally { btn.disabled = false; btn.innerText = "Save Billing & Notify Client"; }
+      } catch (err) { alert("Network error during billing lock."); } finally { btn.disabled = false; btn.innerText = "Save Billing & Notify Client"; }
     }
 
     async function sendEmailNudge(buttonElement) {
@@ -860,35 +940,35 @@ const cardHtml = `
     }
 
     async function updateClientAssignment(newAssignee) {
-      const adminEmail = localStorage.getItem('admin_email'); 
-      const spinner = document.getElementById('assign-update-spinner'); 
+      const adminEmail = localStorage.getItem('admin_email');
+      const spinner = document.getElementById('assign-update-spinner');
       const dropdown = document.getElementById('modal-assign-dropdown');
-      
+
       if (!activeClientEmail || !activeClientTimestamp || !adminEmail) return;
-      
+
       spinner.classList.remove('hidden'); dropdown.disabled = true;
       try {
-        const response = await fetch(API_URL, { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') }, 
-          body: JSON.stringify({ 
-            action: "updateClientAssignment", 
-            adminEmail: adminEmail, 
-            clientEmail: activeClientEmail, 
-            timestamp: activeClientTimestamp, 
-            assignedTo: newAssignee 
-          }) 
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
+          body: JSON.stringify({
+            action: "updateClientAssignment",
+            adminEmail: adminEmail,
+            clientEmail: activeClientEmail,
+            timestamp: activeClientTimestamp,
+            assignedTo: newAssignee
+          })
         });
         const result = await response.json();
-        if (response.ok && result.status === 'SUCCESS') { 
-          await showCRM(adminEmail); 
-        } else { 
-          alert("Error updating assignment."); 
+        if (response.ok && result.status === 'SUCCESS') {
+          await showCRM(adminEmail);
+        } else {
+          alert("Error updating assignment.");
         }
-      } catch (err) { 
-        alert("Network error updating assignment."); 
-      } finally { 
-        spinner.classList.add('hidden'); dropdown.disabled = false; 
+      } catch (err) {
+        alert("Network error updating assignment.");
+      } finally {
+        spinner.classList.add('hidden'); dropdown.disabled = false;
       }
     }
 
@@ -906,7 +986,7 @@ const cardHtml = `
               const dayOfWeek = new Date(selectedDateObj.getTime() + Math.abs(selectedDateObj.getTimezoneOffset() * 60000)).getDay();
               if (dayOfWeek === 0 || dayOfWeek === 6) {
                 alert("Our office is closed on weekends. Please select a date between Monday and Friday.");
-                e.target.value = ""; 
+                e.target.value = "";
               }
             };
           }
@@ -920,10 +1000,10 @@ const cardHtml = `
     async function submitAdminReschedule(btnElement) {
       const newDate = document.getElementById('admin-reschedule-date').value;
       const newTime = document.getElementById('admin-reschedule-time').value;
-      
-      if (!newDate || !newTime) { 
-        alert("Please select both a Date and Time Slot!"); 
-        return; 
+
+      if (!newDate || !newTime) {
+        alert("Please select both a Date and Time Slot!");
+        return;
       }
 
       const selectedDateObj = new Date(newDate);
@@ -937,7 +1017,7 @@ const cardHtml = `
       const adminEmail = localStorage.getItem('admin_email');
       if (!adminEmail || !activeClientEmail || !activeClientTimestamp) return;
 
-      btnElement.disabled = true; 
+      btnElement.disabled = true;
       btnElement.innerText = "Updating Cloud Schedule...";
 
       try {
@@ -952,7 +1032,7 @@ const cardHtml = `
           closeModal();
           await showCRM(adminEmail);
         } else { alert("Failed to reschedule: " + (result.message || "Server error")); }
-      } catch (err) { alert("Network error trying to reschedule appointment."); } 
+      } catch (err) { alert("Network error trying to reschedule appointment."); }
       finally { btnElement.disabled = false; btnElement.innerText = "Save New Time & Email Client"; }
     }
 
@@ -976,7 +1056,7 @@ const cardHtml = `
       } catch (err) { alert("Network error trying to cancel appointment."); }
     }
 
-window.deleteClientCard = async function(btnElement) {
+    window.deleteClientCard = async function (btnElement) {
       if (!activeClientEmail) return;
       if (!confirm(`Are you sure you want to permanently delete the card for ${activeClientEmail}? This cannot be undone.`)) return;
 
@@ -1018,80 +1098,80 @@ window.deleteClientCard = async function(btnElement) {
     // QUICKBOOKS CASH RECOVERY LOGIC
     // ==============================================================
     async function fetchAndRenderInvoices() {
-        const adminEmail = localStorage.getItem('admin_email');
-        if (!adminEmail) return;
+      const adminEmail = localStorage.getItem('admin_email');
+      if (!adminEmail) return;
 
-        const listDiv = document.getElementById('qbo-invoice-list');
-        const totalDiv = document.getElementById('qbo-total-unpaid');
-        const commDiv = document.getElementById('qbo-commission');
-        
-        listDiv.innerHTML = "<p class='text-xs text-green-400 font-bold animate-pulse'>Securely fetching live QuickBooks data...</p>";
+      const listDiv = document.getElementById('qbo-invoice-list');
+      const totalDiv = document.getElementById('qbo-total-unpaid');
+      const commDiv = document.getElementById('qbo-commission');
 
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
-                body: JSON.stringify({ action: "fetchQboInvoices", adminEmail: adminEmail })
-            });
-            const result = await response.json();
+      listDiv.innerHTML = "<p class='text-xs text-green-400 font-bold animate-pulse'>Securely fetching live QuickBooks data...</p>";
 
-            if (response.ok && result.status === 'SUCCESS') {
-                const invoices = result.invoices || [];
-                if (invoices.length === 0) {
-                    listDiv.innerHTML = "<div class='p-3 bg-green-500/10 border border-green-500/20 rounded-xl'><p class='text-xs font-bold text-green-400'>✅ All clients are paid up! Zero outstanding invoices.</p></div>";
-                    totalDiv.innerText = "$0.00";
-                    commDiv.innerText = "$0.00";
-                    return;
-                }
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
+          body: JSON.stringify({ action: "fetchQboInvoices", adminEmail: adminEmail })
+        });
+        const result = await response.json();
 
-                // Sort invoices from oldest to youngest (ascending by DueDate)
-                invoices.sort((a, b) => {
-                    const dateA = a.DueDate ? new Date(a.DueDate).getTime() : Date.now();
-                    const dateB = b.DueDate ? new Date(b.DueDate).getTime() : Date.now();
-                    return dateA - dateB;
-                });
+        if (response.ok && result.status === 'SUCCESS') {
+          const invoices = result.invoices || [];
+          if (invoices.length === 0) {
+            listDiv.innerHTML = "<div class='p-3 bg-green-500/10 border border-green-500/20 rounded-xl'><p class='text-xs font-bold text-green-400'>✅ All clients are paid up! Zero outstanding invoices.</p></div>";
+            totalDiv.innerText = "$0.00";
+            commDiv.innerText = "$0.00";
+            return;
+          }
 
-                let totalUnpaid = 0;
-                let commissionableUnpaid = 0;
-                listDiv.innerHTML = "";
+          // Sort invoices from oldest to youngest (ascending by DueDate)
+          invoices.sort((a, b) => {
+            const dateA = a.DueDate ? new Date(a.DueDate).getTime() : Date.now();
+            const dateB = b.DueDate ? new Date(b.DueDate).getTime() : Date.now();
+            return dateA - dateB;
+          });
 
-                invoices.forEach(inv => {
-                    const balance = parseFloat(inv.Balance || 0);
-                    
-                    const customerName = inv.CustomerRef ? inv.CustomerRef.name : "Unknown Client";
-                    const docNumber = inv.DocNumber || "N/A";
-                    const dueDate = inv.DueDate || "N/A";
-                    
-                    const customerEmail = inv.BillEmail ? inv.BillEmail.Address : "";
-                    const customerPhone = inv.PrimaryPhone ? inv.PrimaryPhone.FreeFormNumber : "";
-                    const safeName = customerName.replace(/'/g, "\\'");
+          let totalUnpaid = 0;
+          let commissionableUnpaid = 0;
+          listDiv.innerHTML = "";
 
-                    // THE MEMORY: Read the ledger data injected by our backend
-                    const ledger = inv._ledger || { escalationLevel: 0, lastContactDate: "Never", isPaused: false };
-                    
-                    // Check if eligible for commission (Level 1: >= 30 days past due OR already escalated)
-                    let isCommissionable = ledger.escalationLevel > 0;
-                    if (!isCommissionable && dueDate !== "N/A") {
-                        const today = new Date();
-                        const due = new Date(dueDate);
-                        const daysSinceDue = (today.getTime() - due.getTime()) / (1000 * 3600 * 24);
-                        if (daysSinceDue >= 30) isCommissionable = true;
-                    }
-                    
-                    // ONLY SHOW INVOICES >= 30 DAYS PAST DUE
-                    if (!isCommissionable) return;
+          invoices.forEach(inv => {
+            const balance = parseFloat(inv.Balance || 0);
 
-                    totalUnpaid += balance;
-                    commissionableUnpaid += balance;
+            const customerName = inv.CustomerRef ? inv.CustomerRef.name : "Unknown Client";
+            const docNumber = inv.DocNumber || "N/A";
+            const dueDate = inv.DueDate || "N/A";
 
-                    const pauseText = ledger.isPaused ? "▶️ Resume Auto" : "⏸️ Pause Auto";
-                    const pauseBtnClass = ledger.isPaused ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500 hover:text-slate-900" : "bg-slate-500/10 text-slate-400 border-slate-500/30 hover:bg-slate-500 hover:text-white";
-                    const rowOpacity = ledger.isPaused ? "opacity-50 grayscale" : ""; 
-                    const reminderDisabled = ledger.isPaused ? "disabled" : "";
-                    const reminderClass = ledger.isPaused ? "bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed" : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500 hover:text-white";
-                    const smsClass = ledger.isPaused ? "bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed" : "bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500 hover:text-white";
+            const customerEmail = inv.BillEmail ? inv.BillEmail.Address : "";
+            const customerPhone = inv.PrimaryPhone ? inv.PrimaryPhone.FreeFormNumber : "";
+            const safeName = customerName.replace(/'/g, "\\'");
 
-                    listDiv.innerHTML += `
+            // THE MEMORY: Read the ledger data injected by our backend
+            const ledger = inv._ledger || { escalationLevel: 0, lastContactDate: "Never", isPaused: false };
+
+            // Check if eligible for commission (Level 1: >= 30 days past due OR already escalated)
+            let isCommissionable = ledger.escalationLevel > 0;
+            if (!isCommissionable && dueDate !== "N/A") {
+              const today = new Date();
+              const due = new Date(dueDate);
+              const daysSinceDue = (today.getTime() - due.getTime()) / (1000 * 3600 * 24);
+              if (daysSinceDue >= 30) isCommissionable = true;
+            }
+
+            // ONLY SHOW INVOICES >= 30 DAYS PAST DUE
+            if (!isCommissionable) return;
+
+            totalUnpaid += balance;
+            commissionableUnpaid += balance;
+
+            const pauseText = ledger.isPaused ? "▶️ Resume Auto" : "⏸️ Pause Auto";
+            const pauseBtnClass = ledger.isPaused ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500 hover:text-slate-900" : "bg-slate-500/10 text-slate-400 border-slate-500/30 hover:bg-slate-500 hover:text-white";
+            const rowOpacity = ledger.isPaused ? "opacity-50 grayscale" : "";
+            const reminderDisabled = ledger.isPaused ? "disabled" : "";
+            const reminderClass = ledger.isPaused ? "bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed" : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500 hover:text-white";
+            const smsClass = ledger.isPaused ? "bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed" : "bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500 hover:text-white";
+
+            listDiv.innerHTML += `
                         <div class="flex justify-between items-center bg-[#131A2B] border border-white/5 p-3.5 rounded-xl hover:border-green-500/30 transition-all ${rowOpacity}">
                             <div>
                                 <p class="text-sm font-bold text-slate-200">${customerName} <span class="text-[10px] font-bold text-slate-500 ml-2 bg-black/40 px-2 py-0.5 rounded border border-white/10">Inv #${docNumber}</span></p>
@@ -1117,283 +1197,274 @@ window.deleteClientCard = async function(btnElement) {
                             </div>
                         </div>
                     `;
-                });
+          });
 
-                totalDiv.innerText = "$" + totalUnpaid.toFixed(2) + " CAD";
-                commDiv.innerText = "$" + (commissionableUnpaid * 0.05).toFixed(2) + " CAD";
+          totalDiv.innerText = "$" + totalUnpaid.toFixed(2) + " CAD";
+          commDiv.innerText = "$" + (commissionableUnpaid * 0.05).toFixed(2) + " CAD";
 
-            } else {
-                if (result.message && result.message.includes("not connected")) {
-                    listDiv.innerHTML = "<p class='text-xs text-amber-500 font-bold'>⚠️ QuickBooks is not connected. Please click 'Connect QBO' at the top of the screen.</p>";
-                } else {
-                    listDiv.innerHTML = `<p class='text-xs text-red-500'>Error: ${result.message}</p>`;
-                }
-            }
-        } catch (err) {
-            listDiv.innerHTML = "<p class='text-xs text-red-500 font-bold'>Network error fetching QuickBooks data.</p>";
+        } else {
+          if (result.message && result.message.includes("not connected")) {
+            listDiv.innerHTML = "<p class='text-xs text-amber-500 font-bold'>⚠️ QuickBooks is not connected. Please click 'Connect QBO' at the top of the screen.</p>";
+          } else {
+            listDiv.innerHTML = `<p class='text-xs text-red-500'>Error: ${result.message}</p>`;
+          }
         }
+      } catch (err) {
+        listDiv.innerHTML = "<p class='text-xs text-red-500 font-bold'>Network error fetching QuickBooks data.</p>";
+      }
     }
 
-// ==============================================================
+    // ==============================================================
     // ACTION: DOWNLOAD DETAILED COMMISSION REPORT
     // ==============================================================
-    window.downloadDetailedReport = async function(btnElement) {
-        const adminEmail = localStorage.getItem('admin_email');
-        if (!adminEmail) return;
+    window.downloadDetailedReport = async function (btnElement) {
+      const adminEmail = localStorage.getItem('admin_email');
+      if (!adminEmail) return;
 
-        const passcode = await askForMasterPin("Please enter the Master Admin PIN to download this report:");
-        if (passcode !== "0224") { 
-            if (passcode !== null) alert("❌ Access Denied: Incorrect PIN.");
-            return;
-        } 
-        
-        const originalText = btnElement.innerHTML;
-        btnElement.disabled = true;
-        btnElement.innerHTML = "⏳ Generating Excel...";
+      const passcode = await askForMasterPin("Please enter the Master Admin PIN to download this report:");
+      if (!passcode) return;
 
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
-                body: JSON.stringify({ action: "generateDetailedCommissionReport", adminEmail: adminEmail })
-            });
-            const result = await response.json();
+      const originalText = btnElement.innerHTML;
+      btnElement.disabled = true;
+      btnElement.innerHTML = "⏳ Generating Excel...";
 
-            if (response.ok && result.status === 'SUCCESS') {
-                const reportData = result.reportData || [];
-                const openReportData = result.openReportData || [];
-                
-                if (reportData.length === 0 && openReportData.length === 0) {
-                    alert("No escalated invoices found (neither open nor closed) meeting the >30 days criteria.");
-                } else {
-                    // Create a new Excel Workbook
-                    const wb = XLSX.utils.book_new();
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
+          body: JSON.stringify({ action: "generateDetailedCommissionReport", adminEmail: adminEmail, masterPin: passcode })
+        });
+        const result = await response.json();
 
-                    // Tab 1: Closed Invoices
-                    if (reportData.length > 0) {
-                        const closedHeaders = ["Invoice Number", "Customer Name", "Date Generated", "Date Closed", "Days to Close", "Total Amount (CAD)", "Commission Earned (CAD)"];
-                        const closedRows = [closedHeaders];
-                        reportData.forEach(row => {
-                            closedRows.push([row.invoiceNumber, row.customerName, row.dateGenerated, row.dateClosed, row.daysToClose, parseFloat(row.amount), parseFloat(row.commission)]);
-                        });
-                        const wsClosed = XLSX.utils.aoa_to_sheet(closedRows);
-                        XLSX.utils.book_append_sheet(wb, wsClosed, "Closed Invoices");
-                    }
+        if (response.ok && result.status === 'SUCCESS') {
+          const reportData = result.reportData || [];
+          const openReportData = result.openReportData || [];
 
-                    // Tab 2: Open Invoices (>30 Days Late)
-                    if (openReportData.length > 0) {
-                        const openHeaders = ["Invoice Number", "Customer Name", "Date Generated", "Due Date", "Days Overdue", "Amount Remaining (CAD)", "Estimated Commission (CAD)"];
-                        const openRows = [openHeaders];
-                        openReportData.forEach(row => {
-                            openRows.push([row.invoiceNumber, row.customerName, row.dateGenerated, row.dueDate, row.daysOverdue, parseFloat(row.amountRemaining), parseFloat(row.estimatedCommission)]);
-                        });
-                        const wsOpen = XLSX.utils.aoa_to_sheet(openRows);
-                        XLSX.utils.book_append_sheet(wb, wsOpen, "Open (>30 Days Late)");
-                    }
-                    
-                    // Generate and Download Excel File
-                    const fileName = `FiscalX_Detailed_Commission_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
-                    XLSX.writeFile(wb, fileName);
-                }
-            } else {
-                alert("Error generating report: " + (result.message || "Server error"));
+          if (reportData.length === 0 && openReportData.length === 0) {
+            alert("No escalated invoices found (neither open nor closed) meeting the >30 days criteria.");
+          } else {
+            // Create a new Excel Workbook
+            const wb = XLSX.utils.book_new();
+
+            // Tab 1: Closed Invoices
+            if (reportData.length > 0) {
+              const closedHeaders = ["Invoice Number", "Customer Name", "Date Generated", "Date Closed", "Days to Close", "Total Amount (CAD)", "Commission Earned (CAD)"];
+              const closedRows = [closedHeaders];
+              reportData.forEach(row => {
+                closedRows.push([row.invoiceNumber, row.customerName, row.dateGenerated, row.dateClosed, row.daysToClose, parseFloat(row.amount), parseFloat(row.commission)]);
+              });
+              const wsClosed = XLSX.utils.aoa_to_sheet(closedRows);
+              XLSX.utils.book_append_sheet(wb, wsClosed, "Closed Invoices");
             }
-        } catch (err) {
-            alert("Network error generating report.");
-        } finally {
-            btnElement.disabled = false;
-            btnElement.innerHTML = originalText;
+
+            // Tab 2: Open Invoices (>30 Days Late)
+            if (openReportData.length > 0) {
+              const openHeaders = ["Invoice Number", "Customer Name", "Date Generated", "Due Date", "Days Overdue", "Amount Remaining (CAD)", "Estimated Commission (CAD)"];
+              const openRows = [openHeaders];
+              openReportData.forEach(row => {
+                openRows.push([row.invoiceNumber, row.customerName, row.dateGenerated, row.dueDate, row.daysOverdue, parseFloat(row.amountRemaining), parseFloat(row.estimatedCommission)]);
+              });
+              const wsOpen = XLSX.utils.aoa_to_sheet(openRows);
+              XLSX.utils.book_append_sheet(wb, wsOpen, "Open (>30 Days Late)");
+            }
+
+            // Generate and Download Excel File
+            const fileName = `FiscalX_Detailed_Commission_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+          }
+        } else {
+          alert("Error generating report: " + (result.message || "Server error"));
         }
+      } catch (err) {
+        alert("Network error generating report.");
+      } finally {
+        btnElement.disabled = false;
+        btnElement.innerHTML = originalText;
+      }
     }
 
-// ==============================================================
+    // ==============================================================
     // ACTION: GENERATE COMMISSION REPORT & RESET METER
     // ==============================================================
-    window.generateCommissionReport = async function(btnElement) {
-        const adminEmail = localStorage.getItem('admin_email');
-        if (!adminEmail) return;
+    window.generateCommissionReport = async function (btnElement) {
+      const adminEmail = localStorage.getItem('admin_email');
+      if (!adminEmail) return;
 
-        // --- MASTER SECURITY LOCK ---
-        const passcode = await askForMasterPin("Please enter the Master Admin PIN to view commissions:");
-        if (passcode !== "0224") { 
-            if (passcode !== null) alert("❌ Access Denied: Incorrect PIN.");
-            return;
-            } // --- END MASTER SECURITY LOCK ---
+      // --- MASTER SECURITY LOCK ---
+      const passcode = await askForMasterPin("Please enter the Master Admin PIN to view commissions:");
+      if (!passcode) return; // --- END MASTER SECURITY LOCK ---
 
-        const originalText = btnElement.innerHTML;
-        btnElement.disabled = true;
-        btnElement.innerHTML = "⏳ Calculating...";
+      const originalText = btnElement.innerHTML;
+      btnElement.disabled = true;
+      btnElement.innerHTML = "⏳ Calculating...";
 
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
-                body: JSON.stringify({ action: "generateCommissionReport", adminEmail: adminEmail })
-            });
-            const result = await response.json();
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
+          body: JSON.stringify({ action: "generateCommissionReport", adminEmail: adminEmail, masterPin: passcode })
+        });
+        const result = await response.json();
 
-            if (response.ok && result.status === 'SUCCESS') {
-                if (result.recoveredCash > 0) {
-                    const confirmReset = confirm(`💰 COMMISSION REPORT\n\nTotal Invoices Recovered by System: ${result.recoveredCount}\nTotal Cash Recovered: $${result.recoveredCash.toFixed(2)} CAD\n\nYour 5% Commission Earned: $${result.yourCommission.toFixed(2)} CAD\n\nWould you like to mark this commission as PAID and reset the meter to $0.00 for next month?`);
-                    
-                    if (confirmReset) {
-                        btnElement.innerHTML = "🧹 Resetting Meter...";
-                        await fetch(API_URL, {
-                            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
-                            body: JSON.stringify({ action: "markCommissionPaid", adminEmail: adminEmail, paidDocNumbers: result.paidDocNumbers })
-                        });
-                        alert("✅ Commission meter successfully reset! Next month's tracking begins now.");
-                    }
-                } else {
-                    alert(`💰 COMMISSION REPORT\n\nTotal Invoices Recovered by System: ${result.recoveredCount}\nTotal Cash Recovered: $${result.recoveredCash.toFixed(2)} CAD\n\nYour 5% Commission Earned: $${result.yourCommission.toFixed(2)} CAD`);
-                }
-            } else {
-                alert("Error generating report: " + (result.message || "Server error"));
+        if (response.ok && result.status === 'SUCCESS') {
+          if (result.recoveredCash > 0) {
+            const confirmReset = confirm(`💰 COMMISSION REPORT\n\nTotal Invoices Recovered by System: ${result.recoveredCount}\nTotal Cash Recovered: $${result.recoveredCash.toFixed(2)} CAD\n\nYour 5% Commission Earned: $${result.yourCommission.toFixed(2)} CAD\n\nWould you like to mark this commission as PAID and reset the meter to $0.00 for next month?`);
+
+            if (confirmReset) {
+              btnElement.innerHTML = "🧹 Resetting Meter...";
+              await fetch(API_URL, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
+                body: JSON.stringify({ action: "markCommissionPaid", adminEmail: adminEmail, paidDocNumbers: result.paidDocNumbers, masterPin: passcode })
+              });
+              alert("✅ Commission meter successfully reset! Next month's tracking begins now.");
             }
-        } catch (err) {
-            alert("Network error generating report.");
-        } finally {
-            btnElement.disabled = false;
-            btnElement.innerHTML = originalText;
+          } else {
+            alert(`💰 COMMISSION REPORT\n\nTotal Invoices Recovered by System: ${result.recoveredCount}\nTotal Cash Recovered: $${result.recoveredCash.toFixed(2)} CAD\n\nYour 5% Commission Earned: $${result.yourCommission.toFixed(2)} CAD`);
+          }
+        } else {
+          alert("Error generating report: " + (result.message || "Server error"));
         }
+      } catch (err) {
+        alert("Network error generating report.");
+      } finally {
+        btnElement.disabled = false;
+        btnElement.innerHTML = originalText;
+      }
     };
-    
+
     // ==============================================================
     // ACTION T: SEND REMINDER EMAIL FUNCTION
     // ==============================================================
-    window.sendQboReminderEmail = async function(customerEmail, customerName, balance, docNumber, btnElement) {
-        if (!customerEmail) {
-            alert("Error: This client does not have an email address saved in QuickBooks.");
-            return;
+    window.sendQboReminderEmail = async function (customerEmail, customerName, balance, docNumber, btnElement) {
+      if (!customerEmail) {
+        alert("Error: This client does not have an email address saved in QuickBooks.");
+        return;
+      }
+
+      const adminEmail = localStorage.getItem('admin_email');
+      if (!adminEmail) return;
+
+      const originalText = btnElement.innerText;
+      btnElement.disabled = true;
+      btnElement.innerText = "Sending...";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
+          body: JSON.stringify({
+            action: "sendQboReminder",
+            adminEmail: adminEmail,
+            customerEmail: customerEmail,
+            customerName: customerName,
+            balance: balance,
+            docNumber: docNumber
+          })
+        });
+
+        const result = await response.json();
+        if (response.ok && result.status === 'SUCCESS') {
+          alert(`✅ Reminder successfully emailed to ${customerEmail}`);
+          btnElement.innerText = "Sent!";
+          btnElement.classList.remove('text-red-400', 'border-red-500/20', 'bg-red-500/10', 'hover:bg-red-500');
+          btnElement.classList.add('text-green-400', 'border-green-500/20', 'bg-green-500/10', 'cursor-not-allowed');
+        } else {
+          alert("Error sending reminder: " + (result.message || "Server error"));
+          btnElement.innerText = originalText;
+          btnElement.disabled = false;
         }
-
-        const adminEmail = localStorage.getItem('admin_email');
-        if (!adminEmail) return;
-
-        const originalText = btnElement.innerText;
-        btnElement.disabled = true;
-        btnElement.innerText = "Sending...";
-
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
-                body: JSON.stringify({
-                    action: "sendQboReminder",
-                    adminEmail: adminEmail,
-                    customerEmail: customerEmail,
-                    customerName: customerName,
-                    balance: balance,
-                    docNumber: docNumber
-                })
-            });
-
-            const result = await response.json();
-            if (response.ok && result.status === 'SUCCESS') {
-                alert(`✅ Reminder successfully emailed to ${customerEmail}`);
-                btnElement.innerText = "Sent!";
-                btnElement.classList.remove('text-red-400', 'border-red-500/20', 'bg-red-500/10', 'hover:bg-red-500');
-                btnElement.classList.add('text-green-400', 'border-green-500/20', 'bg-green-500/10', 'cursor-not-allowed');
-            } else {
-                alert("Error sending reminder: " + (result.message || "Server error"));
-                btnElement.innerText = originalText;
-                btnElement.disabled = false;
-            }
-        } catch (err) {
-            alert("Network error trying to send reminder.");
-            btnElement.innerText = originalText;
-            btnElement.disabled = false;
-        }
+      } catch (err) {
+        alert("Network error trying to send reminder.");
+        btnElement.innerText = originalText;
+        btnElement.disabled = false;
+      }
     };
 
-// ==============================================================
+    // ==============================================================
     // ACTION U: SEND REMINDER SMS FUNCTION (1-CLICK PRODUCTION MODE)
     // ==============================================================
-    window.sendQboSmsReminder = async function(customerPhone, customerName, balance, docNumber, btnElement) {
-        if (!customerPhone) {
-            alert(`Error: ${customerName} does not have a phone number saved in QuickBooks.`);
-            return;
+    window.sendQboSmsReminder = async function (customerPhone, customerName, balance, docNumber, btnElement) {
+      if (!customerPhone) {
+        alert(`Error: ${customerName} does not have a phone number saved in QuickBooks.`);
+        return;
+      }
+
+      const adminEmail = localStorage.getItem('admin_email');
+      if (!adminEmail) return;
+
+      const originalText = btnElement.innerText;
+      btnElement.disabled = true;
+      btnElement.innerText = "Texting...";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
+          body: JSON.stringify({
+            action: "sendQboSmsReminder",
+            adminEmail: adminEmail,
+            customerPhone: customerPhone, // Now pulls directly from QuickBooks data
+            customerName: customerName,
+            balance: balance,
+            docNumber: docNumber
+          })
+        });
+
+        const result = await response.json();
+        if (response.ok && result.status === 'SUCCESS') {
+          alert(`✅ SMS successfully fired!`);
+          btnElement.innerText = "SMS Sent!";
+          btnElement.classList.remove('text-blue-400', 'border-blue-500/20', 'bg-blue-500/10', 'hover:bg-blue-500');
+          btnElement.classList.add('text-green-400', 'border-green-500/20', 'bg-green-500/10', 'cursor-not-allowed');
+        } else {
+          alert("Error sending SMS: " + (result.message || "Server error"));
+          btnElement.innerText = originalText;
+          btnElement.disabled = false;
         }
-
-        const adminEmail = localStorage.getItem('admin_email');
-        if (!adminEmail) return;
-
-        const originalText = btnElement.innerText;
-        btnElement.disabled = true;
-        btnElement.innerText = "Texting...";
-
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
-                body: JSON.stringify({
-                    action: "sendQboSmsReminder",
-                    adminEmail: adminEmail,
-                    customerPhone: customerPhone, // Now pulls directly from QuickBooks data
-                    customerName: customerName,
-                    balance: balance,
-                    docNumber: docNumber
-                })
-            });
-
-            const result = await response.json();
-            if (response.ok && result.status === 'SUCCESS') {
-                alert(`✅ SMS successfully fired!`);
-                btnElement.innerText = "SMS Sent!";
-                btnElement.classList.remove('text-blue-400', 'border-blue-500/20', 'bg-blue-500/10', 'hover:bg-blue-500');
-                btnElement.classList.add('text-green-400', 'border-green-500/20', 'bg-green-500/10', 'cursor-not-allowed');
-            } else {
-                alert("Error sending SMS: " + (result.message || "Server error"));
-                btnElement.innerText = originalText;
-                btnElement.disabled = false;
-            }
-        } catch (err) {
-            alert("Network error trying to send SMS.");
-            btnElement.innerText = originalText;
-            btnElement.disabled = false;
-        }
+      } catch (err) {
+        alert("Network error trying to send SMS.");
+        btnElement.innerText = originalText;
+        btnElement.disabled = false;
+      }
     };
 
     // ==============================================================
     // ACTION V: TOGGLE INVOICE KILL SWITCH (PAUSE AUTOMATION)
     // ==============================================================
-    window.toggleInvoicePause = async function(docNumber, isCurrentlyPaused, btnElement) {
-        const adminEmail = localStorage.getItem('admin_email');
-        if (!adminEmail) return;
+    window.toggleInvoicePause = async function (docNumber, isCurrentlyPaused, btnElement) {
+      const adminEmail = localStorage.getItem('admin_email');
+      if (!adminEmail) return;
 
-        btnElement.disabled = true;
-        btnElement.innerText = "Saving...";
+      btnElement.disabled = true;
+      btnElement.innerText = "Saving...";
 
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
-                body: JSON.stringify({
-                    action: "toggleInvoicePause",
-                    adminEmail: adminEmail,
-                    docNumber: docNumber,
-                    isPaused: !isCurrentlyPaused // Flip the boolean
-                })
-            });
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_access_token') },
+          body: JSON.stringify({
+            action: "toggleInvoicePause",
+            adminEmail: adminEmail,
+            docNumber: docNumber,
+            isPaused: !isCurrentlyPaused // Flip the boolean
+          })
+        });
 
-            const result = await response.json();
-            if (response.ok && result.status === 'SUCCESS') {
-                // Instantly re-fetch the invoices to reflect the new visual state
-                fetchAndRenderInvoices();
-            } else {
-                alert("Error updating automation status: " + (result.message || "Server error"));
-                btnElement.disabled = false;
-            }
-        } catch (err) {
-            alert("Network error trying to update automation status.");
-            btnElement.disabled = false;
+        const result = await response.json();
+        if (response.ok && result.status === 'SUCCESS') {
+          // Instantly re-fetch the invoices to reflect the new visual state
+          fetchAndRenderInvoices();
+        } else {
+          alert("Error updating automation status: " + (result.message || "Server error"));
+          btnElement.disabled = false;
         }
+      } catch (err) {
+        alert("Network error trying to update automation status.");
+        btnElement.disabled = false;
+      }
     };
 
-    function showLogin() { localStorage.removeItem('admin_id_token'); localStorage.removeItem('admin_email'); crmScreen.classList.add('hidden'); loginScreen.classList.remove('hidden'); }
-
-    function showLogin() { localStorage.removeItem('admin_id_token'); localStorage.removeItem('admin_email'); crmScreen.classList.add('hidden'); loginScreen.classList.remove('hidden'); }
-
+    function showLogin() { localStorage.removeItem('admin_id_token'); localStorage.removeItem('admin_access_token'); localStorage.removeItem('admin_email'); crmScreen.classList.add('hidden'); loginScreen.classList.remove('hidden'); }
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault(); const email = document.getElementById('admin-email-input').value.trim(); const password = document.getElementById('admin-password-input').value; const submitBtn = loginForm.querySelector('button');
       submitBtn.disabled = true; submitBtn.innerText = "Authenticating...";
@@ -1408,13 +1479,19 @@ window.deleteClientCard = async function(btnElement) {
           result = await challengeResponse.json();
         }
         if (result.AuthenticationResult) {
-          const idToken = result.AuthenticationResult.IdToken; const payload = parseJwt(idToken); const groups = payload ? payload['cognito:groups'] || [] : [];
+          const idToken = result.AuthenticationResult.IdToken;
+          const accessToken = result.AuthenticationResult.AccessToken;
+          const payload = parseJwt(idToken); const groups = payload ? payload['cognito:groups'] || [] : [];
           if (!groups.includes('Staff')) { alert("Access Denied."); submitBtn.disabled = false; submitBtn.innerText = "Secure Login"; return; }
-          localStorage.setItem('admin_id_token', idToken); localStorage.setItem('admin_email', email); showCRM(email);
+          localStorage.setItem('admin_id_token', idToken);
+          localStorage.setItem('admin_access_token', accessToken);
+          localStorage.setItem('admin_email', email);
+          showCRM(email);
         } else { alert('Login failed.'); }
       } catch (err) { alert('Network error.'); } finally { submitBtn.disabled = false; submitBtn.innerText = "Secure Login"; }
     });
     logoutBtn.addEventListener('click', showLogin);
   </script>
 </body>
+
 </html>
