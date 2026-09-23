@@ -873,7 +873,6 @@ export const handler = async (event) => {
                                 Message: { Subject: { Charset: "UTF-8", Data: `📱 SMS Sent: ${customerName} (Inv #${docNumber})` }, Body: { Html: { Charset: "UTF-8", Data: receiptHtml } } }
                             }));
 
-                            // 4. Update Ledger
                             await ddbDocClient.send(new UpdateCommand({
                                 TableName: TABLE_NAME,
                                 Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
@@ -882,11 +881,77 @@ export const handler = async (event) => {
                             }));
 
                             sentCount++;
+                            continue; // Skip the Level 3 check for this invoice today
+                        }
+                    }
+
+                    // LEVEL 3+: Recurring Every 7 Days
+                    if (escalationLevel >= 2 && ledger && ledger.lastContactDate && ledger.lastContactDate !== "Never") {
+                        const lastContact = new Date(ledger.lastContactDate);
+                        const daysDiff = (today.getTime() - lastContact.getTime()) / (1000 * 3600 * 24);
+
+                        if (daysDiff >= 7) {
+                            console.log(`Sending Level ${escalationLevel + 1} Recurring Reminder to ${customerName} (Inv #${docNumber}).`);
+                            
+                            // Alternate: Even = Email, Odd = SMS. Level 2 -> Level 3 (escalationLevel=2, so Email).
+                            const isEmailTurn = (escalationLevel % 2 === 0);
+                            let messageSent = false;
+
+                            if (isEmailTurn && customerEmail) {
+                                const reminderHtml = `
+                                    <div style="font-family: sans-serif; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0;">
+                                        <h2 style="color: #ef4444;">FiscalX Final Notice / Recurring Reminder</h2>
+                                        <p>Hello ${customerName},</p>
+                                        <p>This is a recurring reminder that you have an outstanding balance of <strong>$${balance.toFixed(2)} CAD</strong> for Invoice #${docNumber}.</p>
+                                        <p>Please send an Interac e-Transfer to <strong>payments@fiscalx.ca</strong> immediately to avoid further action.</p>
+                                    </div>
+                                `;
+                                await ses.send(new SendEmailCommand({
+                                    Source: SENDER_EMAIL, Destination: { ToAddresses: [customerEmail], BccAddresses: [OFFICE_EMAIL] },
+                                    Message: { Subject: { Charset: "UTF-8", Data: `Final Notice: Outstanding Balance - FiscalX` }, Body: { Html: { Charset: "UTF-8", Data: reminderHtml } } }
+                                }));
+                                messageSent = true;
+                            } else if (!isEmailTurn && customerPhone) {
+                                let rawDigits = String(customerPhone).toLowerCase().split('x')[0].split('ext')[0].replace(/\D/g, '');
+                                let cleanPhone = "";
+                                if (rawDigits.length === 10) cleanPhone = "+1" + rawDigits;
+                                else if (rawDigits.length === 11 && rawDigits.startsWith("1")) cleanPhone = "+" + rawDigits;
+                                
+                                if (cleanPhone) {
+                                    const smsMessage = `FiscalX Final Notice: Hi ${customerName}, your invoice #${docNumber} has a severely past-due balance of $${balance.toFixed(2)} CAD. Remit via e-Transfer to payments@fiscalx.ca immediately.`;
+                                    await sns.send(new PublishCommand({ PhoneNumber: cleanPhone, Message: smsMessage, MessageAttributes: { 'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: 'Transactional' } } }));
+                                    messageSent = true;
+                                }
+                            }
+
+                            // Fallbacks if primary preferred medium is missing
+                            if (!messageSent && isEmailTurn && customerPhone) {
+                                let rawDigits = String(customerPhone).toLowerCase().split('x')[0].split('ext')[0].replace(/\D/g, '');
+                                let cleanPhone = (rawDigits.length === 10) ? "+1" + rawDigits : (rawDigits.length === 11 && rawDigits.startsWith("1") ? "+" + rawDigits : "");
+                                if (cleanPhone) {
+                                    await sns.send(new PublishCommand({ PhoneNumber: cleanPhone, Message: `FiscalX Final Notice: Hi ${customerName}, invoice #${docNumber} balance $${balance.toFixed(2)} CAD. Remit to payments@fiscalx.ca immediately.`, MessageAttributes: { 'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: 'Transactional' } } }));
+                                    messageSent = true;
+                                }
+                            } else if (!messageSent && !isEmailTurn && customerEmail) {
+                                const reminderHtml = `<div style="font-family: sans-serif; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0;"><h2 style="color: #ef4444;">FiscalX Final Notice</h2><p>Hello ${customerName},</p><p>Outstanding balance: <strong>$${balance.toFixed(2)} CAD</strong> for Invoice #${docNumber}.</p><p>Please send an Interac e-Transfer to <strong>payments@fiscalx.ca</strong> immediately.</p></div>`;
+                                await ses.send(new SendEmailCommand({ Source: SENDER_EMAIL, Destination: { ToAddresses: [customerEmail], BccAddresses: [OFFICE_EMAIL] }, Message: { Subject: { Charset: "UTF-8", Data: `Final Notice: Outstanding Balance - FiscalX` }, Body: { Html: { Charset: "UTF-8", Data: reminderHtml } } } }));
+                                messageSent = true;
+                            }
+
+                            if (messageSent) {
+                                await ddbDocClient.send(new UpdateCommand({
+                                    TableName: TABLE_NAME,
+                                    Key: { "userEmail": `QBO_INVOICE#${docNumber}`, "timestamp": "LEDGER" },
+                                    UpdateExpression: "set escalationLevel = escalationLevel + :inc, lastContactDate = :date",
+                                    ExpressionAttributeValues: { ":inc": 1, ":date": todayStr }
+                                }));
+                                sentCount++;
+                            }
                         }
                     }
                 }
 
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: `Automated sweep complete. Sent ${sentCount} Level 2 SMS reminders.` }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: `Automated sweep complete. Sent ${sentCount} reminders.` }) };
 
             } catch (err) {
                 console.error("Cron Daily Sweep Error:", err);
