@@ -65,7 +65,10 @@ if (vaultUploadBtn && vaultFileInput && vaultUploadStatus) {
           "https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact",
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + (localStorage.getItem("access_token") || localStorage.getItem("admin_access_token") || "")
+            },
             body: JSON.stringify({
               action: "getUploadUrl",
               fileName: file.name,
@@ -74,6 +77,7 @@ if (vaultUploadBtn && vaultFileInput && vaultUploadStatus) {
             }),
           },
         );
+
         const authResult = await authResponse.json();
         if (!authResponse.ok || authResult.status !== "SUCCESS")
           throw new Error(authResult.message);
@@ -91,7 +95,7 @@ if (vaultUploadBtn && vaultFileInput && vaultUploadStatus) {
             const doc = new DOMParser().parseFromString(errTxt, "text/xml");
             const msg = doc.getElementsByTagName("Message")[0];
             if (msg) errMsg = "S3 Error: " + msg.textContent;
-          } catch (e) {}
+          } catch (e) { }
           throw new Error(errMsg);
         }
 
