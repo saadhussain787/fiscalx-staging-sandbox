@@ -243,12 +243,12 @@ export const handler = async (event) => {
                     const existingFiles = latestRecord.uploadedFiles || [];
 
                     if (!existingFiles.some(f => f.fileKey === fileKey)) {
-                        existingFiles.push({ fileName: cleanFileName, fileKey: fileKey });
+                        existingFiles.push({ fileName: cleanFileName, fileKey: fileKey, uploadedAt: new Date().toISOString() });
                         await ddbDocClient.send(new UpdateCommand({
                             TableName: TABLE_NAME,
                             Key: { userEmail: latestRecord.userEmail, timestamp: latestRecord.timestamp },
-                            UpdateExpression: "set uploadedFiles = :f",
-                            ExpressionAttributeValues: { ":f": existingFiles }
+                            UpdateExpression: "set uploadedFiles = :f, lastUpdated = :lu",
+                            ExpressionAttributeValues: { ":f": existingFiles, ":lu": new Date().toISOString() }
                         }));
                     }
                 } else {
@@ -260,7 +260,8 @@ export const handler = async (event) => {
                             clientName: "Pending Client",
                             taxType: "Document Upload Only",
                             campaignStatus: "Pending",
-                            uploadedFiles: [{ fileName: cleanFileName, fileKey: fileKey }]
+                            lastUpdated: new Date().toISOString(),
+                            uploadedFiles: [{ fileName: cleanFileName, fileKey: fileKey, uploadedAt: new Date().toISOString() }]
                         }
                     }));
                 }
@@ -342,15 +343,16 @@ export const handler = async (event) => {
             await s3.send(new PutObjectCommand({ Bucket: BUCKET_NAME, Key: csvKey, Body: csvString, ContentType: "text/csv" }));
 
             // 3. INJECT THE CSV INTO THE KANBAN VAULT
-            const allFiles = [...uploadedFiles];
-            allFiles.push({ fileName: `[Data] ${taxType} Organizer.csv`, fileKey: csvKey });
+            const mappedUploadedFiles = uploadedFiles.map(f => ({ ...f, uploadedAt: f.uploadedAt || new Date().toISOString() }));
+            const allFiles = [...mappedUploadedFiles];
+            allFiles.push({ fileName: `[Data] ${taxType} Organizer.csv`, fileKey: csvKey, uploadedAt: new Date().toISOString() });
 
             // 4. SAVE EVERYTHING TO DYNAMODB
             await ddbDocClient.send(new PutCommand({
                 TableName: TABLE_NAME,
                 Item: {
                     userEmail: userEmail, timestamp: timestamp, taxType: taxType, craConsent: craConsent, clientName: combinedName,
-                    amountOwed: "0.00", amountCollected: "0.00", campaignStatus: "Pending", howHeard: howHeard, notes: notes,
+                    amountOwed: "0.00", amountCollected: "0.00", campaignStatus: "Pending", lastUpdated: new Date().toISOString(), howHeard: howHeard, notes: notes,
                     uploadedFiles: allFiles, personalInfo: personalInfo, corporateInfo: corporateInfo, statusInCanada: statusInCanada,
                     familyMembers: familyMembers, ontarioResidency: ontarioResidency, milestones: milestones, selfEmployed: selfEmployed,
                     rentalIncome: rentalIncome, childCareBenefit: childCareBenefit,
@@ -447,8 +449,8 @@ export const handler = async (event) => {
                 await ddbDocClient.send(new UpdateCommand({
                     TableName: TABLE_NAME,
                     Key: { "userEmail": String(clientEmail), "timestamp": String(clientTimestamp) },
-                    UpdateExpression: "set campaignStatus = :s",
-                    ExpressionAttributeValues: { ":s": String(newStatus) }
+                    UpdateExpression: "set campaignStatus = :s, lastUpdated = :lu",
+                    ExpressionAttributeValues: { ":s": String(newStatus), ":lu": new Date().toISOString() }
                 }));
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Status updated successfully." }) };
             } catch (updateError) {
@@ -469,8 +471,8 @@ export const handler = async (event) => {
                 await ddbDocClient.send(new UpdateCommand({
                     TableName: TABLE_NAME,
                     Key: { "userEmail": String(clientEmail), "timestamp": String(clientTimestamp) },
-                    UpdateExpression: "set assignedTo = :a",
-                    ExpressionAttributeValues: { ":a": String(assignedTo) }
+                    UpdateExpression: "set assignedTo = :a, lastUpdated = :lu",
+                    ExpressionAttributeValues: { ":a": String(assignedTo), ":lu": new Date().toISOString() }
                 }));
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", message: "Assignment updated successfully." }) };
             } catch (updateError) {
@@ -551,7 +553,7 @@ export const handler = async (event) => {
                 for (const item of items) {
                     await ddbDocClient.send(new UpdateCommand({
                         TableName: TABLE_NAME, Key: { "userEmail": item.userEmail, "timestamp": item.timestamp },
-                        UpdateExpression: "set finalFiles = :f, paymentConfirmed = :p", ExpressionAttributeValues: { ":f": data.finalFiles || [], ":p": data.paymentConfirmed || false }
+                        UpdateExpression: "set finalFiles = :f, paymentConfirmed = :p, lastUpdated = :lu", ExpressionAttributeValues: { ":f": data.finalFiles || [], ":p": data.paymentConfirmed || false, ":lu": new Date().toISOString() }
                     }));
                 }
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
