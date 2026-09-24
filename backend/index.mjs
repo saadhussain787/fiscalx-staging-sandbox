@@ -214,29 +214,42 @@ export const handler = async (event) => {
             const fileKey = data.fileKey;
             const userEmail = data.userEmail;
             const fileName = fileKey.split("/").pop();
-            const cleanFileName = fileName.substring(13);
+            const cleanFileName = fileName.substring(fileName.indexOf('-') + 1);
 
             try {
-                const scanParams = {
+                const authData = await getAuthenticatedUser(accessToken);
+                if (data.userEmail !== authData.userEmail) {
+                    const staffCheck = await isStaff(accessToken);
+                    if (!staffCheck) {
+                        return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+                    }
+                }
+            } catch (err) {
+                return { statusCode: 401, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+            }
+
+            try {
+                const queryResult = await ddbDocClient.send(new QueryCommand({
                     TableName: TABLE_NAME,
-                    FilterExpression: "userEmail = :email",
-                    ExpressionAttributeValues: { ":email": userEmail }
-                };
-                const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
-                const userRecords = scanResult.Items || [];
+                    KeyConditionExpression: "userEmail = :email",
+                    ExpressionAttributeValues: { ":email": userEmail },
+                    ScanIndexForward: false
+                }));
+                const userRecords = queryResult.Items || [];
 
                 if (userRecords.length > 0) {
-                    userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     const latestRecord = userRecords[0];
                     const existingFiles = latestRecord.uploadedFiles || [];
 
                     if (!existingFiles.some(f => f.fileKey === fileKey)) {
-                        existingFiles.push({ fileName: cleanFileName, fileKey: fileKey });
                         await ddbDocClient.send(new UpdateCommand({
                             TableName: TABLE_NAME,
                             Key: { userEmail: latestRecord.userEmail, timestamp: latestRecord.timestamp },
-                            UpdateExpression: "set uploadedFiles = :f",
-                            ExpressionAttributeValues: { ":f": existingFiles }
+                            UpdateExpression: "set uploadedFiles = list_append(if_not_exists(uploadedFiles, :emptyList), :newFile)",
+                            ExpressionAttributeValues: { 
+                                ":newFile": [{ fileName: cleanFileName, fileKey: fileKey }],
+                                ":emptyList": []
+                            }
                         }));
                     }
                 } else {

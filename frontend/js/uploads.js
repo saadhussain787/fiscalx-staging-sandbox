@@ -104,7 +104,10 @@ if (vaultUploadBtn && vaultFileInput && vaultUploadStatus) {
           "https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact",
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + (localStorage.getItem("access_token") || localStorage.getItem("admin_access_token") || "")
+            },
             body: JSON.stringify({
               action: "notifyUploadComplete",
               fileKey: authResult.fileKey,
