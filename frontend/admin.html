@@ -793,11 +793,25 @@
       let newestFileTimestamp = 0;
       const fileListDiv = document.getElementById('modal-file-list'); fileListDiv.innerHTML = "";
       if (client.uploadedFiles && client.uploadedFiles.length > 0) {
-        client.uploadedFiles.forEach(file => {
+        // Sort files by true date (if available) or parsed timestamp so newest is on top
+        const sortedFiles = [...client.uploadedFiles].sort((a, b) => {
+           const timeA = a.uploadedAt ? new Date(a.uploadedAt).getTime() : parseInt(a.fileKey.split('/').pop().split('-')[0]) || 0;
+           const timeB = b.uploadedAt ? new Date(b.uploadedAt).getTime() : parseInt(b.fileKey.split('/').pop().split('-')[0]) || 0;
+           return timeB - timeA;
+        });
+
+        sortedFiles.forEach(file => {
           const safeKey = file.fileKey.replace(/'/g, "\\'"); const safeName = file.fileName.replace(/'/g, "\\'");
           const fileTimestamp = parseInt(file.fileKey.split('/').pop().split('-')[0]);
           if (!isNaN(fileTimestamp) && fileTimestamp > newestFileTimestamp) newestFileTimestamp = fileTimestamp;
-          fileListDiv.innerHTML += `<div class="flex items-center justify-between bg-white/5 border border-white/10 p-3 rounded-lg"><span class="text-xs text-slate-300 truncate pr-4">📄 ${escapeHTML(file.fileName)}</span><button onclick="decryptAndDownload('${safeKey}', '${safeName}', this)" class="text-[10px] font-bold text-teal-400 bg-teal-500/10 hover:bg-teal-500 hover:text-slate-950 px-3 py-1.5 rounded transition">Decrypt & Download</button></div>`;
+          
+          let fileDateHtml = '';
+          if (file.uploadedAt) {
+              const fileDate = new Date(file.uploadedAt);
+              fileDateHtml = `<span class="text-[9px] text-slate-400 mt-0.5 ml-4 block">${fileDate.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>`;
+          }
+
+          fileListDiv.innerHTML += `<div class="flex items-center justify-between bg-white/5 border border-white/10 p-3 rounded-lg"><div class="flex flex-col flex-1 min-w-0"><span class="text-xs text-slate-300 truncate pr-4">📄 ${escapeHTML(file.fileName)}</span>${fileDateHtml}</div><button onclick="decryptAndDownload('${safeKey}', '${safeName}', this)" class="text-[10px] font-bold text-teal-400 bg-teal-500/10 hover:bg-teal-500 hover:text-slate-950 px-3 py-1.5 rounded transition whitespace-nowrap ml-2 flex-shrink-0">Decrypt & Download</button></div>`;
         });
       } else { fileListDiv.innerHTML = `<p class="text-xs text-slate-500 italic">No files uploaded by this client.</p>`; }
 
