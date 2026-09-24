@@ -692,13 +692,10 @@
           : '';
 
         // Last Updated Logic
-        let lastUpdatedBadge = '';
-        if (client.lastUpdated) {
-            const updatedDate = new Date(client.lastUpdated);
-            const diffHours = Math.round((new Date() - updatedDate) / 3600000);
-            const timeAgoStr = diffHours < 24 ? (diffHours === 0 ? "Just now" : `${diffHours}h ago`) : updatedDate.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
-            lastUpdatedBadge = `<div class="text-[9px] text-slate-400 mt-0.5 text-right" title="${updatedDate.toLocaleString()}">↻ Updated: ${timeAgoStr}</div>`;
-        }
+        const updatedDate = new Date(client.lastUpdated || client.timestamp);
+        const diffHours = Math.round((new Date() - updatedDate) / 3600000);
+        const timeAgoStr = diffHours < 24 ? (diffHours === 0 ? "Just now" : `${diffHours}h ago`) : updatedDate.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+        const lastUpdatedBadge = `<div class="text-[9px] text-slate-400 mt-0.5 text-right" title="${updatedDate.toLocaleString()}">↻ Updated: ${timeAgoStr}</div>`;
 
         // Last File Added Logic
         let lastFileStr = "";
