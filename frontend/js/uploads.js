@@ -113,7 +113,7 @@ if (vaultUploadBtn && vaultFileInput && vaultUploadStatus) {
               fileKey: authResult.fileKey,
               userEmail: userEmail,
             }),
-          },
+          }
         );
       }
       vaultUploadStatus.innerText = `Success! ${totalFiles} files uploaded.`;

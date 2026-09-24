@@ -194,7 +194,10 @@ export const handler = async (event) => {
             try {
                 const authData = await getAuthenticatedUser(accessToken);
                 if (data.userEmail !== authData.userEmail) {
-                    return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+                    const staffCheck = await isStaff(accessToken);
+                    if (!staffCheck) {
+                        return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+                    }
                 }
             } catch (err) {
                 return { statusCode: 401, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
@@ -211,45 +214,41 @@ export const handler = async (event) => {
         }
 
         if (data.action === "notifyUploadComplete") {
-            const fileKey = data.fileKey;
-            const userEmail = data.userEmail;
-            const fileName = fileKey.split("/").pop();
-            const cleanFileName = fileName.substring(fileName.indexOf('-') + 1);
-
             try {
                 const authData = await getAuthenticatedUser(accessToken);
-                if (data.userEmail !== authData.userEmail) {
-                    const staffCheck = await isStaff(accessToken);
-                    if (!staffCheck) {
-                        return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
-                    }
+                if (data.userEmail !== authData.userEmail && !authData.groups.includes("Staff")) {
+                    return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
                 }
             } catch (err) {
                 return { statusCode: 401, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
             }
 
+            const fileKey = data.fileKey;
+            const userEmail = data.userEmail;
+            const fileName = fileKey.split("/").pop();
+            const cleanFileName = fileName.substring(13);
+
             try {
-                const queryResult = await ddbDocClient.send(new QueryCommand({
+                const scanParams = {
                     TableName: TABLE_NAME,
-                    KeyConditionExpression: "userEmail = :email",
-                    ExpressionAttributeValues: { ":email": userEmail },
-                    ScanIndexForward: false
-                }));
-                const userRecords = queryResult.Items || [];
+                    FilterExpression: "userEmail = :email",
+                    ExpressionAttributeValues: { ":email": userEmail }
+                };
+                const scanResult = await ddbDocClient.send(new ScanCommand(scanParams));
+                const userRecords = scanResult.Items || [];
 
                 if (userRecords.length > 0) {
+                    userRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     const latestRecord = userRecords[0];
                     const existingFiles = latestRecord.uploadedFiles || [];
 
                     if (!existingFiles.some(f => f.fileKey === fileKey)) {
+                        existingFiles.push({ fileName: cleanFileName, fileKey: fileKey });
                         await ddbDocClient.send(new UpdateCommand({
                             TableName: TABLE_NAME,
                             Key: { userEmail: latestRecord.userEmail, timestamp: latestRecord.timestamp },
-                            UpdateExpression: "set uploadedFiles = list_append(if_not_exists(uploadedFiles, :emptyList), :newFile)",
-                            ExpressionAttributeValues: { 
-                                ":newFile": [{ fileName: cleanFileName, fileKey: fileKey }],
-                                ":emptyList": []
-                            }
+                            UpdateExpression: "set uploadedFiles = :f",
+                            ExpressionAttributeValues: { ":f": existingFiles }
                         }));
                     }
                 } else {
@@ -298,6 +297,14 @@ export const handler = async (event) => {
         }
 
         if (data.action === "submitTaxOrganizer") {
+            try {
+                const authData = await getAuthenticatedUser(accessToken);
+                if (data.userEmail !== authData.userEmail) {
+                    return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+                }
+            } catch (err) {
+                return { statusCode: 401, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+            }
             const {
                 userEmail = "Unknown", taxType = "T1 Personal", craConsent = "Not Provided", howHeard = "Not Specified",
                 personalInfo = {}, familyMembers = [], statusInCanada = {}, ontarioResidency = [], milestones = {},
@@ -485,6 +492,17 @@ export const handler = async (event) => {
         }
 
         if (data.action === "getClientStatus") {
+            try {
+                const authData = await getAuthenticatedUser(accessToken);
+                if (data.userEmail !== authData.userEmail) {
+                    const staffCheck = await isStaff(accessToken);
+                    if (!staffCheck) {
+                        return { statusCode: 403, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+                    }
+                }
+            } catch (err) {
+                return { statusCode: 401, headers: headers, body: JSON.stringify({ status: "ERROR", message: "Unauthorized." }) };
+            }
             if (!data.userEmail) return { statusCode: 400, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
 
             try {
@@ -905,7 +923,7 @@ export const handler = async (event) => {
 
                         if (daysDiff >= 7) {
                             console.log(`Sending Level ${escalationLevel + 1} Recurring Reminder to ${customerName} (Inv #${docNumber}).`);
-                            
+
                             // Alternate: Even = Email, Odd = SMS. Level 2 -> Level 3 (escalationLevel=2, so Email).
                             const isEmailTurn = (escalationLevel % 2 === 0);
                             let messageSent = false;
@@ -929,7 +947,7 @@ export const handler = async (event) => {
                                 let cleanPhone = "";
                                 if (rawDigits.length === 10) cleanPhone = "+1" + rawDigits;
                                 else if (rawDigits.length === 11 && rawDigits.startsWith("1")) cleanPhone = "+" + rawDigits;
-                                
+
                                 if (cleanPhone) {
                                     const smsMessage = `FiscalX Final Notice: Hi ${customerName}, your invoice #${docNumber} has a severely past-due balance of $${balance.toFixed(2)} CAD. Remit via e-Transfer to payments@fiscalx.ca immediately.`;
                                     await sns.send(new PublishCommand({ PhoneNumber: cleanPhone, Message: smsMessage, MessageAttributes: { 'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: 'Transactional' } } }));
