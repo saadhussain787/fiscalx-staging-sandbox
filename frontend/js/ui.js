@@ -45,7 +45,7 @@ if (dashDatePicker) {
     const selectedDateObj = new Date(e.target.value);
     const dayOfWeek = new Date(
       selectedDateObj.getTime() +
-        Math.abs(selectedDateObj.getTimezoneOffset() * 60000),
+      Math.abs(selectedDateObj.getTimezoneOffset() * 60000),
     ).getDay();
 
     if (dayOfWeek === 0 || dayOfWeek === 6) {
@@ -133,7 +133,7 @@ if (dashDatePicker) {
           };
         }
         dashTimeSlots.appendChild(btn);
-        
+
         // Trigger fade in after a brief delay
         setTimeout(() => {
           btn.classList.remove("opacity-0");
@@ -488,7 +488,10 @@ if (organizerForm) {
             "https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact",
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + (localStorage.getItem("access_token") || localStorage.getItem("admin_access_token") || "")
+              },
               body: JSON.stringify({
                 action: "getUploadUrl",
                 fileName: fileObj.name,
@@ -512,7 +515,7 @@ if (organizerForm) {
               const doc = new DOMParser().parseFromString(errTxt, "text/xml");
               const msg = doc.getElementsByTagName("Message")[0];
               if (msg) errMsg = "S3 Error: " + msg.textContent;
-            } catch (e) {}
+            } catch (e) { }
             throw new Error(errMsg);
           }
           relevantFilesToUpload[i].fileKey = authResult.fileKey;
@@ -740,7 +743,7 @@ if (organizerForm) {
       } else {
         alert(
           "Submission failed: " +
-            (jsonResult.message || "Unknown server error"),
+          (jsonResult.message || "Unknown server error"),
         );
       }
     } catch (err) {
