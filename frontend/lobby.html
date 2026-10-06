@@ -131,8 +131,30 @@
     </div>
   </div>
 
-  <!-- SLIDE 4: Rotating Tax Tips (Mega Array) -->
+  <!-- SLIDE 4: Grants & Subsidies (Smart Auto-playing Video) -->
   <div id="slide-4" class="slide">
+    <div class="glass-panel" style="padding: 64px; max-width: 1024px;">
+      <div class="split-layout">
+        <div class="col-half">
+          <div class="phone-frame">
+            <video id="tiktok-video-2" class="native-video" muted playsinline>
+              <source src="/tiktok2.mp4" type="video/mp4">
+              Your TV does not support HTML5 video.
+            </video>
+          </div>
+        </div>
+        <div class="col-half">
+          <div class="social-title-box"><span style="font-size: 3rem;">💰</span><h1 class="social-title">Grants & Subsidies</h1></div>
+          <p class="social-desc">Scan to follow Wasim on TikTok. Learn how to secure government funding and free money for your business in 60 seconds!</p>
+          <div class="qr-box"><img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://www.tiktok.com/@wasim.kadri.cpa" alt="TikTok QR" class="qr-img"></div>
+          <p class="scan-msg">FOLLOW @WASIM.KADRI.CPA</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Rotating Tax Tips (Mega Array) -->
+  <div id="slide-5" class="slide">
     <div class="glass-panel" style="padding: 64px; max-width: 1024px; text-align: center;">
       <h1 class="title-huge" style="color: #60a5fa;">💡 FiscalX Daily Tax Tip</h1>
       <div style="height: 200px; display: flex; align-items: center; justify-content: center; margin-top: 20px;">
@@ -141,8 +163,8 @@
     </div>
   </div>
 
-  <!-- SLIDE 5: CRA & Gov Help Numbers -->
-  <div id="slide-5" class="slide">
+  <!-- SLIDE 6: CRA & Gov Help Numbers -->
+  <div id="slide-6" class="slide">
     <div class="glass-panel" style="padding: 64px; max-width: 960px;">
       <h1 class="title-huge">Government Contacts</h1>
       <p class="subtitle">Take a photo for your records 📸</p>
@@ -156,8 +178,8 @@
     </div>
   </div>
 
-  <!-- SLIDE 6: TikTok Tax Hub (Smart Auto-playing Video) -->
-  <div id="slide-6" class="slide">
+  <!-- SLIDE 7: TikTok Tax Hub (Smart Auto-playing Video) -->
+  <div id="slide-7" class="slide">
     <div class="glass-panel" style="padding: 64px; max-width: 1024px;">
       <div class="split-layout">
         <div class="col-half">
@@ -179,8 +201,8 @@
     </div>
   </div>
 
-  <!-- SLIDE 7: The QR Code Check-in -->
-  <div id="slide-7" class="slide">
+  <!-- SLIDE 8: The QR Code Check-in -->
+  <div id="slide-8" class="slide">
     <div class="glass-panel" style="padding: 64px; max-width: 896px; text-align: center;">
       <h1 class="title-huge">Client Check-In Portal</h1>
       <p style="font-size: 1.5rem; color: #cbd5e1; margin-bottom: 40px; margin-top: 0;">Scan to access your secure document vault</p>
@@ -191,8 +213,8 @@
     </div>
   </div>
 
-  <!-- SLIDE 8: Google Reviews Split View -->
-  <div id="slide-8" class="slide">
+  <!-- SLIDE 9: Google Reviews Split View -->
+  <div id="slide-9" class="slide">
     <div class="glass-panel" style="padding: 64px; max-width: 1100px;">
       <div class="split-layout">
         
@@ -276,7 +298,7 @@
     // 5. THE SMART VIDEO CAROUSEL ENGINE
     // =========================================================
     let currentSlide = 1;
-    const totalSlides = 8;
+    const totalSlides = 9;
     let slideTimer;
 
     function startCarousel() {
@@ -288,9 +310,10 @@
       activeSlide.classList.add('active');
 
       // 3. The Smart Timer Check
-      if (currentSlide === 6) {
-        // If it's the TikTok Slide, DO NOT use a fixed timer. Play the video and wait!
-        const vid = document.getElementById('tiktok-video');
+      if (currentSlide === 4 || currentSlide === 7) {
+        // If it's a TikTok Slide, DO NOT use a fixed timer. Play the video and wait!
+        const vidId = currentSlide === 4 ? 'tiktok-video-2' : 'tiktok-video';
+        const vid = document.getElementById(vidId);
         vid.currentTime = 0; // Rewind to start
         
         vid.play().catch(e => {
