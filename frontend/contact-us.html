@@ -66,15 +66,23 @@ layout: layout.html
             </div>
 
             <div class="p-6 sm:p-8 space-y-6">
+              <!-- OPERATIONAL ADVISORY BANNER -->
+              <div class="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl flex items-start gap-3 text-xs text-blue-900 leading-relaxed">
+                <span class="text-base flex-shrink-0">ℹ️</span>
+                <div>
+                  <strong class="font-bold">Operational Notice:</strong> To accommodate intensive year-end file reviews, all advisory meetings with Wasim Kadri, CPA are being conducted <strong>exclusively via Microsoft Teams through December 15, 2026</strong>. In-office consultations will resume after December 15.
+                </div>
+              </div>
+
               <!-- STEP 1: Meeting Format -->
               <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">1. Choose Meeting Format</label>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button type="button" id="type-teams" class="meeting-type-btn border-2 border-brand-500 bg-brand-50 text-brand-700 font-extrabold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm">
-                    🎥 MS Teams Video
+                    🎥 MS Teams Video (Online)
                   </button>
-                  <button type="button" id="type-office" class="meeting-type-btn border border-slate-200 bg-white text-slate-700 hover:border-brand-500 font-bold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm">
-                    🏢 In-Office Visit
+                  <button type="button" id="type-office" disabled class="meeting-type-btn border border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed font-semibold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm opacity-70">
+                    🏢 In-Office <span class="text-[10px] font-bold text-amber-700 bg-amber-100/90 px-2 py-0.5 rounded-full border border-amber-300">Paused until Dec 15</span>
                   </button>
                 </div>
               </div>
@@ -82,8 +90,8 @@ layout: layout.html
               <!-- STEP 2: Pick Date & Time -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label for="booking-date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">2. Select Date</label>
-                  <input type="date" id="booking-date" class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50 cursor-pointer" />
+                  <label for="booking-date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">2. Select Date (Through Dec 15, 2026)</label>
+                  <input type="date" id="booking-date" max="2026-12-15" class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50 cursor-pointer" />
                 </div>
                 
                 <div id="time-slot-container" class="hidden">
@@ -110,6 +118,12 @@ layout: layout.html
                     <option value="Other / Consultation">Other / Consultation</option>
                   </select>
                 </div>
+
+                <p class="text-[11px] text-slate-500 leading-normal text-center pt-1">
+                  By confirming, you agree to FiscalX's 
+                  <a href="/legal#terms" target="_blank" class="text-brand-600 font-bold underline">Terms of Service</a> and 
+                  <a href="/legal#privacy" target="_blank" class="text-brand-600 font-bold underline">Privacy Policy</a>.
+                </p>
 
                 <button type="button" id="confirm-booking-btn" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-2xl text-sm font-extrabold text-primary-dark bg-primary-neon hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:-translate-y-[1px] transition-all ease-physics shadow-md">
                   Confirm & Reserve Appointment
@@ -171,6 +185,11 @@ layout: layout.html
                   <textarea id="message-body" rows="4" placeholder="Briefly detail your business scope..." class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-neon transition-all ease-physics"></textarea>
                 </div>
               </div>
+
+              <p class="text-[11px] text-slate-500 leading-normal">
+                💡 <strong>Scheduling &amp; Privacy Note:</strong> Consultations are currently conducted online via Microsoft Teams through December 15, 2026. All general inquiries and submitted documents are held in strict confidence in compliance with Canadian <a href="/legal#privacy" target="_blank" class="text-brand-600 font-bold underline hover:text-brand-500">PIPEDA Privacy Standards</a> and CPA client confidentiality requirements.
+              </p>
+
               <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-xl text-sm font-bold text-primary-dark bg-primary-neon hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:-translate-y-[1px] transition-all ease-physics shadow-md">
                 Send Message
               </button>
@@ -207,6 +226,7 @@ layout: layout.html
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = tomorrow.toISOString().split('T')[0];
       dateInput.setAttribute('min', tomorrowStr);
+      dateInput.setAttribute('max', '2026-12-15');
     }
   });
 
@@ -256,7 +276,10 @@ layout: layout.html
 
   if (btnTeams && btnOffice) {
     btnTeams.addEventListener('click', () => updateMeetingType("Microsoft Teams", btnTeams, btnOffice));
-    btnOffice.addEventListener('click', () => updateMeetingType("In-Office", btnOffice, btnTeams));
+    btnOffice.addEventListener('click', (e) => {
+      e.preventDefault();
+      alert("In-office visits are temporarily paused until December 15, 2026. All consultations are being held virtually via Microsoft Teams.");
+    });
   }
 
   const datePicker = document.getElementById('booking-date');
@@ -278,6 +301,15 @@ layout: layout.html
         timeSlotContainer.classList.add('hidden');
         bookingConfirmation.classList.add('hidden');
         return; 
+      }
+
+      // Operational Cutoff Guard (Through Dec 15, 2026)
+      if (e.target.value > '2026-12-15') {
+        alert("Consultations for the current cycle are available through December 15, 2026. Please select a date on or before December 15.");
+        datePicker.value = "";
+        timeSlotContainer.classList.add('hidden');
+        bookingConfirmation.classList.add('hidden');
+        return;
       }
 
       activeBookingDate = e.target.value;

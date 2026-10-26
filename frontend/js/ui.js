@@ -18,6 +18,7 @@ if (dashDatePicker) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split("T")[0];
   dashDatePicker.setAttribute("min", tomorrowStr);
+  dashDatePicker.setAttribute("max", "2026-12-15");
 }
 
 function updateDashMeetingType(type, activeBtn, inactiveBtn) {
@@ -34,9 +35,10 @@ if (dashBtnTeams && dashBtnOffice) {
   dashBtnTeams.addEventListener("click", () =>
     updateDashMeetingType("Microsoft Teams", dashBtnTeams, dashBtnOffice),
   );
-  dashBtnOffice.addEventListener("click", () =>
-    updateDashMeetingType("In-Office", dashBtnOffice, dashBtnTeams),
-  );
+  dashBtnOffice.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("In-office visits are temporarily paused until December 15, 2026. All consultations are being held virtually via Microsoft Teams.");
+  });
 }
 
 // LIVE MICROSOFT OUTLOOK SYNC FOR LOGGED-IN CLIENT DASHBOARD
@@ -51,6 +53,16 @@ if (dashDatePicker) {
     if (dayOfWeek === 0 || dayOfWeek === 6) {
       alert(
         "Our office is closed on weekends. Please select a date between Monday and Friday.",
+      );
+      dashDatePicker.value = "";
+      dashSlotContainer.classList.add("hidden");
+      dashConfirmation.classList.add("hidden");
+      return;
+    }
+
+    if (e.target.value > "2026-12-15") {
+      alert(
+        "Consultation slots are available through December 15, 2026. Please select an earlier date on or before December 15.",
       );
       dashDatePicker.value = "";
       dashSlotContainer.classList.add("hidden");

@@ -297,6 +297,43 @@ export const handler = async (event) => {
             return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
         }
 
+        // ==============================================================
+        // ACTION: RECORD IMMUTABLE CLICKWRAP LEGAL CONSENT AUDIT TRAIL
+        // ==============================================================
+        if (data.action === "recordConsent") {
+            const userEmail = data.userEmail || "Unknown";
+            const clientName = data.clientName || "Registered Client";
+            const clientIp = event.requestContext?.http?.sourceIp || event.requestContext?.identity?.sourceIp || "Unknown";
+            const userAgent = event.headers?.['user-agent'] || event.headers?.['User-Agent'] || "Unknown";
+            const acceptedAt = data.acceptedAt || new Date().toISOString();
+            const termsVersion = data.termsVersion || "2026.1";
+
+            try {
+                await ddbDocClient.send(new PutCommand({
+                    TableName: TABLE_NAME,
+                    Item: {
+                        userEmail: userEmail,
+                        timestamp: acceptedAt,
+                        clientName: clientName,
+                        taxType: "Account Registration",
+                        campaignStatus: "Registered",
+                        lastUpdated: acceptedAt,
+                        legalConsent: {
+                            termsAccepted: true,
+                            termsVersion: termsVersion,
+                            acceptedAt: acceptedAt,
+                            clientIp: clientIp,
+                            userAgent: userAgent
+                        }
+                    }
+                }));
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
+            } catch (err) {
+                console.error("Failed to log legal consent audit record:", err);
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", warning: "Audit log fallback" }) };
+            }
+        }
+
         if (data.action === "submitTaxOrganizer") {
             try {
                 const authData = await getAuthenticatedUser(accessToken);
@@ -348,6 +385,9 @@ export const handler = async (event) => {
             allFiles.push({ fileName: `[Data] ${taxType} Organizer.csv`, fileKey: csvKey, uploadedAt: new Date().toISOString() });
 
             // 4. SAVE EVERYTHING TO DYNAMODB
+            const organizerClientIp = event.requestContext?.http?.sourceIp || event.requestContext?.identity?.sourceIp || "Unknown";
+            const organizerUserAgent = event.headers?.['user-agent'] || event.headers?.['User-Agent'] || "Unknown";
+
             await ddbDocClient.send(new PutCommand({
                 TableName: TABLE_NAME,
                 Item: {
@@ -356,7 +396,15 @@ export const handler = async (event) => {
                     uploadedFiles: allFiles, personalInfo: personalInfo, corporateInfo: corporateInfo, statusInCanada: statusInCanada,
                     familyMembers: familyMembers, ontarioResidency: ontarioResidency, milestones: milestones, selfEmployed: selfEmployed,
                     rentalIncome: rentalIncome, childCareBenefit: childCareBenefit,
-                    paymentConfirmed: false, finalFiles: []
+                    paymentConfirmed: false, finalFiles: [],
+                    craConsentTimestamp: new Date().toISOString(),
+                    legalConsent: {
+                        termsAccepted: true,
+                        termsVersion: "2026.1",
+                        acceptedAt: timestamp,
+                        clientIp: organizerClientIp,
+                        userAgent: organizerUserAgent
+                    }
                 }
             }));
 
@@ -1086,6 +1134,19 @@ export const handler = async (event) => {
 
         if (data.action === "getAvailableSlots") {
             try {
+                // OPERATIONAL SAFEGUARD: Cap availability through December 15, 2026
+                if (data.bookingDate && data.bookingDate > "2026-12-15") {
+                    return { 
+                        statusCode: 200, 
+                        headers: headers, 
+                        body: JSON.stringify({ 
+                            status: "SUCCESS", 
+                            slots: [], 
+                            message: "Consultation bookings for this cycle are closed. Bookings will resume after December 15, 2026." 
+                        }) 
+                    };
+                }
+
                 const accessToken = await getMsAccessToken();
                 if (!accessToken) throw new Error("No MS Access Token");
 
@@ -1127,6 +1188,21 @@ export const handler = async (event) => {
 
         if (data.action === "createBooking" || data.action === "submitBooking") {
             try {
+                // OPERATIONAL SAFEGUARD: Reject bookings past Dec 15, 2026
+                if (data.bookingDate && data.bookingDate > "2026-12-15") {
+                    return { 
+                        statusCode: 400, 
+                        headers: headers, 
+                        body: JSON.stringify({ 
+                            status: "ERROR", 
+                            message: "Consultations for the current cycle are only accepted through December 15, 2026." 
+                        }) 
+                    };
+                }
+
+                // Force Microsoft Teams Video during operational window through Dec 15
+                data.meetingType = "Microsoft Teams Video";
+
                 let msEventId = null;
                 const accessToken = await getMsAccessToken();
                 if (accessToken) {
@@ -1136,12 +1212,12 @@ export const handler = async (event) => {
                         if (ampm === "PM" && hours !== 12) hours += 12; if (ampm === "AM" && hours === 12) hours = 0;
                         const endMinutes = minutes + 30; const endHours = endMinutes >= 60 ? hours + 1 : hours;
 
-                        // Check if client selected MS Teams
-                        const isTeams = (data.meetingType || "").includes("Teams");
+                        // Check if client selected MS Teams (or auto-enforced)
+                        const isTeams = true;
 
                         const eventPayload = {
                             subject: `FiscalX Consultation: ${data.fullName}`,
-                            body: { contentType: "HTML", content: `<p>Client Email: ${data.email}</p><p>Format: ${data.meetingType || 'In-Office'}</p>` },
+                            body: { contentType: "HTML", content: `<p>Client Email: ${data.email}</p><p>Format: Microsoft Teams Video</p>` },
                             start: { dateTime: `${data.bookingDate}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`, timeZone: "Eastern Standard Time" },
                             end: { dateTime: `${data.bookingDate}T${endHours.toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}:00`, timeZone: "Eastern Standard Time" },
                             attendees: [{ emailAddress: { address: data.email }, type: "required" }]
@@ -1161,7 +1237,32 @@ export const handler = async (event) => {
                     } catch (e) { }
                 }
 
-                await ddbDocClient.send(new PutCommand({ TableName: TABLE_NAME, Item: { userEmail: data.email, timestamp: new Date().toISOString(), clientName: data.fullName, bookingDate: data.bookingDate, bookingTime: data.bookingTime, msEventId: msEventId, campaignStatus: "Pending", paymentConfirmed: false, phone: data.phone || "Not Provided", taxType: data.taxType || data.service || "General Inquiry" } }));
+                const bookingTimestamp = new Date().toISOString();
+                const bookingIp = event.requestContext?.http?.sourceIp || event.requestContext?.identity?.sourceIp || "Unknown";
+                const bookingUserAgent = event.headers?.['user-agent'] || event.headers?.['User-Agent'] || "Unknown";
+
+                await ddbDocClient.send(new PutCommand({ 
+                    TableName: TABLE_NAME, 
+                    Item: { 
+                        userEmail: data.email, 
+                        timestamp: bookingTimestamp, 
+                        clientName: data.fullName, 
+                        bookingDate: data.bookingDate, 
+                        bookingTime: data.bookingTime, 
+                        msEventId: msEventId, 
+                        campaignStatus: "Pending", 
+                        paymentConfirmed: false, 
+                        phone: data.phone || "Not Provided", 
+                        taxType: data.taxType || data.service || "General Inquiry",
+                        legalConsent: {
+                            termsAccepted: true,
+                            termsVersion: "2026.1",
+                            acceptedAt: bookingTimestamp,
+                            clientIp: bookingIp,
+                            userAgent: bookingUserAgent
+                        }
+                    } 
+                }));
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
             } catch (err) {
                 return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };

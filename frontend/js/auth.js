@@ -345,6 +345,13 @@ if (loginForm) {
 if (registerForm) {
   registerForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const termsCheckbox = document.getElementById("register-terms");
+    if (!termsCheckbox || !termsCheckbox.checked) {
+      alert(
+        "You must agree to the Terms of Service, PIPEDA Privacy Policy, and CRA Representation Terms to create a Client Portal account."
+      );
+      return;
+    }
     const name = document.getElementById("register-name").value;
     const email = document.getElementById("register-email").value;
     const password = document.getElementById("register-password").value;
@@ -373,6 +380,25 @@ if (registerForm) {
       const result = await response.json();
       if (response.ok) {
         pendingVerificationEmail = email;
+        try {
+          await fetch(
+            "https://85hyx9ie7d.execute-api.ca-central-1.amazonaws.com/prod/Contact",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "recordConsent",
+                userEmail: email,
+                clientName: name,
+                termsAccepted: true,
+                termsVersion: "2026.1",
+                acceptedAt: new Date().toISOString(),
+              }),
+            },
+          );
+        } catch (consentErr) {
+          console.warn("Consent audit log notice:", consentErr);
+        }
         authTabs.classList.add("hidden");
         registerForm.classList.add("hidden");
         verifyForm.classList.remove("hidden");
