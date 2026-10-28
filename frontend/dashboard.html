@@ -208,7 +208,7 @@ layout: layout.html
       <div class="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-xl flex items-start gap-3 text-xs text-blue-900 leading-relaxed">
         <span class="text-base flex-shrink-0">📢</span>
         <div>
-          <strong class="font-bold">Client Scheduling Update:</strong> Direct advisory consultations with Wasim Kadri, CPA are held <strong>virtually via Microsoft Teams through December 15, 2026</strong>. In-office appointments will resume after December 15. Tax organizer submissions, document uploads, and CRA account management will proceed normally through your secure vault.
+          <strong class="font-bold">Client Scheduling Update:</strong> Direct advisory consultations with Wasim Kadri, CPA are held <strong>virtually via Microsoft Teams through December 15, 2026</strong>. In-office appointments resume for all bookings after December 15. Tax organizer submissions, document uploads, and CRA account management proceed normally through your secure vault.
         </div>
       </div>
 
@@ -216,16 +216,16 @@ layout: layout.html
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-2">1. Select Meeting Format</label>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button type="button" id="dash-type-teams" class="border border-brand-500 bg-brand-500 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm">🎥 MS Teams Video (Online)</button>
-            <button type="button" id="dash-type-office" disabled class="border border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm opacity-70">
+            <button type="button" id="dash-type-teams" class="border border-brand-500 bg-brand-500 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm cursor-pointer">🎥 MS Teams Video (Online)</button>
+            <button type="button" id="dash-type-office" class="border border-slate-200 bg-slate-100 text-slate-400 font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm opacity-70">
               🏢 In-Office <span class="text-[10px] font-bold text-amber-700 bg-amber-100/90 px-2 py-0.5 rounded-full border border-amber-300">Paused until Dec 15</span>
             </button>
           </div>
         </div>
 
         <div>
-          <label for="dash-booking-date" class="block text-xs font-bold text-slate-700 uppercase mb-2">2. Select Date (Through Dec 15, 2026)</label>
-          <input type="date" id="dash-booking-date" max="2026-12-15" class="w-full sm:w-1/2 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50 cursor-pointer" />
+          <label for="dash-booking-date" class="block text-xs font-bold text-slate-700 uppercase mb-2">2. Select Consultation Date</label>
+          <input type="date" id="dash-booking-date" class="w-full sm:w-1/2 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50 cursor-pointer" />
         </div>
 
         <div id="dash-slot-container" class="hidden">

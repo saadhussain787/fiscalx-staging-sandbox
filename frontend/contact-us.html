@@ -70,7 +70,7 @@ layout: layout.html
               <div class="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl flex items-start gap-3 text-xs text-blue-900 leading-relaxed">
                 <span class="text-base flex-shrink-0">ℹ️</span>
                 <div>
-                  <strong class="font-bold">Operational Notice:</strong> To accommodate intensive year-end file reviews, all advisory meetings with Wasim Kadri, CPA are being conducted <strong>exclusively via Microsoft Teams through December 15, 2026</strong>. In-office consultations will resume after December 15.
+                  <strong class="font-bold">Operational Notice:</strong> To accommodate intensive year-end file reviews, all advisory meetings with Wasim Kadri, CPA are being conducted <strong>exclusively via Microsoft Teams through December 15, 2026</strong>. In-office consultations resume for all bookings after December 15.
                 </div>
               </div>
 
@@ -78,10 +78,10 @@ layout: layout.html
               <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">1. Choose Meeting Format</label>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button type="button" id="type-teams" class="meeting-type-btn border-2 border-brand-500 bg-brand-50 text-brand-700 font-extrabold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm">
+                  <button type="button" id="type-teams" class="meeting-type-btn border-2 border-brand-500 bg-brand-50 text-brand-700 font-extrabold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer">
                     🎥 MS Teams Video (Online)
                   </button>
-                  <button type="button" id="type-office" disabled class="meeting-type-btn border border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed font-semibold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm opacity-70">
+                  <button type="button" id="type-office" class="meeting-type-btn border border-slate-200 bg-slate-100 text-slate-400 font-semibold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm opacity-70">
                     🏢 In-Office <span class="text-[10px] font-bold text-amber-700 bg-amber-100/90 px-2 py-0.5 rounded-full border border-amber-300">Paused until Dec 15</span>
                   </button>
                 </div>
@@ -90,8 +90,8 @@ layout: layout.html
               <!-- STEP 2: Pick Date & Time -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label for="booking-date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">2. Select Date (Through Dec 15, 2026)</label>
-                  <input type="date" id="booking-date" max="2026-12-15" class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50 cursor-pointer" />
+                  <label for="booking-date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">2. Select Consultation Date</label>
+                  <input type="date" id="booking-date" class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50 cursor-pointer" />
                 </div>
                 
                 <div id="time-slot-container" class="hidden">
@@ -226,7 +226,9 @@ layout: layout.html
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = tomorrow.toISOString().split('T')[0];
       dateInput.setAttribute('min', tomorrowStr);
-      dateInput.setAttribute('max', '2026-12-15');
+      const maxRolling = new Date();
+      maxRolling.setDate(maxRolling.getDate() + 60);
+      dateInput.setAttribute('max', maxRolling.toISOString().split('T')[0]);
     }
   });
 
@@ -269,8 +271,8 @@ layout: layout.html
   
   function updateMeetingType(type, activeBtn, inactiveBtn) {
     activeMeetingType = type;
-    activeBtn.className = "meeting-type-btn border-2 border-brand-500 bg-brand-50 text-brand-700 font-extrabold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm";
-    inactiveBtn.className = "meeting-type-btn border border-slate-200 bg-white text-slate-700 hover:border-brand-500 font-bold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm";
+    activeBtn.className = "meeting-type-btn border-2 border-brand-500 bg-brand-50 text-brand-700 font-extrabold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer";
+    inactiveBtn.className = "meeting-type-btn border border-slate-200 bg-white text-slate-700 hover:border-brand-500 font-bold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer";
     if(activeBookingTime) document.getElementById('selected-time-display').innerText = `${activeMeetingType} on ${activeBookingDate} at ${activeBookingTime}`;
   }
 
@@ -278,7 +280,15 @@ layout: layout.html
     btnTeams.addEventListener('click', () => updateMeetingType("Microsoft Teams", btnTeams, btnOffice));
     btnOffice.addEventListener('click', (e) => {
       e.preventDefault();
-      alert("In-office visits are temporarily paused until December 15, 2026. All consultations are being held virtually via Microsoft Teams.");
+      if (activeBookingDate && activeBookingDate <= '2026-12-15') {
+        alert("In-office visits are temporarily paused through December 15, 2026. Consultations during this period are held virtually via Microsoft Teams. Please select a date after December 15 for an in-office appointment.");
+        return;
+      }
+      if (!activeBookingDate) {
+        alert("Please select your desired consultation date first. In-office appointments are open for dates after December 15, 2026.");
+        return;
+      }
+      updateMeetingType("In-Office", btnOffice, btnTeams);
     });
   }
 
@@ -303,16 +313,26 @@ layout: layout.html
         return; 
       }
 
-      // Operational Cutoff Guard (Through Dec 15, 2026)
-      if (e.target.value > '2026-12-15') {
-        alert("Consultations for the current cycle are available through December 15, 2026. Please select a date on or before December 15.");
-        datePicker.value = "";
-        timeSlotContainer.classList.add('hidden');
-        bookingConfirmation.classList.add('hidden');
-        return;
+      activeBookingDate = e.target.value;
+
+      // Dynamic Format Availability Based on Dec 15 Boundary
+      const isDatePreDec15 = (activeBookingDate <= '2026-12-15');
+      if (isDatePreDec15) {
+        activeMeetingType = "Microsoft Teams";
+        btnTeams.className = "meeting-type-btn border-2 border-brand-500 bg-brand-50 text-brand-700 font-extrabold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer";
+        btnOffice.className = "meeting-type-btn border border-slate-200 bg-slate-100 text-slate-400 font-semibold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm opacity-70";
+        btnOffice.innerHTML = `🏢 In-Office <span class="text-[10px] font-bold text-amber-700 bg-amber-100/90 px-2 py-0.5 rounded-full border border-amber-300">Paused until Dec 15</span>`;
+      } else {
+        btnOffice.innerHTML = `🏢 In-Office Consultation`;
+        if (activeMeetingType === "In-Office") {
+          btnOffice.className = "meeting-type-btn border-2 border-brand-500 bg-brand-50 text-brand-700 font-extrabold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer";
+          btnTeams.className = "meeting-type-btn border border-slate-200 bg-white text-slate-700 hover:border-brand-500 font-bold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer";
+        } else {
+          btnTeams.className = "meeting-type-btn border-2 border-brand-500 bg-brand-50 text-brand-700 font-extrabold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer";
+          btnOffice.className = "meeting-type-btn border border-slate-200 bg-white text-slate-700 hover:border-brand-500 font-bold py-3 px-4 rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer";
+        }
       }
 
-      activeBookingDate = e.target.value;
       bookingConfirmation.classList.add('hidden'); 
       timeSlotsGrid.innerHTML = "<p class='text-xs text-slate-400 col-span-2 sm:col-span-4 italic animate-pulse py-2'>Checking Wasim's Live Outlook Calendar...</p>";
       timeSlotContainer.classList.remove('hidden');

@@ -83,7 +83,10 @@ async function getMsAccessToken() {
             ExpressionAttributeValues: { ":e": "SYSTEM_CONFIG", ":t": "MICROSOFT_OUTLOOK_AUTH" }
         }));
         const configItem = (configRes.Items || [])[0];
-        if (!configItem || !configItem.msRefreshToken) return null;
+        if (!configItem || !configItem.msRefreshToken) {
+            console.warn("getMsAccessToken: No msRefreshToken found in SYSTEM_CONFIG/MICROSOFT_OUTLOOK_AUTH");
+            return null;
+        }
 
         const tokenRes = await fetch(`https://login.microsoftonline.com/common/oauth2/v2.0/token`, {
             method: 'POST',
@@ -96,9 +99,28 @@ async function getMsAccessToken() {
             })
         });
         const tokenData = await tokenRes.json();
+        if (tokenData.error) {
+            console.error("Microsoft Token Refresh Error Response:", tokenData.error, tokenData.error_description);
+            return null;
+        }
+
+        // Persist rotated refresh token if Microsoft issued a new one
+        if (tokenData.refresh_token && tokenData.refresh_token !== configItem.msRefreshToken) {
+            try {
+                await ddbDocClient.send(new UpdateCommand({
+                    TableName: TABLE_NAME,
+                    Key: { "userEmail": "SYSTEM_CONFIG", "timestamp": "MICROSOFT_OUTLOOK_AUTH" },
+                    UpdateExpression: "set msRefreshToken = :r, updatedAt = :u",
+                    ExpressionAttributeValues: { ":r": tokenData.refresh_token, ":u": new Date().toISOString() }
+                }));
+            } catch (updateErr) {
+                console.error("Failed to persist rotated MS refresh token:", updateErr.message);
+            }
+        }
+
         return tokenData.access_token || null;
     } catch (err) {
-        console.error("Microsoft Token Refresh Error:", err);
+        console.error("Microsoft Token Refresh Exception:", err);
         return null;
     }
 }
@@ -1134,21 +1156,20 @@ export const handler = async (event) => {
 
         if (data.action === "getAvailableSlots") {
             try {
-                // OPERATIONAL SAFEGUARD: Cap availability through December 15, 2026
-                if (data.bookingDate && data.bookingDate > "2026-12-15") {
+                const accessToken = await getMsAccessToken();
+                if (!accessToken) {
+                    console.warn("getAvailableSlots: Microsoft Graph access token unavailable. Returning full master slots with sync notice.");
+                    const masterSlots = ["12:00 PM EST", "12:30 PM EST", "01:00 PM EST", "01:30 PM EST", "02:00 PM EST", "02:30 PM EST", "03:00 PM EST", "03:30 PM EST", "04:00 PM EST", "04:30 PM EST", "05:00 PM EST", "05:30 PM EST", "06:00 PM EST"];
                     return { 
                         statusCode: 200, 
                         headers: headers, 
                         body: JSON.stringify({ 
                             status: "SUCCESS", 
-                            slots: [], 
-                            message: "Consultation bookings for this cycle are closed. Bookings will resume after December 15, 2026." 
+                            liveSync: false,
+                            slots: masterSlots.map(timeStr => ({ time: timeStr, isAvailable: true })) 
                         }) 
                     };
                 }
-
-                const accessToken = await getMsAccessToken();
-                if (!accessToken) throw new Error("No MS Access Token");
 
                 const scheduleRes = await fetch(`https://graph.microsoft.com/v1.0/me/calendar/getSchedule`, {
                     method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json', 'Prefer': 'outlook.timezone="Eastern Standard Time"' },
@@ -1161,6 +1182,11 @@ export const handler = async (event) => {
                 });
 
                 const scheduleData = await scheduleRes.json();
+                if (scheduleData.error) {
+                    console.error("Microsoft Graph getSchedule error response:", scheduleData.error);
+                    throw new Error(scheduleData.error.message || "Graph schedule error");
+                }
+
                 const busyItems = (scheduleData?.value?.[0]?.scheduleItems || []).filter(item => ["busy", "oof", "tentative"].includes((item.status || "").toLowerCase()));
 
                 const masterSlots = ["12:00 PM EST", "12:30 PM EST", "01:00 PM EST", "01:30 PM EST", "02:00 PM EST", "02:30 PM EST", "03:00 PM EST", "03:30 PM EST", "04:00 PM EST", "04:30 PM EST", "05:00 PM EST", "05:30 PM EST", "06:00 PM EST"];
@@ -1174,34 +1200,53 @@ export const handler = async (event) => {
                             try {
                                 const startParts = (busy.start.dateTime.includes("T") ? busy.start.dateTime.split("T")[1] : busy.start.dateTime).split(":");
                                 const endParts = (busy.end.dateTime.includes("T") ? busy.end.dateTime.split("T")[1] : busy.end.dateTime).split(":");
-                                if (slotDecimal >= (parseInt(startParts[0]) + (parseInt(startParts[1]) / 60)) && slotDecimal < (parseInt(endParts[0]) + (parseInt(endParts[1]) / 60))) isBusy = true;
+                                const startDec = parseInt(startParts[0]) + (parseInt(startParts[1]) / 60);
+                                const endDec = parseInt(endParts[0]) + (parseInt(endParts[1]) / 60);
+                                if (slotDecimal >= startDec && slotDecimal < endDec) isBusy = true;
                             } catch (e) { }
                         }
                     });
                     return { time: timeStr, isAvailable: !isBusy };
                 });
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: processedSlots }) };
+                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", liveSync: true, slots: processedSlots }) };
             } catch (err) {
-                return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS", slots: [{ time: "12:00 PM EST", isAvailable: true }, { time: "01:00 PM EST", isAvailable: true }] }) };
+                console.error("getAvailableSlots fallback triggered:", err.message);
+                const masterSlots = ["12:00 PM EST", "12:30 PM EST", "01:00 PM EST", "01:30 PM EST", "02:00 PM EST", "02:30 PM EST", "03:00 PM EST", "03:30 PM EST", "04:00 PM EST", "04:30 PM EST", "05:00 PM EST", "05:30 PM EST", "06:00 PM EST"];
+                return { 
+                    statusCode: 200, 
+                    headers: headers, 
+                    body: JSON.stringify({ 
+                        status: "SUCCESS", 
+                        liveSync: false,
+                        slots: masterSlots.map(timeStr => ({ time: timeStr, isAvailable: true })) 
+                    }) 
+                };
             }
         }
 
         if (data.action === "createBooking" || data.action === "submitBooking") {
             try {
-                // OPERATIONAL SAFEGUARD: Reject bookings past Dec 15, 2026
-                if (data.bookingDate && data.bookingDate > "2026-12-15") {
-                    return { 
-                        statusCode: 400, 
-                        headers: headers, 
-                        body: JSON.stringify({ 
-                            status: "ERROR", 
-                            message: "Consultations for the current cycle are only accepted through December 15, 2026." 
-                        }) 
-                    };
-                }
+                const isPreDec15 = data.bookingDate && data.bookingDate <= "2026-12-15";
+                let meetingType = data.meetingType || "Microsoft Teams Video";
 
-                // Force Microsoft Teams Video during operational window through Dec 15
-                data.meetingType = "Microsoft Teams Video";
+                // In-office consultations are paused through December 15, 2026
+                if (isPreDec15) {
+                    if (meetingType.toLowerCase().includes("office")) {
+                        return { 
+                            statusCode: 400, 
+                            headers: headers, 
+                            body: JSON.stringify({ 
+                                status: "ERROR", 
+                                message: "In-office consultations are paused through December 15, 2026. Consultations during this period are conducted exclusively via Microsoft Teams." 
+                            }) 
+                        };
+                    }
+                    meetingType = "Microsoft Teams Video";
+                } else {
+                    if (!meetingType) meetingType = "Microsoft Teams Video";
+                }
+                data.meetingType = meetingType;
+                const isTeams = meetingType.toLowerCase().includes("teams");
 
                 let msEventId = null;
                 const accessToken = await getMsAccessToken();
@@ -1212,29 +1257,40 @@ export const handler = async (event) => {
                         if (ampm === "PM" && hours !== 12) hours += 12; if (ampm === "AM" && hours === 12) hours = 0;
                         const endMinutes = minutes + 30; const endHours = endMinutes >= 60 ? hours + 1 : hours;
 
-                        // Check if client selected MS Teams (or auto-enforced)
-                        const isTeams = true;
-
                         const eventPayload = {
                             subject: `FiscalX Consultation: ${data.fullName}`,
-                            body: { contentType: "HTML", content: `<p>Client Email: ${data.email}</p><p>Format: Microsoft Teams Video</p>` },
+                            body: { 
+                                contentType: "HTML", 
+                                content: `<p><strong>Client:</strong> ${data.fullName}</p><p><strong>Email:</strong> ${data.email}</p><p><strong>Phone:</strong> ${data.phone || 'Not Provided'}</p><p><strong>Service:</strong> ${data.taxType || data.service || 'General Inquiry'}</p><p><strong>Format:</strong> ${data.meetingType}</p>` 
+                            },
                             start: { dateTime: `${data.bookingDate}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`, timeZone: "Eastern Standard Time" },
                             end: { dateTime: `${data.bookingDate}T${endHours.toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}:00`, timeZone: "Eastern Standard Time" },
-                            attendees: [{ emailAddress: { address: data.email }, type: "required" }]
+                            attendees: [
+                                { emailAddress: { address: data.email }, type: "required" },
+                                { emailAddress: { address: OFFICE_EMAIL }, type: "required" }
+                            ]
                         };
 
-                        // The "Magic Switch" to auto-generate the MS Teams Video Link
                         if (isTeams) {
                             eventPayload.isOnlineMeeting = true;
                             eventPayload.onlineMeetingProvider = "teamsForBusiness";
+                        } else {
+                            eventPayload.location = { displayName: "FiscalX Office: 255 Duncan Mill Rd, Suite 206, North York, ON M3B 3H9" };
                         }
 
                         const graphRes = await fetch(`https://graph.microsoft.com/v1.0/me/events`, {
                             method: "POST", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
                             body: JSON.stringify(eventPayload)
                         });
-                        if (graphRes.ok) { msEventId = (await graphRes.json()).id; }
-                    } catch (e) { }
+                        if (graphRes.ok) { 
+                            const graphJson = await graphRes.json();
+                            msEventId = graphJson.id; 
+                        } else {
+                            console.error("Microsoft Graph Event Creation failed:", await graphRes.text());
+                        }
+                    } catch (e) {
+                        console.error("Failed to create MS Graph calendar event:", e);
+                    }
                 }
 
                 const bookingTimestamp = new Date().toISOString();
@@ -1249,6 +1305,7 @@ export const handler = async (event) => {
                         clientName: data.fullName, 
                         bookingDate: data.bookingDate, 
                         bookingTime: data.bookingTime, 
+                        meetingType: data.meetingType,
                         msEventId: msEventId, 
                         campaignStatus: "Pending", 
                         paymentConfirmed: false, 
@@ -1263,9 +1320,81 @@ export const handler = async (event) => {
                         }
                     } 
                 }));
+
+                // ==============================================================
+                // SEND REAL-TIME EMAIL NOTIFICATION TO RECEPTIONIST / OFFICE
+                // ==============================================================
+                try {
+                    const officeEmailHtml = `
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                            <h2 style="color: #059669; margin: 0 0 4px 0; font-size: 20px;">📅 New Consultation Scheduled</h2>
+                            <p style="font-size: 14px; color: #64748b; margin-top: 0;">A client has confirmed an appointment via the FiscalX portal.</p>
+                            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 16px 0;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 14px; background-color: #ffffff; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0;">
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 14px; font-weight: bold; color: #475569; width: 140px; background-color: #f8fafc;">Client Name:</td><td style="padding: 10px 14px; color: #0f172a; font-weight: 600;">${data.fullName}</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 14px; font-weight: bold; color: #475569; background-color: #f8fafc;">Client Email:</td><td style="padding: 10px 14px;"><a href="mailto:${data.email}" style="color: #0284c7; text-decoration: none;">${data.email}</a></td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 14px; font-weight: bold; color: #475569; background-color: #f8fafc;">Telephone:</td><td style="padding: 10px 14px; font-family: monospace;">${data.phone || 'Not Provided'}</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 14px; font-weight: bold; color: #475569; background-color: #f8fafc;">Service Type:</td><td style="padding: 10px 14px;">${data.taxType || data.service || 'General Inquiry'}</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 14px; font-weight: bold; color: #475569; background-color: #f8fafc;">Appointment Date:</td><td style="padding: 10px 14px; font-weight: bold; color: #0f172a;">${data.bookingDate}</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 14px; font-weight: bold; color: #475569; background-color: #f8fafc;">Time Slot:</td><td style="padding: 10px 14px; font-weight: bold; color: #0f172a;">${data.bookingTime}</td></tr>
+                                <tr><td style="padding: 10px 14px; font-weight: bold; color: #475569; background-color: #f8fafc;">Meeting Format:</td><td style="padding: 10px 14px; font-weight: bold; color: ${isTeams ? '#0284c7' : '#059669'};">${data.meetingType}</td></tr>
+                            </table>
+                            <div style="text-align: center; margin: 24px 0 10px 0;">
+                                <a href="https://www.fiscalx.ca/admin/" target="_blank" style="background-color: #059669; color: #ffffff; text-decoration: none; padding: 12px 26px; font-weight: bold; font-size: 14px; border-radius: 8px; display: inline-block;">Open Administrative CRM</a>
+                            </div>
+                        </div>
+                    `;
+                    await ses.send(new SendEmailCommand({
+                        Source: SENDER_EMAIL,
+                        Destination: { ToAddresses: [OFFICE_EMAIL] },
+                        Message: {
+                            Subject: { Charset: "UTF-8", Data: `[Booking Alert] ${data.fullName} - ${data.bookingDate} at ${data.bookingTime}` },
+                            Body: { Html: { Charset: "UTF-8", Data: officeEmailHtml } }
+                        }
+                    }));
+                } catch (officeMailErr) {
+                    console.error("Failed to send booking notification email to receptionist:", officeMailErr.message);
+                }
+
+                // ==============================================================
+                // SEND REAL-TIME CONFIRMATION RECEIPT TO CLIENT
+                // ==============================================================
+                if (data.email) {
+                    try {
+                        const clientReceiptHtml = `
+                            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+                                <h2 style="color: #059669; margin: 0 0 4px 0; font-size: 20px;">FiscalX Professional Corporation</h2>
+                                <p style="font-size: 14px; color: #64748b; margin-top: 0;">Consultation Appointment Confirmed</p>
+                                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 16px 0;">
+                                <p style="font-size: 15px; color: #334155;">Hello <strong>${data.fullName}</strong>,</p>
+                                <p style="font-size: 14px; color: #475569; line-height: 1.5;">Your consultation appointment with Wasim Kadri, CPA has been successfully scheduled:</p>
+                                <table style="width: 100%; border-collapse: collapse; font-size: 14px; background-color: #ffffff; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; margin: 16px 0;">
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 14px; font-weight: bold; color: #475569; width: 140px; background-color: #f8fafc;">Date:</td><td style="padding: 10px 14px; font-weight: bold; color: #0f172a;">${data.bookingDate}</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 14px; font-weight: bold; color: #475569; background-color: #f8fafc;">Time:</td><td style="padding: 10px 14px; font-weight: bold; color: #0f172a;">${data.bookingTime}</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 14px; font-weight: bold; color: #475569; background-color: #f8fafc;">Format:</td><td style="padding: 10px 14px; font-weight: bold; color: ${isTeams ? '#0284c7' : '#059669'};">${data.meetingType}</td></tr>
+                                    <tr><td style="padding: 10px 14px; font-weight: bold; color: #475569; background-color: #f8fafc;">Service:</td><td style="padding: 10px 14px;">${data.taxType || data.service || 'Tax & Accounting Consultation'}</td></tr>
+                                </table>
+                                ${isTeams ? `<p style="font-size: 13px; color: #1e3a8a; background-color: #eff6ff; padding: 12px; border-radius: 8px; border: 1px solid #bfdbfe; margin: 16px 0;">📹 <strong>Virtual Meeting:</strong> A Microsoft Teams video consultation has been scheduled. You can join directly from your calendar invite or email link at your scheduled time.</p>` : `<p style="font-size: 13px; color: #14532d; background-color: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0; margin: 16px 0;">🏢 <strong>In-Office Consultation:</strong> We look forward to meeting you at our offices: <strong>255 Duncan Mill Rd, Suite 206, North York, ON M3B 3H9</strong>.</p>`}
+                                <p style="font-size: 13px; color: #64748b; margin-top: 18px;">Need to modify your appointment? Reach our office directly at <a href="tel:16474509235" style="color: #059669; font-weight: bold;">(647) 450-9235</a> or reply to this email.</p>
+                            </div>
+                        `;
+                        await ses.send(new SendEmailCommand({
+                            Source: SENDER_EMAIL,
+                            Destination: { ToAddresses: [data.email] },
+                            Message: {
+                                Subject: { Charset: "UTF-8", Data: `Appointment Confirmed: FiscalX Consultation on ${data.bookingDate}` },
+                                Body: { Html: { Charset: "UTF-8", Data: clientReceiptHtml } }
+                            }
+                        }));
+                    } catch (clientMailErr) {
+                        console.error("Failed to send booking receipt to client email:", clientMailErr.message);
+                    }
+                }
+
                 return { statusCode: 200, headers: headers, body: JSON.stringify({ status: "SUCCESS" }) };
             } catch (err) {
-                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR" }) };
+                console.error("createBooking Exception:", err);
+                return { statusCode: 500, headers: headers, body: JSON.stringify({ status: "ERROR", message: err.message }) };
             }
         }
 

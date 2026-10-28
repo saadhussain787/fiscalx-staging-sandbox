@@ -18,15 +18,17 @@ if (dashDatePicker) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split("T")[0];
   dashDatePicker.setAttribute("min", tomorrowStr);
-  dashDatePicker.setAttribute("max", "2026-12-15");
+  const maxRolling = new Date();
+  maxRolling.setDate(maxRolling.getDate() + 60);
+  dashDatePicker.setAttribute("max", maxRolling.toISOString().split("T")[0]);
 }
 
 function updateDashMeetingType(type, activeBtn, inactiveBtn) {
   dashMeetingType = type;
   activeBtn.className =
-    "border border-brand-500 bg-brand-500 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm";
+    "border-2 border-brand-500 bg-brand-50 text-brand-700 font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm cursor-pointer";
   inactiveBtn.className =
-    "border border-slate-300 bg-white text-slate-700 hover:border-brand-500 font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm";
+    "border border-slate-300 bg-white text-slate-700 hover:border-brand-500 font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm cursor-pointer";
   if (dashBookingTime)
     dashSelectedDisplay.innerText = `${dashMeetingType} on ${dashBookingDate} at ${dashBookingTime}`;
 }
@@ -37,7 +39,15 @@ if (dashBtnTeams && dashBtnOffice) {
   );
   dashBtnOffice.addEventListener("click", (e) => {
     e.preventDefault();
-    alert("In-office visits are temporarily paused until December 15, 2026. All consultations are being held virtually via Microsoft Teams.");
+    if (dashBookingDate && dashBookingDate <= "2026-12-15") {
+      alert("In-office visits are temporarily paused through December 15, 2026. Consultations during this period are held virtually via Microsoft Teams. Please select a date after December 15 for an in-office appointment.");
+      return;
+    }
+    if (!dashBookingDate) {
+      alert("Please select your consultation date first. In-office appointments are open for dates after December 15, 2026.");
+      return;
+    }
+    updateDashMeetingType("In-Office", dashBtnOffice, dashBtnTeams);
   });
 }
 
@@ -60,17 +70,26 @@ if (dashDatePicker) {
       return;
     }
 
-    if (e.target.value > "2026-12-15") {
-      alert(
-        "Consultation slots are available through December 15, 2026. Please select an earlier date on or before December 15.",
-      );
-      dashDatePicker.value = "";
-      dashSlotContainer.classList.add("hidden");
-      dashConfirmation.classList.add("hidden");
-      return;
+    dashBookingDate = e.target.value;
+
+    // Dynamic Format Availability Based on Dec 15 Boundary
+    const isDatePreDec15 = (dashBookingDate <= "2026-12-15");
+    if (isDatePreDec15) {
+      dashMeetingType = "Microsoft Teams";
+      dashBtnTeams.className = "border-2 border-brand-500 bg-brand-50 text-brand-700 font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm cursor-pointer";
+      dashBtnOffice.className = "border border-slate-200 bg-slate-100 text-slate-400 font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm opacity-70";
+      dashBtnOffice.innerHTML = `🏢 In-Office <span class="text-[10px] font-bold text-amber-700 bg-amber-100/90 px-2 py-0.5 rounded-full border border-amber-300">Paused until Dec 15</span>`;
+    } else {
+      dashBtnOffice.innerHTML = `🏢 In-Office Consultation`;
+      if (dashMeetingType === "In-Office") {
+        dashBtnOffice.className = "border-2 border-brand-500 bg-brand-50 text-brand-700 font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm cursor-pointer";
+        dashBtnTeams.className = "border border-slate-300 bg-white text-slate-700 hover:border-brand-500 font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm cursor-pointer";
+      } else {
+        dashBtnTeams.className = "border-2 border-brand-500 bg-brand-50 text-brand-700 font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm cursor-pointer";
+        dashBtnOffice.className = "border border-slate-300 bg-white text-slate-700 hover:border-brand-500 font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm cursor-pointer";
+      }
     }
 
-    dashBookingDate = e.target.value;
     dashConfirmation.classList.add("hidden");
     // Glassmorphic Skeleton Shimmer for loading slots
     dashTimeSlots.innerHTML = `
